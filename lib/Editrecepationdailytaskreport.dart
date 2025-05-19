@@ -1,0 +1,497 @@
+// 📦 Imports
+import 'package:file_picker/file_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:path/path.dart' as p;
+
+class EditReceptionReportScreen extends StatefulWidget {
+  final String docId;
+  final Map<String, dynamic> reportData;
+
+  const EditReceptionReportScreen({
+    super.key,
+    required this.docId,
+    required this.reportData,
+  });
+
+  @override
+  State<EditReceptionReportScreen> createState() => _EditReceptionReportScreenState();
+}
+
+class _EditReceptionReportScreenState extends State<EditReceptionReportScreen> {
+  final Map<String, TextEditingController> controllers = {};
+  final List<String> serviceStatuses = ["Pending", "In Progress", "Completed"];
+
+  List<Map<String, dynamic>> uploadedFiles = [];
+  List<Map<String, dynamic>> deletedFiles = [];
+  Map<String, String> renamedFiles = {};
+
+  @override
+  void initState() {
+    super.initState();
+    widget.reportData.forEach((key, value) {
+      if (key != 'userId' && (value is String || value == null)) {
+        controllers[key] = TextEditingController(text: value ?? '');
+      }
+    });
+
+    if (widget.reportData['uploadedFiles'] != null &&
+        widget.reportData['uploadedFiles'] is List) {
+      uploadedFiles = List<Map<String, dynamic>>.from(widget.reportData['uploadedFiles']);
+    }
+  }
+
+  @override
+  void dispose() {
+    for (var controller in controllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  void _deleteFile(Map<String, dynamic> file) {
+    setState(() {
+      deletedFiles.add(file);
+      uploadedFiles.remove(file);
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('File marked for deletion.')),
+    );
+  }
+
+  void _renameFile(Map<String, dynamic> file) async {
+    String? newName = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        final TextEditingController nameController =
+        TextEditingController(text: file['fileName']);
+        return AlertDialog(
+          title: const Text("Rename File"),
+          content: TextField(
+            controller: nameController,
+            decoration: const InputDecoration(labelText: "New File Name"),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, nameController.text.trim()),
+              child: const Text("Rename"),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (newName != null && newName.isNotEmpty) {
+      setState(() {
+        renamedFiles[file['fileName']] = newName;
+        file['fileName'] = newName;
+      });
+    }
+  }
+
+  void _replaceFile(Map<String, dynamic> oldFile) async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(withData: true);
+
+    if (result != null && result.files.single.bytes != null) {
+      final fileBytes = result.files.single.bytes!;
+      final fileName = result.files.single.name;
+      final extension = p.extension(fileName).replaceAll('.', '');
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('uploaded_reports/${DateTime.now().millisecondsSinceEpoch}_$fileName');
+
+      try {
+        final uploadTask = await storageRef.putData(fileBytes);
+        final downloadUrl = await uploadTask.ref.getDownloadURL();
+
+        final newFile = {
+          'downloadUrl': downloadUrl,
+          'fileName': fileName,
+          'fileType': extension,
+        };
+
+        deletedFiles.add(oldFile);
+
+        setState(() {
+          final index = uploadedFiles.indexOf(oldFile);
+          if (index != -1) {
+            uploadedFiles[index] = newFile;
+          }
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('File replaced successfully!')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error replacing file: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _submit() async {
+    Map<String, dynamic> updatedData = {};
+
+    controllers.forEach((key, controller) {
+      updatedData[key] = controller.text.trim();
+    });
+
+    updatedData['uploadedFiles'] = uploadedFiles;
+
+    try {
+      for (var file in deletedFiles) {
+        try {
+          final ref = FirebaseStorage.instance.refFromURL(file['downloadUrl']);
+          await ref.delete();
+        } catch (e) {
+          print("Failed to delete ${file['fileName']}: $e");
+        }
+      }
+
+      await FirebaseFirestore.instance
+          .collection('DailyTaskReport')
+          .doc(widget.docId)
+          .update(updatedData);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Report updated successfully!')),
+      );
+      Navigator.pop(context);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Update failed: $e')),
+      );
+    }
+  }
+
+  Widget _buildFileTile(Map<String, dynamic> file) {
+    final String url = file['downloadUrl'] ?? '';
+    final String fileType = (file['fileType'] ?? '').toLowerCase();
+    final String fileName = file['fileName'] ?? 'Unnamed';
+    final isImage = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].contains(fileType);
+
+    return GestureDetector(
+      onTap: () {
+        showModalBottomSheet(
+          context: context,
+          backgroundColor: Colors.blue.shade900,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          builder: (context) => Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(fileName, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _replaceFile(file);
+                  },
+                  icon: const Icon(Icons.swap_horiz),
+                  label: const Text("Replace File"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.teal,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _renameFile(file);
+                  },
+                  icon: const Icon(Icons.edit),
+                  label: const Text("Rename File"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _deleteFile(file);
+                  },
+                  icon: const Icon(Icons.delete),
+                  label: const Text("Delete File"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ElevatedButton.icon(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                  label: const Text("Close"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+      child: Container(
+        width: 120,
+        margin: const EdgeInsets.only(right: 10),
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.1),
+          border: Border.all(color: Colors.blue),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Column(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: isImage
+                  ? Image.network(
+                url,
+                width: 100,
+                height: 70,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) =>
+                const Icon(Icons.broken_image, color: Colors.white),
+              )
+                  : Icon(
+                fileType == 'pdf'
+                    ? Icons.picture_as_pdf
+                    : Icons.insert_drive_file,
+                color: Colors.white,
+                size: 50,
+              ),
+            ),
+            const SizedBox(height: 5),
+            Text(
+              fileName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white, fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _addFile() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(withData: true);
+
+    if (result != null && result.files.single.bytes != null) {
+      final fileBytes = result.files.single.bytes!;
+      final fileName = result.files.single.name;
+      final extension = p.extension(fileName).replaceAll('.', '');
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('uploaded_reports/${DateTime.now().millisecondsSinceEpoch}_$fileName');
+
+      try {
+        final uploadTask = await storageRef.putData(fileBytes);
+        final downloadUrl = await uploadTask.ref.getDownloadURL();
+
+        final newFile = {
+          'downloadUrl': downloadUrl,
+          'fileName': fileName,
+          'fileType': extension,
+        };
+
+        setState(() {
+          uploadedFiles.add(newFile);
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            content: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.blue.shade600, Colors.blue.shade900],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Text(
+                'File uploaded successfully!',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Upload failed: $e')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        gradient: LinearGradient(
+          colors: [Colors.blue.shade900, Colors.blue.shade700],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(FontAwesomeIcons.tasks, color: Colors.white),
+              const SizedBox(width: 10),
+              const Text(
+                "Edit Your Tasks",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 24,
+                  letterSpacing: 1.5,
+                  color: Colors.white,
+                  fontFamily: 'Roboto',
+                ),
+              ),
+            ],
+          ),
+          centerTitle: true,
+          iconTheme: const IconThemeData(color: Colors.white),
+          backgroundColor: Colors.transparent,
+          elevation: 8,
+          flexibleSpace: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Colors.blue.shade900, Colors.indigo.shade700],
+              ),
+            ),
+          ),
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              for (var entry in controllers.entries)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: entry.key == 'service_status'
+                      ? DropdownButtonFormField<String>(
+                    value: entry.value.text.isNotEmpty ? entry.value.text : null,
+                    onChanged: (value) {
+                      setState(() {
+                        entry.value.text = value!;
+                      });
+                    },
+                    items: serviceStatuses
+                        .map((status) => DropdownMenuItem(
+                      value: status,
+                      child: Text(status),
+                    ))
+                        .toList(),
+                    decoration: InputDecoration(
+                      labelText: 'Service Status',
+                      labelStyle: TextStyle(color: Colors.blue.shade900),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    dropdownColor: Colors.blue.shade900,
+                    style: TextStyle(color: Colors.blue.shade900),
+                  )
+                      : TextField(
+                    controller: entry.value,
+                    readOnly: ['employeeName', 'Service_department', 'employeeId']
+                        .contains(entry.key),
+                    style: TextStyle(color: Colors.blue.shade900),
+                    decoration: InputDecoration(
+                      labelText: entry.key.replaceAll("_", " ").toUpperCase(),
+                      labelStyle: TextStyle(
+                        color: Colors.blue.shade900,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      filled: true,
+                      fillColor: ['employeeName', 'Service_department', 'employeeId']
+                          .contains(entry.key)
+                          ? Colors.grey.shade200
+                          : Colors.white,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 20),
+              if (uploadedFiles.isNotEmpty) ...[
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    "Attached Files:",
+                    style: TextStyle(
+                      color: Colors.blue.shade900,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  height: 120,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: uploadedFiles.length,
+                    itemBuilder: (context, index) =>
+                        _buildFileTile(uploadedFiles[index]),
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ],
+              ElevatedButton.icon(
+                onPressed: _addFile,
+                icon: const Icon(Icons.add),
+                label: const Text("Add File"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue.shade900,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: _submit,
+                icon: const Icon(Icons.save, color: Colors.white),
+                label: const Text(
+                  "Submit",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue.shade900,
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
