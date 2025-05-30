@@ -3,10 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
-
 import 'Editrecepationdailytaskreport.dart';
 import 'FileViwerscreen.dart';
-
 
 class DailyReportRecordOfSales extends StatefulWidget {
   const DailyReportRecordOfSales({super.key});
@@ -16,21 +14,79 @@ class DailyReportRecordOfSales extends StatefulWidget {
       _DailyReportRecordOfSalesState();
 }
 
-class _DailyReportRecordOfSalesState
-    extends State<DailyReportRecordOfSales> {
-
+class _DailyReportRecordOfSalesState extends State<DailyReportRecordOfSales> {
   final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+  String searchQuery = '';
+  DateTime? selectedDate;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar:AppBar(
+      appBar: AppBar(
         title: const Text(
           "Daily Task Report",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
         backgroundColor: Colors.blue.shade900,
-        iconTheme: IconThemeData(color: Colors.white),
+        iconTheme: const IconThemeData(color: Colors.white),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(60),
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade700,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: TextField(
+                      style: const TextStyle(color: Colors.white),
+                      onChanged: (value) {
+                        setState(() {
+                          searchQuery = value.trim().toLowerCase();
+                        });
+                      },
+                      decoration: const InputDecoration(
+                        hintText: 'Search Task Title',
+                        hintStyle: TextStyle(color: Colors.white54),
+                        border: InputBorder.none,
+                        icon: Icon(Icons.search, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade700,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.date_range, color: Colors.white),
+                    onPressed: () async {
+                      DateTime? picked = await showDatePicker(
+                        context: context,
+                        initialDate: DateTime.now(),
+                        firstDate: DateTime(2023),
+                        lastDate: DateTime(2100),
+                      );
+                      if (picked != null) {
+                        setState(() {
+                          selectedDate = picked;
+                        });
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
@@ -44,19 +100,41 @@ class _DailyReportRecordOfSalesState
             return const Center(child: Text("Error fetching data."));
           }
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: Colors.white,));
+            return const Center(child: CircularProgressIndicator());
           }
 
-          final reports = snapshot.data!.docs;
+          final allReports = snapshot.data!.docs;
+          final filteredReports = allReports.where((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            final title = (data['taskTitle'] ?? '').toString().toLowerCase();
 
-          if (reports.isEmpty) {
-            return const Center(child: Text("No reports found."));
+            final matchesSearch = title.contains(searchQuery);
+            final matchesDate = selectedDate == null ||
+                (data['date'] != null &&
+                    DateFormat('yyyy-MM-dd')
+                        .format((data['date'] as Timestamp).toDate()) ==
+                        DateFormat('yyyy-MM-dd').format(selectedDate!));
+
+            return matchesSearch && matchesDate;
+          }).toList();
+
+          if (filteredReports.isEmpty) {
+            return const Center(
+              child: Text(
+                "No Data Found!",
+                style: TextStyle(
+                  fontFamily: 'Times New Roman',
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            );
           }
 
           return ListView.builder(
-            itemCount: reports.length,
+            itemCount: filteredReports.length,
             itemBuilder: (context, index) {
-              final doc = reports[index];
+              final doc = filteredReports[index];
               final report = doc.data() as Map<String, dynamic>;
               final docId = doc.id;
               return _buildReportCard(report, docId);
@@ -64,7 +142,6 @@ class _DailyReportRecordOfSalesState
           );
         },
       ),
-
     );
   }
 
@@ -94,7 +171,7 @@ class _DailyReportRecordOfSalesState
               _buildTaskDetail('Service Status', task['service_status']),
               _buildTaskDetail('Location', task['location']),
               _buildTaskDetail(
-                'Date',
+                'SubmittedDate',
                 task['date'] != null
                     ? DateFormat('dd MMM yyyy').format((task['date'] as Timestamp).toDate())
                     : '',
@@ -158,18 +235,11 @@ class _DailyReportRecordOfSalesState
                             ].contains(fileType);
 
                             return GestureDetector(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => FileViewerScreen(
-                                      url: url,
-                                      fileType: fileType,
-                                    ),
-                                  ),
-                                );
+                              onTap: () async {
+                                if (await canLaunchUrl(Uri.parse(url))) {
+                                  await launchUrl(Uri.parse(url));
+                                }
                               },
-
                               child: Container(
                                 width: 120,
                                 margin: const EdgeInsets.only(right: 10),
@@ -247,7 +317,6 @@ class _DailyReportRecordOfSalesState
       ),
     );
   }
-
 
   Widget _buildTaskDetail(String title, dynamic value) {
     if (value == null || value.toString().trim().isEmpty) return const SizedBox();

@@ -25,6 +25,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final ImagePicker _picker = ImagePicker();
   XFile? _imageFile;
   bool _hasProfile = false;
+  bool _showAddIcon = false;
+  bool _loading = true;
   final Set<String> _shownTaskIds = {};
   late AnimationController _animationController;
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
@@ -45,12 +47,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final Map<String, bool> _selectedCategories = {};
   bool _isSubmitting = false;
   final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-
   final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
   @override
   void initState() {
     super.initState();
     _initializeCategories();
+    userId = FirebaseAuth.instance.currentUser!.uid;
     _checkProfile();
     initNotifications();
   }
@@ -155,8 +157,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-
-
   void checkTaskAssignment2(String empId) async {
     QuerySnapshot taskSnapshot = await FirebaseFirestore.instance.collection('TaskAssign').get();
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -176,15 +176,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-
   Future<void> _checkProfile() async {
     User? user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
-    DocumentSnapshot doc = await FirebaseFirestore.instance.collection('EmpProfile') .doc(userId).get();
+
+    DocumentSnapshot doc = await FirebaseFirestore.instance
+        .collection('EmpProfile')
+        .doc(user.uid)
+        .get();
+
+    bool profileExists = doc.exists;
+
     setState(() {
-      _hasProfile = doc.exists;
+      _hasProfile = profileExists;
+      _loading = false;
     });
+
+    if (!profileExists) {
+      setState(() => _showAddIcon = true);
+      Future.delayed(const Duration(seconds: 0), () {
+        if (mounted) setState(() => _showAddIcon = false);
+      });
+    }
   }
+
 
   Future<void> _pickImage(ImageSource source) async {
     try {
@@ -278,20 +293,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
         centerTitle: true,
         backgroundColor: Colors.blue,
         iconTheme: const IconThemeData(color: Colors.white),
-        actions: _hasProfile
-            ? null
-            : [
+        actions: _showAddIcon
+            ? [
           IconButton(
             icon: const Icon(Icons.person_add, color: Colors.white),
             tooltip: 'Add Profile',
-            onPressed: () {
-              Navigator.push(
+            onPressed: () async {
+              await Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => AddProfilePage()),
-              ).then((_) => _checkProfile());
+              );
+              _checkProfile();
             },
           ),
-        ],
+        ]
+            : null,
       ),
       body: StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance

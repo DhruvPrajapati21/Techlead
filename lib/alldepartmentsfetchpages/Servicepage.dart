@@ -9,7 +9,6 @@ class ServicePageList extends StatefulWidget {
 }
 
 class _ServicePageListState extends State<ServicePageList> {
-  // Categorized services for Residential and Commercial
   final Map<String, Map<String, IconData>> categorizedProducts = {
     'Residential': {
       'Smart Lights': FontAwesomeIcons.lightbulb,
@@ -90,7 +89,7 @@ class _ServicePageListState extends State<ServicePageList> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.blue,
-        title: Text('Smart Products for Residential & Commercial',style: TextStyle(fontWeight: FontWeight.bold,color: Colors.white,fontFamily: "Times New Roman")),
+        title: Text('Smart Products for Residential & Commercial',style: TextStyle(fontWeight: FontWeight.bold,color: Colors.white,fontFamily: "Times New Roman",fontSize: 11)),
         centerTitle: true,
         iconTheme: IconThemeData(color: Colors.white),
       ),

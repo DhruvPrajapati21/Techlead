@@ -10,6 +10,7 @@ Widget buildTextField({
   required IconData icon,
   TextInputType keyboardType = TextInputType.text,
   int maxLines = 1,
+  bool readOnly = false, // <-- Added
   FormFieldValidator<String>? validator,
 }) {
   return Container(
@@ -33,6 +34,7 @@ Widget buildTextField({
       controller: controller,
       keyboardType: keyboardType,
       maxLines: maxLines,
+      readOnly: readOnly, // <-- Applied here
       style: TextStyle(
         fontSize: 16,
         color: Colors.cyan.shade100,
@@ -60,6 +62,7 @@ Widget buildTextField({
     ),
   );
 }
+
 
 Widget buildLeaveField({
   required TextEditingController controller,
@@ -144,16 +147,15 @@ Widget buildDropdownField({
         BoxShadow(
           color: Colors.blue.shade900.withOpacity(0.2),
           blurRadius: 10,
-          offset: Offset(0, 4),
+          offset: const Offset(0, 4),
         ),
       ],
     ),
-    padding: EdgeInsets.symmetric(horizontal: 8),
+    padding: const EdgeInsets.symmetric(horizontal: 8),
     child: DropdownButtonFormField<String>(
-      isExpanded: true,
       value: value,
       iconEnabledColor: Colors.white,
-      style: TextStyle(
+      style: const TextStyle(
         fontSize: 16,
         color: Colors.white,
       ),
@@ -161,38 +163,40 @@ Widget buildDropdownField({
         labelText: labelText,
         prefixIcon: Icon(icon, color: Colors.white),
         border: InputBorder.none,
-        contentPadding: EdgeInsets.all(10),
-        labelStyle: TextStyle(
+        contentPadding: const EdgeInsets.all(10),
+        labelStyle: const TextStyle(
           color: Colors.white,
         ),
       ),
       dropdownColor: Colors.blue.shade800,
-      items: items
-          .map(
-            (item) => DropdownMenuItem<String>(
+      isExpanded: true, // Important for long text support
+      items: items.map((item) {
+        return DropdownMenuItem<String>(
           value: item['text'],
           child: Row(
             children: [
-              Icon(item['icon'], color: Colors.cyan.shade100, size: 20),
-              SizedBox(width: 10),
-              Flexible(
+              Icon(item['icon'], color: Colors.cyan.shade100),
+              const SizedBox(width: 10),
+              Expanded(
                 child: Text(
                   item['text'],
                   style: TextStyle(color: Colors.cyan.shade100),
                   overflow: TextOverflow.ellipsis,
+                  softWrap: true,
                   maxLines: 2,
                 ),
               ),
             ],
           ),
-        ),
-      )
-          .toList(),
+        );
+      }).toList(),
       onChanged: onChanged,
       validator: validator,
     ),
   );
 }
+
+
 Widget buildMultiSelectDropdownField({
   required String labelText,
   required IconData icon,
@@ -216,46 +220,54 @@ Widget buildMultiSelectDropdownField({
         ),
       ],
     ),
-    padding: const EdgeInsets.symmetric(vertical: 6),
+    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
     child: DropdownSearch<String>.multiSelection(
       items: items,
       selectedItems: selectedItems,
       onChanged: onChanged,
       popupProps: PopupPropsMultiSelection.menu(
         showSearchBox: true,
-        showSelectedItems: true,
-        searchFieldProps: TextFieldProps(
-          decoration: InputDecoration(
-            hintText: "Search employees...",
-            hintStyle: const TextStyle(color: Colors.white70),
-            border: UnderlineInputBorder(
-              borderSide: const BorderSide(color: Colors.white),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            prefixIcon: const Icon(Icons.search, color: Colors.white),
-          ),
-          style: const TextStyle(color: Colors.white),
-        ),
+        showSelectedItems: false, // Hides the trailing checkbox
         itemBuilder: (context, item, isSelected) {
-          return Align(
-            alignment: Alignment.centerLeft,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Checkbox(
-                  value: isSelected,
-                  onChanged: (_) {},
-                  activeColor: Colors.blueAccent,
-                  side: const BorderSide(color: Colors.white),
-                ),
-                Text(
-                  item,
-                  style: const TextStyle(color: Colors.white),
-                ),
-              ],
+          return GestureDetector(
+            onTap: () {
+              List<String> newSelected = List.from(selectedItems);
+              if (isSelected) {
+                newSelected.remove(item);
+              } else {
+                newSelected.add(item);
+              }
+              onChanged(newSelected);
+            },
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              child: Row(
+                children: [
+
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      item,
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         },
+        searchFieldProps: TextFieldProps(
+          decoration: InputDecoration(
+            hintText: "Search employees...",
+            hintStyle: TextStyle(color: Colors.white70),
+            border: UnderlineInputBorder(
+              borderSide: BorderSide(color: Colors.white),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            prefixIcon: Icon(Icons.search, color: Colors.white),
+          ),
+          style: TextStyle(color: Colors.white),
+        ),
         menuProps: MenuProps(
           backgroundColor: Colors.blue.shade800,
           elevation: 8,
@@ -265,14 +277,14 @@ Widget buildMultiSelectDropdownField({
       dropdownDecoratorProps: DropDownDecoratorProps(
         dropdownSearchDecoration: InputDecoration(
           labelText: labelText,
-          labelStyle: const TextStyle(color: Colors.white),
+          labelStyle: TextStyle(color: Colors.white),
           prefixIcon: Icon(icon, color: Colors.white),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.all(10),
+          contentPadding: EdgeInsets.all(10),
         ),
-        baseStyle: const TextStyle(color: Colors.white),
+        baseStyle: TextStyle(color: Colors.white),
       ),
-      dropdownButtonProps: const DropdownButtonProps(
+      dropdownButtonProps: DropdownButtonProps(
         icon: Icon(Icons.arrow_drop_down, color: Colors.white),
       ),
     ),
@@ -437,14 +449,12 @@ Widget buildDatePickerField(
   );
 }
 
-
-// Time Picker widget with validator
 Widget buildTimePickerField(
     BuildContext context, {
       required String label,
       TimeOfDay? time,
       required VoidCallback onTap,
-      FormFieldValidator<String>? validator, // Add validator parameter
+      FormFieldValidator<String>? validator,
     }) {
   return GestureDetector(
     onTap: onTap,

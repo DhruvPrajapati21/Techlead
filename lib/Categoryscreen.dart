@@ -56,7 +56,7 @@ class Categoryscreen extends StatelessWidget {
           if (!snapshot.hasData || snapshot.data?.data() == null) {
             return const Center(
                 child: Text(
-                  'No profile data available!',
+                  'Please Fillout Profile right now!',
                   style: TextStyle(
                       fontFamily: "Times New Roman", fontWeight: FontWeight.bold),
                 ));
@@ -92,15 +92,21 @@ class CategoryGrid extends StatelessWidget {
       {'label': 'Digital Marketing', 'icon': Icons.trending_up, 'color': Colors.amber, 'screen': Digitalmarketinghomescreen()},
     ];
 
-    final filteredCategories = allCategories
+    List<Map<String, dynamic>> filteredCategories = allCategories
         .where((category) => userDepartments.contains(category['label']))
         .toList();
+
+    final servicesCategory = allCategories.firstWhere((category) => category['label'] == 'Services');
+    final alreadyIncluded = filteredCategories.any((category) => category['label'] == 'Services');
+    if (!alreadyIncluded) {
+      filteredCategories.add(servicesCategory);
+    }
 
     if (filteredCategories.isEmpty) {
       return const Center(
         child: Text(
           'No department cards assigned for your profile.',
-          style: TextStyle(fontWeight: FontWeight.bold,fontFamily: "Times New Roman"),
+          style: TextStyle(fontWeight: FontWeight.bold, fontFamily: "Times New Roman"),
         ),
       );
     }

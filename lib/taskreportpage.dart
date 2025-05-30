@@ -40,6 +40,7 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
   void initState() {
     super.initState();
     fetchUserName();
+    fetchUserDepartments();
   }
 
   DateTime _selectedDate = DateTime.now();
@@ -53,18 +54,19 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
   bool _isLoading = false;
   String? selectedServiceStatus;
   String? selectedDepartment;
+  bool isLoadingDepartments = true;
 
   List<String> serviceStatuses = ["Pending", "In Progress", "Completed"];
   List<String> serviceDepartment = [
-    "Digital Marketing",
-    "Sales",
-    "Installation",
-    "Human Resource",
-    "Reception",
-    "Account",
-    "Finance",
-    "Management",
-    "Social Media"
+    // "Digital Marketing",
+    // "Sales",
+    // "Installation",
+    // "Human Resource",
+    // "Reception",
+    // "Account",
+    // "Finance",
+    // "Management",
+    // "Social Media"
   ];
 
   Future<void> _selectDate(BuildContext context) async {
@@ -87,7 +89,6 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
   }
 
   Future<void> replaceFile(int index) async {
-    // Open the file picker to let the user choose a new file
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: [
@@ -103,20 +104,49 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
     );
 
     if (result != null) {
-      // Get the selected file
       PlatformFile file = result.files.first;
 
-      // Replace the old file with the new file
       setState(() {
-        selectedFiles[index] = File(file.path!); // Ensure path is not null
-        fileNames[index] = file.name; // Update the file name
-        fileTypes[index] = file.extension ?? 'unknown'; // Update the file type
+        selectedFiles[index] = File(file.path!);
+        fileNames[index] = file.name;
+        fileTypes[index] = file.extension ?? 'unknown';
       });
     } else {
-      // User canceled the file picker
+
       print("No file selected.");
     }
   }
+
+  Future<void> fetchUserDepartments() async {
+    try {
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        print("No authenticated user.");
+        return;
+      }
+
+      String userId = user.uid;
+      DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
+          .collection('EmpProfile')
+          .doc(userId)
+          .get();
+
+      if (userSnapshot.exists && userSnapshot.data() != null) {
+        final data = userSnapshot.data() as Map<String, dynamic>;
+        List<String> departments = List<String>.from(data['categories'] ?? []);
+
+        setState(() {
+          serviceDepartment = departments;
+          isLoadingDepartments = false;
+        });
+      } else {
+        print("User data not found.");
+      }
+    } catch (e) {
+      print("Error fetching departments: $e");
+    }
+  }
+
 
   Future<void> fetchUserName() async {
     try {
@@ -331,112 +361,155 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
   }
 
   Future<void> _submitReport() async {
-    if (_formKey.currentState!.validate()) {
+    if (!_formKey.currentState!.validate()) {
+      Fluttertoast.showToast(
+        msg: "Please fill out all required fields before submitting.",
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+        fontSize: 16.0,
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    if (_workController1.text.trim().isEmpty ||
+        _workController2.text.trim().isEmpty ||
+        _workController3.text.trim().isEmpty ||
+        _workController4.text.trim().isEmpty) {
+      Fluttertoast.showToast(
+        msg: "Please fill in all work log time slots.",
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+        fontSize: 16.0,
+      );
       setState(() {
-        _isLoading = true;
+        _isLoading = false;
+      });
+      return;
+    }
+
+    if (selectedFiles.isEmpty) {
+      Fluttertoast.showToast(
+        msg: "Please choose at least one file.",
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+        fontSize: 16.0,
+      );
+      setState(() {
+        _isLoading = false;
+      });
+      return;
+    }
+
+    try {
+      List<Map<String, dynamic>> uploadedFiles = [];
+
+      for (int index = 0; index < selectedFiles.length; index++) {
+        String fileName = fileNames[index];
+        File file = selectedFiles[index];
+        String fileType = fileTypes[index];
+
+        Uint8List fileBytes = await file.readAsBytes();
+        Reference storageRef = _storage.ref().child("DailyTaskReport/$fileName");
+
+        UploadTask uploadTask = storageRef.putData(fileBytes, SettableMetadata(
+          contentType: _getContentType(fileType),
+        ));
+
+        TaskSnapshot snapshot = await uploadTask;
+        String downloadUrl = await snapshot.ref.getDownloadURL();
+
+        uploadedFiles.add({
+          'fileName': fileName,
+          'fileType': fileType,
+          'downloadUrl': downloadUrl,
+        });
+      }
+
+      List<Map<String, String>> workLog = [
+        {"timeSlot": "10 AM - 12 PM", "description": _workController1.text},
+        {"timeSlot": "12 PM - 2 PM", "description": _workController2.text},
+        {"timeSlot": "2 PM - 6 PM", "description": _workController3.text},
+        {"timeSlot": "6 PM - 8 PM", "description": _workController4.text},
+      ];
+
+      final user = FirebaseAuth.instance.currentUser;
+      final userId = user?.uid ?? '';
+
+      Map<String, dynamic> reportData = {
+        'employeeId': _employeeIdController.text.trim(),
+        "employeeName": _employeeNameController.text.trim(),
+        "taskTitle": _taskTitleController.text.trim(),
+        "challenges": _challengesController.text.trim(),
+        "actionsTaken": _actionsTakenController.text.trim(),
+        "nextSteps": _nextStepsController.text.trim(),
+        "service_status": selectedServiceStatus,
+        "Service_department": selectedDepartment,
+        "location": _locationController.text.trim(),
+        "date": _selectedDate,
+        "uploadedFiles": uploadedFiles,
+        "workLog": workLog,
+        "userId": userId,
+        "timestamp": FieldValue.serverTimestamp(),
+      };
+
+      await FirebaseFirestore.instance.collection("DailyTaskReport").add(reportData);
+
+      Fluttertoast.showToast(
+        msg: "Task submitted successfully!",
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.green,
+        textColor: Colors.white,
+        fontSize: 16.0,
+      );
+
+      setState(() {
+        _isLoading = false;
       });
 
-      try {
-        List<Map<String, dynamic>> uploadedFiles = [];
+      _taskTitleController.clear();
+      _challengesController.clear();
+      _actionsTakenController.clear();
+      _nextStepsController.clear();
+      _locationController.clear();
+      _workController1.clear();
+      _workController2.clear();
+      _workController3.clear();
+      _workController4.clear();
+      _file = null;
+      _image = null;
+      _dateController.clear();
+      selectedServiceStatus = null;
+      selectedDepartment = null;
+      selectedFiles.clear();
+      fileNames.clear();
+      fileTypes.clear();
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
 
-        for (int index = 0; index < selectedFiles.length; index++) {
-          String fileName = fileNames[index];
-          File file = selectedFiles[index];
-          String fileType = fileTypes[index];
-
-          Uint8List fileBytes = await file.readAsBytes();
-          Reference storageRef = _storage.ref().child("DailyTaskReport/$fileName");
-
-          UploadTask uploadTask = storageRef.putData(fileBytes, SettableMetadata(
-            contentType: _getContentType(fileType),
-          ));
-
-          TaskSnapshot snapshot = await uploadTask;
-          String downloadUrl = await snapshot.ref.getDownloadURL();
-
-          uploadedFiles.add({
-            'fileName': fileName,
-            'fileType': fileType,
-            'downloadUrl': downloadUrl,
-          });
-        }
-
-        List<Map<String, String>> workLog = [
-          {"timeSlot": "10 AM - 12 PM", "description": _workController1.text},
-          {"timeSlot": "12 PM - 2 PM", "description": _workController2.text},
-          {"timeSlot": "2 PM - 6 PM", "description": _workController3.text},
-          {"timeSlot": "6 PM - 8 PM", "description": _workController4.text},
-        ];
-
-        final user = FirebaseAuth.instance.currentUser;
-        final userId = user?.uid ?? '';
-
-        Map<String, dynamic> reportData = {
-          'employeeId': _employeeIdController.text.trim(),
-          "employeeName": _employeeNameController.text.trim(),
-          "taskTitle": _taskTitleController.text.trim(),
-          "challenges": _challengesController.text.trim(),
-          "actionsTaken": _actionsTakenController.text.trim(),
-          "nextSteps": _nextStepsController.text.trim(),
-          "service_status": selectedServiceStatus,
-          "Service_department": selectedDepartment,
-          "location": _locationController.text.trim(),
-          "date": _selectedDate,
-          "uploadedFiles": uploadedFiles,
-          "workLog": workLog,
-          "userId": userId,
-          "timestamp": FieldValue.serverTimestamp(),
-        };
-
-        await FirebaseFirestore.instance.collection("DailyTaskReport").add(reportData);
-
-        Fluttertoast.showToast(
-          msg: "Task submitted successfully!",
-          toastLength: Toast.LENGTH_LONG,
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.green,
-          textColor: Colors.white,
-          fontSize: 16.0,
-        );
-
-        setState(() {
-          _isLoading = false;
-        });
-
-        _taskTitleController.clear();
-        _challengesController.clear();
-        _actionsTakenController.clear();
-        _nextStepsController.clear();
-        _locationController.clear();
-        _workController1.clear();
-        _workController2.clear();
-        _workController3.clear();
-        _workController4.clear();
-        _file = null;
-        _image = null;
-        // ✅ clear the selected date
-        _dateController.clear();
-        selectedServiceStatus = null;
-        selectedDepartment = null;
-        selectedFiles.clear();
-        fileNames.clear();
-        fileTypes.clear();
-      } catch (e) {
-        setState(() {
-          _isLoading = false;
-        });
-
-        Fluttertoast.showToast(
-          msg: "Failed to submit report: $e",
-          toastLength: Toast.LENGTH_LONG,
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.red,
-          textColor: Colors.white,
-          fontSize: 16.0,
-        );
-      }
+      Fluttertoast.showToast(
+        msg: "Failed to submit report: $e",
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+        fontSize: 16.0,
+      );
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -527,8 +600,7 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
                   controller: _dateController,
                   decoration: InputDecoration(
                     labelText: "Select Date",
-                    prefixIcon:
-                    const Icon(Icons.date_range, color: Colors.blueAccent),
+                    prefixIcon: const Icon(Icons.date_range, color: Colors.blueAccent),
                     filled: true,
                     fillColor: Colors.blue.shade50,
                     border: OutlineInputBorder(
@@ -536,9 +608,14 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
                       borderSide: BorderSide.none,
                     ),
                   ),
-                  readOnly: true, // Prevents keyboard input
-                  onTap: () =>
-                      _selectDate(context), // Open date picker when tapped
+                  readOnly: true,
+                  onTap: () => _selectDate(context),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please select a date';
+                    }
+                    return null;
+                  },
                 ),
 
                 const SizedBox(height: 15),
@@ -582,9 +659,6 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
                 ),
                 SizedBox(height: 20),
 
-                // If files are selected, show them in a horizontally scrollable container
-                // Make sure to import the file_picker package
-
                 selectedFiles.isNotEmpty
                     ? Container(
                   padding: EdgeInsets.all(16),
@@ -609,12 +683,11 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
                             Border.all(color: Colors.blue, width: 1),
                           ),
                           width:
-                          120, // Fixed width for each file container
+                          120,
                           child: Stack(
                             children: [
                               Column(
                                 children: [
-                                  // Display thumbnails or icons based on file type
                                   if (fileTypes[index] == 'jpg' ||
                                       fileTypes[index] == 'png' ||
                                       fileTypes[index] == 'jpeg')
@@ -647,8 +720,6 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
                                         color: Colors.blue,
                                       ),
                                   SizedBox(height: 10),
-
-                                  // File name and rename feature
                                   Text(
                                     fileNames[index],
                                     style: TextStyle(
@@ -657,8 +728,6 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
                                     ),
                                   ),
                                   SizedBox(height: 5),
-
-                                  // Text field to rename the file
                                   SizedBox(
                                     width: 100,
                                     child: TextField(
@@ -678,7 +747,6 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
                                   ),
                                   SizedBox(height: 5),
 
-                                  // Rename button
                                   ElevatedButton(
                                     onPressed: () => renameFile(index),
                                     style: ElevatedButton.styleFrom(
@@ -716,7 +784,6 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
                                       ),
                                     ),
                                   ),
-                                  // Open file button
                                   ElevatedButton(
                                     onPressed: () =>
                                         openFile(selectedFiles[index]),
@@ -739,16 +806,14 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
                                   ),
                                 ],
                               ),
-
-                              // Close button positioned inside the container but above the image preview (top-right corner of the container)
                               Positioned(
                                 top: -8,
                                 right: -5,
                                 child: CircleAvatar(
                                   radius:
-                                  16, // Circular background for the icon
+                                  16,
                                   backgroundColor: Colors
-                                      .white, // Background color for the circle
+                                      .white,
                                   child: IconButton(
                                     icon: const Icon(Icons.close,
                                         color: Colors.red, size: 19),
@@ -756,9 +821,6 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
                                   ),
                                 ),
                               ),
-
-                              // Replace file button
-
                             ],
                           ),
                         );
@@ -804,8 +866,7 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
                   icon: Icons.assignment,
                   value: selectedDepartment,
                   items: serviceDepartment
-                      .map((status) =>
-                  {'text': status, 'icon': Icons.assignment})
+                      .map((dept) => {'text': dept, 'icon': Icons.assignment})
                       .toList(),
                   onChanged: (value) {
                     setState(() {
@@ -833,7 +894,6 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
                 ),
                 const SizedBox(height: 20),
 
-// Work Log Table
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
@@ -862,8 +922,8 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
                       Table(
                         border: TableBorder.all(color: Colors.black54),
                         columnWidths: const {
-                          0: FlexColumnWidth(1.5), // Time Slot Column
-                          1: FlexColumnWidth(3), // Work Description Column
+                          0: FlexColumnWidth(1.5),
+                          1: FlexColumnWidth(3),
                         },
                         children: [
                           _buildTableRow("10 AM - 12 PM", _workController1),
@@ -885,22 +945,27 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
                   backgroundColor: Colors.indigo.shade50,
                   validator: validateLocation,
                 ),
-
                 const SizedBox(height: 20),
                 const SizedBox(height: 25),
                 Center(
-                  child: ElevatedButton(
-                    onPressed: _submitReport,
-                    child: _isLoading
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text("Submit Report",
-                        style: TextStyle(color: Colors.white)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blueAccent,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      textStyle: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.w600),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12,vertical: 12),
+                      child: ElevatedButton(
+                        onPressed: _submitReport,
+                        child: _isLoading
+                            ? const CircularProgressIndicator(color: Colors.white)
+                            : const Text("Submit Report",
+                            style: TextStyle(color: Colors.white)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blueAccent,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                          textStyle: const TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w600),
+                        ),
+                      ),
                     ),
                   ),
                 ),

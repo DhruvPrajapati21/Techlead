@@ -182,8 +182,8 @@ class _LoginPageState extends State<LoginPage> {
             controller: _emailController,
             validator: _validateEmail,
             isInvalid: _isInvalidEmail,
-            hintText: "Enter your email address", // Added hint text here
-            hintTextColor: Colors.white, // Set custom hint text color
+            hintText: "Enter your email address",
+            hintTextColor: Colors.white,
           ),
           _entryField(
             "Password",
@@ -191,8 +191,8 @@ class _LoginPageState extends State<LoginPage> {
             controller: _passwordController,
             validator: _validatePassword,
             isInvalid: _isInvalidPassword,
-            hintText: "Enter your password", // Added hint text here
-            hintTextColor: Colors.white, // Set custom hint text color
+            hintText: "Enter your password",
+            hintTextColor: Colors.white,
           ),
         ],
       ),

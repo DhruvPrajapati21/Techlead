@@ -14,7 +14,6 @@ import 'package:open_file/open_file.dart';
 import 'package:file_picker/file_picker.dart';
 import '../customwidget.dart';
 
-
 class TaskAssignPageDE extends StatefulWidget {
   const TaskAssignPageDE({super.key});
   @override
@@ -26,8 +25,6 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
 
   Map<String, bool> checkboxValues = {};
   String? matchedDocId;
-
-
   final FirebaseStorage _storage = FirebaseStorage.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   TextEditingController adminNameController = TextEditingController();
@@ -43,13 +40,10 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
   TextEditingController empIdController = TextEditingController();
 
   List<String> employeeNames = [];
-  String? selectedEmployeeName;
   Map<String, String> employeeNameIdMap = {};
   List<String> selectedEmployeeNames = [];
 
-
   final List<Map<String, dynamic>> departmentList = [
-
     {'name': 'HR', 'icon': Icons.people},
     {'name': 'Finance', 'icon': Icons.account_balance},
     {'name': 'Development', 'icon': Icons.code},
@@ -61,16 +55,16 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
     {'name': 'Sales', 'icon': Icons.shopping_cart},
     {'name': 'Installation', 'icon': Icons.build},
     {'name': 'Services', 'icon': Icons.miscellaneous_services},
-    {'name': 'Social Media \n Marketing', 'icon': Icons.share},
+    {'name': 'Social Media Marketing', 'icon': Icons.share},
   ];
+
+  String? selectedDepartment;
 
   List<File> selectedFiles = [];
   List<String> fileNames = [];
   List<String> fileTypes = [];
   List<TextEditingController> fileNameControllers = [];
-  String? selectedDepartment;
   bool isLoading = false;
-
 
   Future<void> _selectDeadlineDate(BuildContext context) async {
     DateTime currentDate = DateTime.now();
@@ -118,7 +112,6 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
       fileNameControllers[index].clear();
     });
   }
-
 
   Future<void> updateCheckboxValue(String field, bool? value) async {
     if (matchedDocId == null) return;
@@ -251,6 +244,72 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
   Future<void> _submitData() async {
     if (!mounted) return;
 
+    List<String> errors = [];
+
+    final adminName = adminNameController.text.trim();
+    final adminId = adminIdController.text.trim();
+
+    if (adminName.isEmpty || adminId.isEmpty) {
+      errors.add('Admin credentials not set. Please login again.');
+    }
+
+    if (selectedEmployeeNames.isEmpty) {
+      errors.add('Please select at least one employee');
+    }
+
+    if (empIdController.text.trim().isEmpty) {
+      errors.add('Employee ID field is empty');
+    }
+
+    if (selectedDepartment == null || selectedDepartment!.trim().isEmpty) {
+      errors.add('Department not selected');
+    }
+
+    if (dateController.text.trim().isEmpty) {
+      errors.add('Date is not selected');
+    }
+
+    if (timeController.text.trim().isEmpty) {
+      errors.add('Time is not selected');
+    }
+
+    if (projectNameController.text.trim().isEmpty) {
+      errors.add('Project Name is missing');
+    }
+
+    if ((selectedDepartment == 'Installation' ||
+        selectedDepartment == 'Sales' ||
+        selectedDepartment == 'Services' ||
+        selectedDepartment == 'Social Media Marketing') &&
+        siteLocationController.text.trim().isEmpty) {
+      errors.add('Site Location is required for this department');
+    }
+
+    if (taskDescriptionController.text.trim().isEmpty) {
+      errors.add('Task Description is missing');
+    }
+
+    if (deadlineDateController.text.trim().isEmpty) {
+      errors.add('Deadline Date is missing');
+    }
+
+    if (selectedFiles.isEmpty) {
+      errors.add('At least one file must be selected');
+    }
+
+    if (errors.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.red,
+          content: Text(
+            errors.join('\n'),
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+        ),
+      );
+      return;
+    }
+
     setState(() {
       isLoading = true;
     });
@@ -304,24 +363,26 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
       matchedTokens = matchedTokens.toSet().toList();
 
       if (matchedTokens.isEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Employee ID/Department not found! Task not assigned!'),
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Colors.red,
+            content: const Text(
+              'Employee ID/Department not found! Task not assigned!',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
             ),
-          );
-          setState(() {
-            isLoading = false;
-          });
-        }
+          ),
+        );
+        setState(() {
+          isLoading = false;
+        });
         return;
       }
 
       List<Map<String, String>> uploadedFiles = await _uploadFiles();
 
       final taskData = {
-        'adminName': adminNameController.text.trim(),
-        'adminId': adminIdController.text.trim(),
+        'adminName': adminName,
+        'adminId': adminId,
         'employeeNames': selectedEmployeeNames,
         'empIds': assignedEmpIds,
         'department': selectedDepartment,
@@ -349,9 +410,7 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
           await FirebaseFirestore.instance
               .collection('EmpProfile')
               .doc(docId)
-              .update({
-            'assignedTask': FieldValue.delete(),
-          });
+              .update({'assignedTask': FieldValue.delete()});
         }
       }
 
@@ -359,42 +418,35 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
         await sendNotification(token, taskData);
       }
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Task assigned and notifications sent!',
-              style: TextStyle(color: Colors.white),
-            ),
-            backgroundColor: Colors.green,
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.green,
+          content: const Text(
+            'Task assigned and notifications sent!',
+            style: TextStyle(color: Colors.white),
           ),
-        );
-      }
+        ),
+      );
 
       _resetForm();
     } catch (e) {
       print('🔥 Error: $e');
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Error: $e',
-              style: TextStyle(color: Colors.white),
-            ),
-            backgroundColor: Colors.red,
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.red,
+          content: Text(
+            'Error: $e',
+            style: const TextStyle(color: Colors.white),
           ),
-        );
-      }
+        ),
+      );
     } finally {
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-      }
+      setState(() {
+        isLoading = false;
+      });
     }
   }
-
 
   Future<List<Map<String, String>>> _uploadFiles() async {
     List<Map<String, String>> uploadedFiles = [];
@@ -586,10 +638,6 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
     super.initState();
     _fetchEmployeeNames();
     _loadAdminData();
-
-    if (selectedDepartment == null) {
-      selectedDepartment = departmentList.isNotEmpty ? departmentList.first['name'] : null;
-    }
   }
 
   @override
@@ -608,7 +656,7 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
               "Admin Task Assign",
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                fontSize: 24,
+                fontSize: 20,
                 letterSpacing: 1.5,
                 color: Colors.white,
                 fontFamily: 'Roboto',
@@ -654,18 +702,6 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
                       children: [
-                        buildTextField(
-                          controller: adminNameController,
-                          labelText: 'Admin Name',
-                          icon: Icons.person,
-                        ),
-                        SizedBox(height: 16),
-                        buildTextField(
-                          controller: adminIdController,
-                          labelText: 'Admin ID',
-                          icon: Icons.badge,
-                        ),
-
                         SizedBox(height: 16),
                         buildMultiSelectDropdownField(
                           labelText: 'Select Employees',
@@ -691,6 +727,7 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
                           icon: Icons.badge_outlined,
                           keyboardType: TextInputType.text,
                           hintText: 'Auto-filled based on selected names',
+                          readOnly: true,
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
                               return 'Please select at least one employee';
@@ -698,7 +735,6 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
                             return null;
                           },
                         ),
-
 
                         SizedBox(height: 16),
 
@@ -737,6 +773,7 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
                             });
                           },
                         ),
+
                         SizedBox(height: 16),
 
                         GestureDetector(
@@ -1011,7 +1048,6 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
 
                         SizedBox(height: 16),
 
-                        // Task Description Text Field
                         buildTextField(
                           controller: taskDescriptionController,
                           labelText: 'Task Description',
@@ -1038,24 +1074,29 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
                 ),
                 const SizedBox(height: 20),
                 Center(
-                  child: ElevatedButton(
-                    onPressed: isLoading ? null : () async {
-                      FocusScope.of(context).unfocus();  // ✅ Closes the keyboard before submitting
-                      await _submitData();  // ✅ Ensure submission only happens once
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue.shade900,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-                    ),
-                    child: isLoading
-                        ? CircularProgressIndicator(color: Colors.white)
-                        : const Text(
-                      'Submit',
-                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20,vertical: 10),
+                      child: ElevatedButton(
+                        onPressed: isLoading ? null : () async {
+                          FocusScope.of(context).unfocus();
+                          await _submitData();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue.shade900,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                        ),
+                        child: isLoading
+                            ? CircularProgressIndicator(color: Colors.white)
+                            : const Text(
+                          'Submit',
+                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                      ),
                     ),
                   ),
-
                 ),
               ],
             ),

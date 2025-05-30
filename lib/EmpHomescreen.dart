@@ -1,12 +1,22 @@
+import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:techlead/taskreportpage.dart';
 import 'Attendacescreen.dart';
+import 'Calendarscreen.dart';
 import 'Categoryscreen.dart';
 import 'Leavescreen.dart';
+import 'Taskdeatils.dart';
 import 'Profilescreen.dart';
 import 'Supportscreen.dart';
+import 'Teammemberslist.dart';
+import 'Themeprovider.dart';
 import 'inhome.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -15,10 +25,13 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
   int totalTasks = 0;
   int inProgress = 0;
+  String? userDepartment;
   int pendingTasks = 0;
   double totalWorkingHours = 0;
   double performancePercentage = 0;
@@ -26,12 +39,181 @@ class _HomeScreenState extends State<HomeScreen> {
   String? userId = FirebaseAuth.instance.currentUser?.uid;
   int _unreadNotifications = 0;
   bool _isNavigating = false;
+  StreamSubscription? _taskSubscription;
+  StreamSubscription? _attendanceSubscription;
+  StreamSubscription? _empProfileSubscription;
+  List<String> userDepartments = [];
+  String todayWorkingStatus = "Absent";
+  int todayWorkingHours = 0;
+  int todayWorkingMinutes = 0;
+  String? profileImageUrl;
+  String? fullName;
+  Color todayStatusColor = Colors.red;
 
   @override
   void initState() {
     super.initState();
-    _fetchOverallStats();
-    _fetchUnreadNotifications();
+    _initializeStats();
+    _setupRealtimeListeners();
+    _initializeNotifications();
+    _loadProfile();
+  }
+
+  Future<void> _initializeStats() async {
+    await _fetchUserDepartments();
+    await _fetchDepartmentStats(userDepartments);
+    await _fetchOverallStats();
+    await _fetchUnreadNotifications();
+  }
+
+  @override
+  void dispose() {
+    _taskSubscription?.cancel();
+    _attendanceSubscription?.cancel();
+    _empProfileSubscription?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadProfile() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    DocumentSnapshot doc = await FirebaseFirestore.instance
+        .collection('EmpProfile')
+        .doc(user.uid)
+        .get();
+
+    if (doc.exists) {
+      setState(() {
+        profileImageUrl = doc['profileImage'];
+        fullName = doc['fullName'];
+      });
+    }
+  }
+
+  void _setupRealtimeListeners() async {
+    await _fetchUserDepartments();
+
+    _taskSubscription = _firestore.collection('DailyTaskReport').snapshots().listen((snapshot) {
+      _fetchDepartmentStats(userDepartments);
+      _fetchOverallStats();
+    });
+
+    _attendanceSubscription = _firestore.collection('Attendance').snapshots().listen((snapshot) {
+      _fetchOverallStats();
+    });
+
+    _empProfileSubscription = _firestore.collection('EmpProfile').snapshots().listen((snapshot) {
+      _fetchUnreadNotifications();
+    });
+  }
+
+  Future<void> _initializeNotifications() async {
+    const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const InitializationSettings initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
+
+    await _flutterLocalNotificationsPlugin.initialize(
+      initializationSettings,
+      onDidReceiveNotificationResponse: (NotificationResponse response) async {
+        if (response.payload != null && response.payload!.isNotEmpty) {
+          navigatorKey.currentState?.pushNamed('/Categoryscreen', arguments: response.payload);
+        }
+      },
+    );
+
+    FirebaseMessaging.instance.requestPermission(alert: true, badge: true, sound: true);
+
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      _showNotification(
+        message.notification?.title ?? "New Task",
+        message.data['category'] ?? "/Categoryscreen",
+      );
+    });
+
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      if (message.data.containsKey('category')) {
+        navigatorKey.currentState?.pushNamed('/Categoryscreen', arguments: message.data['category']);
+      }
+    });
+  }
+
+  Future<void> _showNotification(String title, String category) async {
+    const AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
+      'channel_id',
+      'channel_name',
+      channelDescription: 'Task Assign Notifications',
+      importance: Importance.max,
+      priority: Priority.high,
+      showWhen: false,
+      icon: '@mipmap/ic_launcher',
+    );
+
+    const NotificationDetails platformChannelSpecifics = NotificationDetails(android: androidPlatformChannelSpecifics);
+
+    await _flutterLocalNotificationsPlugin.show(
+      0,
+      title,
+      "Click to view details",
+      platformChannelSpecifics,
+      payload: category,
+    );
+  }
+
+  void checkTaskAssignment(List<String> categories) async {
+    QuerySnapshot taskSnapshot = await _firestore.collection('TaskAssign').get();
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    for (var doc in taskSnapshot.docs) {
+      final data = doc.data() as Map<String, dynamic>;
+      String docId = doc.id;
+
+      if (prefs.getBool('task_\$docId') == true) continue;
+      if (!data.containsKey('department')) continue;
+
+      if (categories.contains(data['department'])) {
+        _showNotification("New Task Assigned", "You have a new assigned task!");
+        prefs.setBool('task_\$docId', true);
+        break;
+      }
+    }
+  }
+
+  void checkTaskAssignment2(String empId) async {
+    QuerySnapshot taskSnapshot = await _firestore.collection('TaskAssign').get();
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    for (var doc in taskSnapshot.docs) {
+      final data = doc.data() as Map<String, dynamic>;
+      String docId = doc.id;
+
+      if (prefs.getBool('task_\$docId') == true) continue;
+      if (!data.containsKey('empIds')) continue;
+
+      if ((data['empIds'] as List).contains(empId)) {
+        _showNotification("New Task Assigned", "You have a new assigned task!");
+        prefs.setBool('task_\$docId', true);
+        break;
+      }
+    }
+  }
+
+
+  Future<void> _fetchUserDepartments() async {
+    if (userId == null) return;
+
+    try {
+      DocumentSnapshot doc =
+          await _firestore.collection('EmpProfile').doc(userId).get();
+      if (doc.exists) {
+        List<String> departments = List<String>.from(doc['categories'] ?? []);
+        setState(() {
+          userDepartments = departments;
+        });
+        print('Fetched user departments: $userDepartments');
+      }
+    } catch (e) {
+      print("Error fetching user departments: $e");
+    }
   }
 
   Future<void> _fetchUnreadNotifications() async {
@@ -47,7 +229,6 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-
   Future<void> _markNotificationsAsRead() async {
     if (userId == null) return;
     QuerySnapshot snapshot = await _firestore.collection('EmpProfile').get();
@@ -61,201 +242,359 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-
   final String currentUserId = FirebaseAuth.instance.currentUser?.uid ?? "";
+
+  Future<void> _fetchDepartmentStats(List<String> departments) async {
+    try {
+      int completed = 0, pending = 0, inProgressCount = 0;
+
+      if (departments.isEmpty) {
+        print('No departments provided.');
+        return;
+      }
+
+      final DateTime now = DateTime.now();
+      final DateTime monthStart = DateTime(now.year, now.month, 1);
+      final DateTime monthEnd = DateTime(now.year, now.month + 1, 1);
+
+      // 2) Loop over each status and accumulate counts
+      for (String status in ['Completed', 'Pending', 'In Progress']) {
+        int totalCount = 0;
+
+        // Firestore ".where(..., whereIn: chunk)" can only take up to 10 values at a time:
+        for (int i = 0; i < departments.length; i += 10) {
+          List<String> chunk = departments.sublist(
+            i,
+            (i + 10 > departments.length) ? departments.length : i + 10,
+          );
+
+          // A) Try querying by 'category' field first:
+          QuerySnapshot snapshot = await _firestore
+              .collection('DailyTaskReport')
+              .where('service_status', isEqualTo: status)
+              .where('category', whereIn: chunk)
+              .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(monthStart))
+              .where('date', isLessThan: Timestamp.fromDate(monthEnd))
+              .get();
+
+          // B) If none found under 'category', retry under 'Service_department':
+          if (snapshot.docs.isEmpty) {
+            snapshot = await _firestore
+                .collection('DailyTaskReport')
+                .where('service_status', isEqualTo: status)
+                .where('Service_department', whereIn: chunk)
+                .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(monthStart))
+                .where('date', isLessThan: Timestamp.fromDate(monthEnd))
+                .get();
+          }
+
+          totalCount += snapshot.docs.length;
+        }
+
+        if (status == 'Completed') {
+          completed = totalCount;
+        } else if (status == 'Pending') {
+          pending = totalCount;
+        } else if (status == 'In Progress') {
+          inProgressCount = totalCount;
+        }
+      }
+
+      setState(() {
+        totalTasks = completed;
+        pendingTasks = pending;
+        inProgress = inProgressCount;
+      });
+
+      print('Current Month (${DateFormat('MMMM yyyy').format(monthStart)}) → '
+          'Completed: $completed, Pending: $pending, In Progress: $inProgressCount');
+    }
+    catch (e) {
+      print('Error fetching department stats: $e');
+    }
+  }
+
 
   Future<void> _fetchOverallStats() async {
     try {
-      QuerySnapshot attendanceSnapshot = await _firestore.collection('Attendance').get();
-      QuerySnapshot empSnapshot = await _firestore.collection('EmpProfile').get();
+      QuerySnapshot attendanceSnapshot =
+      await _firestore.collection('Attendance').get();
+      QuerySnapshot empSnapshot =
+      await _firestore.collection('EmpProfile').get();
 
-      Set<String> availableCategories = {};
-
-      for (var doc in empSnapshot.docs) {
-        Map<String, dynamic>? data = doc.data() as Map<String, dynamic>?;
-        if (data != null && data.containsKey('categories')) {
-          List<dynamic> categories = data['categories'];
-          availableCategories.addAll(categories.map((e) => e.toString()));
-        }
-      }
-
-      int employeeCount = availableCategories.isEmpty ? 0 : empSnapshot.docs.length;
+      int employeeCount = empSnapshot.docs.length;
       int completedTasks = 0, pendingTasksCount = 0, inProgressCount = 0;
 
-      var statuses = {
-        'Completed': (int count) => completedTasks = count,
-        'Pending': (int count) => pendingTasksCount = count,
-        'In Progress': (int count) => inProgressCount = count,
-      };
+      if (userDepartments.isNotEmpty) {
+        for (String status in ['Completed', 'Pending', 'In Progress']) {
+          int statusCount = 0;
 
-      for (var status in statuses.keys) {
-        QuerySnapshot snapshot = await _firestore
-            .collection('DailyTaskReport')
-            .where('service_status', isEqualTo: status)
-            .get();
+          for (int i = 0; i < userDepartments.length; i += 10) {
+            List<String> chunk = userDepartments.sublist(
+              i,
+              i + 10 > userDepartments.length ? userDepartments.length : i + 10,
+            );
 
-        int count = 0;
-        for (var doc in snapshot.docs) {
-          Map<String, dynamic>? data = doc.data() as Map<String, dynamic>?;
-          if (data != null && availableCategories.contains(data['category'].toString())) {
-            count++;
+            QuerySnapshot snapshot = await _firestore
+                .collection('DailyTaskReport')
+                .where('service_status', isEqualTo: status)
+                .where('category', whereIn: chunk)
+                .get();
+
+            if (snapshot.docs.isEmpty) {
+              snapshot = await _firestore
+                  .collection('DailyTaskReport')
+                  .where('service_status', isEqualTo: status)
+                  .where('Service_department', whereIn: chunk)
+                  .get();
+            }
+
+            statusCount += snapshot.docs.length;
           }
+
+          if (status == 'Completed') completedTasks = statusCount;
+          if (status == 'Pending') pendingTasksCount = statusCount;
+          if (status == 'In Progress') inProgressCount = statusCount;
         }
-        statuses[status]!(count);
       }
 
-      int totalDays = 0, fullDays = 0, halfDays = 0;
+      int totalDays = 0, fullDays = 0, halfDays = 0, absentDays = 0;
       double totalHours = 0;
+
+      final now = DateTime.now();
+      String todayStr =
+          "${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}";
+
+      Map<String, Map<String, dynamic>> attendanceByUserDate = {};
 
       for (var doc in attendanceSnapshot.docs) {
         Map<String, dynamic>? data = doc.data() as Map<String, dynamic>?;
-        if (data != null) {
-          if (data.containsKey('record')) {
-            List<String> parts = data['record'].split(' ');
-            int hours = int.tryParse(parts[0]) ?? 0;
-            int minutes = int.tryParse(parts[2]) ?? 0;
-            totalHours += hours + (minutes / 60);
-          }
-
-          if (data.containsKey('status')) {
-            if (data['status'] == 'Full Day') fullDays++;
-            else if (data['status'] == 'Half Day') halfDays++;
-            totalDays++;
+        if (data != null &&
+            data.containsKey('record') &&
+            data.containsKey('userId') &&
+            data.containsKey('date')) {
+          String key = "${data['userId']}_${data['date']}";
+          if (!attendanceByUserDate.containsKey(key)) {
+            attendanceByUserDate[key] = data;
           }
         }
       }
 
-      double avgWorkingHours = totalHours / (employeeCount > 0 ? employeeCount : 1);
-      double fullDayPercentage = (fullDays / (totalDays > 0 ? totalDays : 1)) * 100;
-      double halfDayPercentage = (halfDays / (totalDays > 0 ? totalDays : 1)) * 50;
-      double overallPerformance = (fullDayPercentage + halfDayPercentage + (completedTasks * 2)) / 3;
+      for (var data in attendanceByUserDate.values) {
+        List<String> parts = data['record'].toString().split(' ');
+        int hours = int.tryParse(parts[0]) ?? 0;
+        int minutes = int.tryParse(parts.length > 2 ? parts[2] : '0') ?? 0;
+        double workedHours = hours + (minutes / 60);
+        totalHours += workedHours;
+
+        String date = data['date'];
+        String userId = data['userId'];
+
+        if (date == todayStr && userId == currentUserId) {
+          todayWorkingHours = hours;
+          todayWorkingMinutes = minutes;
+
+          if (workedHours < 4) {
+            todayWorkingStatus = "Absent";
+            todayStatusColor = Colors.red;
+          } else if (workedHours < 8) {
+            todayWorkingStatus = "Half Day";
+            todayStatusColor = Colors.orange;
+          } else {
+            todayWorkingStatus = "Full Day";
+            todayStatusColor = Colors.green;
+          }
+        }
+
+        if (workedHours >= 8.0) {
+          fullDays++;
+        } else if (workedHours >= 4.0) {
+          halfDays++;
+        } else {
+          absentDays++;
+        }
+
+        totalDays++;
+      }
+
+      double avgWorkingHours =
+          totalHours / (employeeCount > 0 ? employeeCount : 1);
+      double fullDayPercentage =
+          (fullDays / (totalDays > 0 ? totalDays : 1)) * 100;
+      double halfDayPercentage =
+          (halfDays / (totalDays > 0 ? totalDays : 1)) * 50;
+      double overallPerformance =
+          (fullDayPercentage + halfDayPercentage + (completedTasks * 2)) / 3;
 
       setState(() {
-        totalWorkingHours = avgWorkingHours;
-        totalTasks = completedTasks;
+        totalWorkingHours = totalHours;
         performancePercentage = overallPerformance;
         totalEmployees = employeeCount;
-        pendingTasks = pendingTasksCount;
-        inProgress = inProgressCount;
+        todayWorkingHours = todayWorkingHours;
+        todayWorkingMinutes = todayWorkingMinutes;
+        todayWorkingStatus = todayWorkingStatus;
+        todayStatusColor = todayStatusColor;
       });
+
+      print('Employee count: $employeeCount, Performance: $overallPerformance');
     } catch (e) {
       print('Error fetching overall stats: $e');
     }
   }
 
   void _onCardTapped(String label) async {
-    List<Widget> content = [];
+    if (label == "Working Hours" || label == "Performance Rating") {
+      List<Widget> content = [];
 
-    try {
-      if (label == "Working Hours") {
-        QuerySnapshot snapshot = await _firestore
-            .collection('Attendance')
-            .where('userId', isEqualTo: currentUserId)
-            .get();
+      try {
+        final today = DateTime.now();
+        final String todayStr =
+            "${today.day.toString().padLeft(2, '0')}/${today.month.toString().padLeft(2, '0')}/${today.year}";
 
-        int index = 1;
-        for (var doc in snapshot.docs) {
-          var data = doc.data() as Map<String, dynamic>;
-          content.add(
-            ListTile(
-              leading: CircleAvatar(
-                backgroundColor: Colors.blue,
-                child: Text('$index', style: const TextStyle(color: Colors.white)),
+        if (label == "Working Hours") {
+          QuerySnapshot snapshot = await _firestore
+              .collection('Attendance')
+              .where('userId', isEqualTo: currentUserId)
+              .where('date', isEqualTo: todayStr)
+              .get();
+
+          if (snapshot.docs.isEmpty) {
+            content.add(const Padding(
+              padding: EdgeInsets.only(top: 50),
+              child: Center(
+                child: Text(
+                  "No attendance record for today",
+                  style: TextStyle(fontFamily: 'Times New Roman', fontSize: 16),
+                ),
               ),
-              title: Text(data['employeeName'] ?? 'Unknown'),
-              subtitle: Text("Working time: ${data['record'] ?? 'N/A'}"),
+            ));
+          } else {
+            int index = 1;
+            for (var doc in snapshot.docs) {
+              var data = doc.data() as Map<String, dynamic>;
+              String recordTime = data['record'] ?? '0 Hrs 0 Min';
+
+              content.add(
+                ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: Colors.blue,
+                    child: Text(
+                      '$index',
+                      style: const TextStyle(color: Colors.white, fontFamily: 'Times New Roman'),
+                    ),
+                  ),
+                  title: Text(
+                    data['employeeName'] ?? 'Unknown',
+                    style: const TextStyle(fontFamily: 'Times New Roman'),
+                  ),
+                  subtitle: Text(
+                    "Today’s working time: $recordTime",
+                    style: const TextStyle(fontFamily: 'Times New Roman'),
+                  ),
+                ),
+              );
+              index++;
+            }
+          }
+        } else if (label == "Performance Rating") {
+          content.add(
+            const Padding(
+              padding: EdgeInsets.all(12),
+              child: Text(
+                "Performance is calculated as:\n"
+                    "• Full Day = 100%\n"
+                    "• Half Day = 50%\n"
+                    "• Completed Task = 2 Points\n\n"
+                    "Combined Score = Avg of all.",
+                style: TextStyle(
+                  fontFamily: 'Times New Roman',
+                  fontSize: 16,
+                  height: 1.5,
+                ),
+              ),
             ),
           );
-          index++;
         }
-      } else if (label == "Pending Tasks" || label == "InProgress Tasks" || label == "Completed Tasks") {
-        String status = label == "Pending Tasks"
-            ? "Pending"
-            : label == "InProgress Tasks"
-            ? "In Progress"
-            : "Completed";
 
-        QuerySnapshot snapshot = await _firestore
-            .collection('DailyTaskReport')
-            .where('service_status', isEqualTo: status)
-            .get();
-
-        int index = 1;
-        for (var doc in snapshot.docs) {
-          var data = doc.data() as Map<String, dynamic>;
-          content.add(
-            ListTile(
-              leading: CircleAvatar(
-                backgroundColor: Colors.blue,
-                child: Text('$index', style: const TextStyle(color: Colors.white)),
+        showDialog(
+          context: context,
+          builder: (_) => Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFFE0F0FF), Colors.white],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.all(Radius.circular(16)),
               ),
-              title: Text(data['taskTitle'] ?? 'Task'),
-              subtitle: Text(
-                "Category: ${data['Service_department'] ?? 'N/A'}, Assigned to: ${data['employeeName'] ?? 'N/A'}",
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      fontFamily: 'Times New Roman',
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    height: 300,
+                    child: content.isNotEmpty
+                        ? ListView(children: content)
+                        : const Center(
+                      child: Text(
+                        "No data found",
+                        style: TextStyle(fontFamily: 'Times New Roman', fontSize: 16),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Align(
+                    alignment: Alignment.bottomRight,
+                    child: TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text(
+                        "Close",
+                        style: TextStyle(
+                          fontFamily: 'Times New Roman',
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blueAccent,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
-          );
-          index++;
-        }
-      } else if (label == "Team Members") {
-        QuerySnapshot snapshot = await _firestore.collection('EmpProfile').get();
-        int index = 1;
-        for (var doc in snapshot.docs) {
-          var data = doc.data() as Map<String, dynamic>;
-          content.add(
-            ListTile(
-              leading: CircleAvatar(
-                backgroundColor: Colors.blue,
-                child: Text('$index', style: const TextStyle(color: Colors.white)),
-              ),
-              title: Text(data['fullName'] ?? 'Unknown'),
-              subtitle: Text(
-                "Address: ${data['address'] ?? 'N/A'}, Phone: ${data['mobile'] ?? 'N/A'}, Email: ${data['email'] ?? 'N/A'}",
-              ),
-            ),
-          );
-          index++;
-        }
-      } else if (label == "Performance Rating") {
-        content.add(
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              "Performance is calculated as:\n"
-                  "• Full Day = 100%\n"
-                  "• Half Day = 50%\n"
-                  "• Completed Task = 2 Points\n\n"
-                  "Combined Score = Avg of all.",
-              style: const TextStyle(fontSize: 16),
             ),
           ),
         );
+      } catch (e) {
+        print("Error loading dialog data for $label: $e");
       }
 
-      showDialog(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: Text(label),
-          content: SizedBox(
-            width: double.maxFinite,
-            height: 400,
-            child: content.isNotEmpty
-                ? ListView(children: content)
-                : const Center(child: Text("No data found")),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text("Close"),
-            )
-          ],
+
+  } else if (["Pending Tasks", "InProgress Tasks", "Completed Tasks"].contains(label)) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => TaskDetailsScreen(label: label, userDepartments: userDepartments),
         ),
       );
-    } catch (e) {
-      print("Error loading dialog data for $label: $e");
+    } else if (label == "Team Members") {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => TeamMembersScreen(userDepartments: userDepartments),
+        ),
+      );
     }
   }
-
 
   Widget _buildDashboardCard({
     required IconData icon,
@@ -270,7 +609,8 @@ class _HomeScreenState extends State<HomeScreen> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
-            BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))
+            BoxShadow(
+                color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))
           ],
         ),
         child: Padding(
@@ -291,12 +631,78 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 textAlign: TextAlign.center,
               ),
-              SizedBox(height: 5,),
+              SizedBox(
+                height: 5,
+              ),
               Text(
                 value,
                 style: const TextStyle(
                   fontSize: 14,
                   color: Colors.blue,
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDashboardCard2({
+    required IconData icon,
+    required String label,
+    required int hours,
+    required int minutes,
+    required String status,
+    required VoidCallback onTap,
+  }) {
+    // Choose color based on status
+    Color valueColor;
+    if (status == "Full Day") {
+      valueColor = Colors.green;
+    } else if (status == "Half Day") {
+      valueColor = Colors.orange;
+    } else {
+      valueColor = Colors.red;
+    }
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                child: Icon(icon, size: 40, color: valueColor),
+              ),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 5),
+              Text(
+                "$hours Hrs $minutes Min\n$status",
+                style: TextStyle(
+                  fontSize: 14,
+                  color: valueColor,
                   fontWeight: FontWeight.w600,
                 ),
                 textAlign: TextAlign.center,
@@ -334,29 +740,44 @@ class _HomeScreenState extends State<HomeScreen> {
           child: ListView(
             padding: EdgeInsets.zero,
             children: [
-              DrawerHeader(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Color(0xFF0D47A1),
-                      Color(0xFF1976D2),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+              SizedBox(height: 40),
+              Center(
+                child: CircleAvatar(
+                  backgroundColor: Colors.white,
+                  radius: 55,
+                  backgroundImage: (profileImageUrl != null && profileImageUrl!.isNotEmpty)
+                      ? NetworkImage(profileImageUrl!)
+                      : null,
+                  child: (profileImageUrl == null || profileImageUrl!.isEmpty)
+                      ? const Icon(Icons.person, size: 50, color: Colors.grey)
+                      : null,
                 ),
-                child: Center(
-                  child:
-                  Text(
-                    'Techlead',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.5,
-                    ),
+              ),
+              const SizedBox(height: 12),
+              Center(
+                child: Text(
+                  fullName ?? 'Techlead The Engineering Solution!',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontFamily: "Times New Roman",
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.1,
                   ),
+                  textAlign: TextAlign.center,
                 ),
+              ),
+              Divider(thickness: 1,color: Colors.cyan,),
+              SizedBox(height: 10,),
+              _buildDrawerTile(
+                icon: Icons.calendar_today,
+                label: 'Calendar Screen',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => Calendarscreen()),
+                  );
+                },
               ),
               _buildDrawerTile(
                 icon: Icons.note_alt,
@@ -378,6 +799,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   );
                 },
               ),
+              _buildDrawerTile(
+                icon: Icons.sunny_snowing,
+                label: 'Theme',
+                onTap: () {
+                  Provider.of<ThemeProvider>(context, listen: false).toggleTheme();
+                },
+              ),
             ],
           ),
         ),
@@ -390,7 +818,8 @@ class _HomeScreenState extends State<HomeScreen> {
             Container(
               padding: const EdgeInsets.all(8.0),
               child: Text('Dashboard Metrics',
-                  style: TextStyle(fontSize: 20,
+                  style: TextStyle(
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
                       color: Colors.blue)),
             ),
@@ -401,10 +830,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 crossAxisSpacing: 16,
                 mainAxisSpacing: 16,
                 children: [
-                  _buildDashboardCard(
+                  _buildDashboardCard2(
                     icon: Icons.access_time,
                     label: "Working Hours",
-                    value: "${totalWorkingHours.toStringAsFixed(1)} hrs",
+                    hours: todayWorkingHours,
+                    minutes: todayWorkingMinutes,
+                    status: todayWorkingStatus,
                     onTap: () => _onCardTapped("Working Hours"),
                   ),
                   _buildDashboardCard(
@@ -464,10 +895,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: Icons.home,
                 label: 'Home',
                 onTap: () {
-                  if (ModalRoute
-                      .of(context)
-                      ?.settings
-                      .name != 'HomeScreen') {
+                  if (ModalRoute.of(context)?.settings.name != 'HomeScreen') {
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
@@ -482,10 +910,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: Icons.calendar_today,
                 label: 'Attendance',
                 onTap: () {
-                  if (ModalRoute
-                      .of(context)
-                      ?.settings
-                      .name != 'Attendancescreen') {
+                  if (ModalRoute.of(context)?.settings.name !=
+                      'Attendancescreen') {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -501,10 +927,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 label: 'Category',
                 badgeCount: _unreadNotifications,
                 onTap: () async {
-                  if (ModalRoute
-                      .of(context)
-                      ?.settings
-                      .name != 'CategoryScreen') {
+                  if (ModalRoute.of(context)?.settings.name !=
+                      'CategoryScreen') {
                     await Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -520,10 +944,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: Icons.support_agent,
                 label: 'Support',
                 onTap: () {
-                  if (ModalRoute
-                      .of(context)
-                      ?.settings
-                      .name != 'ContactUs') {
+                  if (ModalRoute.of(context)?.settings.name != 'ContactUs') {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -539,10 +960,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         Positioned(
           top: -30,
-          left: MediaQuery
-              .of(context)
-              .size
-              .width / 2 - 35,
+          left: MediaQuery.of(context).size.width / 2 - 35,
           child: FloatingActionButton(
             backgroundColor: Colors.deepPurple,
             onPressed: () {
@@ -569,7 +987,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-
   Widget _buildBottomNavItem({
     required IconData icon,
     required String label,
@@ -585,12 +1002,12 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: Colors.deepPurple), // 👈 Set icon color to white
+          Icon(icon, color: Colors.deepPurple),
           SizedBox(height: 4),
           Text(
             label,
             style: TextStyle(
-              color: Colors.deepPurple, // 👈 Set text color to white
+              color: Colors.deepPurple,
               fontSize: 12,
             ),
           ),
@@ -599,6 +1016,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
+
 class BottomNavItemWithBadge extends StatefulWidget {
   final IconData icon;
   final String label;
@@ -699,5 +1117,3 @@ Widget _buildDrawerTile({
     contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
   );
 }
-
-

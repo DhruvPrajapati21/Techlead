@@ -72,14 +72,7 @@ class _CalendarscreenState extends State<Calendarscreen> {
           ),
           centerTitle: true,
           iconTheme: IconThemeData(color: Colors.white),
-          actions: [
-            IconButton(
-              icon: Icon(Icons.sunny_snowing, size: 25, color: Colors.white),
-              onPressed: () {
-                Provider.of<ThemeProvider>(context, listen: false).toggleTheme();
-              },
-            ),
-          ]),
+         ),
       body: Padding(
         padding: const EdgeInsets.only(top: 15),
         child: Column(
@@ -419,7 +412,7 @@ class _MonthYearPickerState extends State<MonthYearPicker> {
                 widget.onChanged(_selectedDate);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.cyan,
+                backgroundColor: Colors.blue,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),

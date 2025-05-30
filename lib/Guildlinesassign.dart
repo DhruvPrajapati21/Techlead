@@ -1,6 +1,4 @@
-import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class AddGuidelines extends StatefulWidget {
@@ -13,18 +11,16 @@ class AddGuidelines extends StatefulWidget {
 class _AddGuidelinesState extends State<AddGuidelines> {
   bool isLoading = false;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  TextEditingController headlinesController = TextEditingController();
-  TextEditingController guidelinesController = TextEditingController();
-  TextEditingController contactusController = TextEditingController();
+  final TextEditingController headlinesController = TextEditingController();
+  final TextEditingController guidelinesController = TextEditingController();
+  final TextEditingController contactusController = TextEditingController();
 
   Future<void> _addToFirestore() async {
     if (_validateFields()) {
-      setState(() {
-        isLoading = true;
-      });
+      setState(() => isLoading = true);
 
       try {
-        QuerySnapshot<Map<String, dynamic>> querySnapshot = await _firestore
+        final querySnapshot = await _firestore
             .collection('Guidelines')
             .where('headlines', isEqualTo: headlinesController.text.trim())
             .where('guidelines', isEqualTo: guidelinesController.text.trim())
@@ -32,12 +28,7 @@ class _AddGuidelinesState extends State<AddGuidelines> {
             .get();
 
         if (querySnapshot.docs.isNotEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Guideline already exists.'),
-              duration: Duration(seconds: 3),
-            ),
-          );
+          _showSnackBar('Guideline already exists!', Colors.red);
         } else {
           await _firestore.collection('Guidelines').add({
             'headlines': headlinesController.text.trim(),
@@ -52,35 +43,16 @@ class _AddGuidelinesState extends State<AddGuidelines> {
             contactusController.clear();
           });
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Data added to Firestore successfully!'),
-              duration: Duration(seconds: 3),
-            ),
-          );
+          _showSnackBar('Guidelines added successfully!', Colors.green);
         }
       } catch (e) {
-        // Handle errors
         print('Error adding data to Firestore: $e');
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to add data to Firestore. Please try again.'),
-            duration: Duration(seconds: 3),
-          ),
-        );
+        _showSnackBar('Failed to add Guidelines. Please try again.', Colors.red);
       } finally {
-        setState(() {
-          isLoading = false;
-        });
+        setState(() => isLoading = false);
       }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('All fields must be filled.'),
-          duration: Duration(seconds: 3),
-        ),
-      );
+      _showSnackBar('All fields must be filled!', Colors.red);
     }
   }
 
@@ -90,93 +62,117 @@ class _AddGuidelinesState extends State<AddGuidelines> {
         contactusController.text.trim().isNotEmpty;
   }
 
+  void _showSnackBar(String message, Color backgroundColor) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: backgroundColor,
+        content: Text(message, style: const TextStyle(color: Colors.white)),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  InputDecoration _buildInputDecoration({required String label, required IconData icon}) {
+    return InputDecoration(
+      filled: true,
+      fillColor: Colors.white,
+      labelText: label,
+      prefixIcon: Icon(icon, color: Colors.blue.shade900),
+      labelStyle: TextStyle(color: Colors.blue.shade900, fontWeight: FontWeight.bold),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.blue.shade300),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.blue.shade800, width: 2),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.blue.shade50,
       appBar: AppBar(
-        backgroundColor: Colors.blue,
-        title: Text(
-          "Guidelines Form",
-          style: TextStyle(
-              fontStyle: FontStyle.italic,
-              fontWeight: FontWeight.bold,
-              color: Colors.white),
-        ),
+        backgroundColor: Colors.blue.shade800,
+        elevation: 4,
         centerTitle: true,
-        iconTheme: IconThemeData(color: Colors.white),
+        title: const Text(
+          "Add Guidelines",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontFamily: "Times New Roman",
+            letterSpacing: 1.2,
+          ),
+        ),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.only(top: 20),
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: TextFormField(
-                    controller: headlinesController,
-                    decoration: InputDecoration(
-                      labelText: 'Headings',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: TextFormField(
-                    controller: guidelinesController,
-                    maxLines: 6,
-                    keyboardType: TextInputType.multiline,
-                    decoration: InputDecoration(
-                      labelText: 'Guidelines',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: TextFormField(
-                    controller: contactusController,
-                    maxLines: 2, // Allow multiple lines
-                    keyboardType: TextInputType.multiline, // Enable multiline input
-                    decoration: InputDecoration(
-                      labelText: 'Contact us',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 5,),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        _addToFirestore();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.cyan,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(5.0),
-                        ),
-                      ),
-                      child: isLoading
-                          ? CircularProgressIndicator(color: Colors.white)
-                          : Text(
-                        "Upload Guidelines!",
-                        style: TextStyle(fontSize: 16, color: Colors.white),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+        padding: const EdgeInsets.all(16),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.blue.shade100, Colors.white],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.blue.shade200.withOpacity(0.5),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              TextFormField(
+                controller: headlinesController,
+                decoration: _buildInputDecoration(label: 'Headings', icon: Icons.title),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: guidelinesController,
+                maxLines: 6,
+                decoration: _buildInputDecoration(label: 'Guidelines', icon: Icons.list_alt),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: contactusController,
+                maxLines: 2,
+                keyboardType: TextInputType.emailAddress,
+                decoration: _buildInputDecoration(label: 'Contact Us', icon: Icons.contact_mail),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton.icon(
+                  onPressed: isLoading ? null : _addToFirestore,
+                  icon: const Icon(Icons.upload_rounded),
+                  label: isLoading
+                      ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                  )
+                      : const Text("Upload Guidelines"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue.shade700,
+                    foregroundColor: Colors.white,
+                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 3,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),

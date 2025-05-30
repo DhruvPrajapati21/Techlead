@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:pie_chart/pie_chart.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:techlead/Guildlinesassign.dart';
 import 'package:techlead/Showemployees.dart';
@@ -18,6 +19,7 @@ import 'EnSignUpPage.dart';
 import 'Enteredscreen.dart';
 import 'Showattendancedata.dart';
 import 'Showsalesdata.dart';
+import 'Themeprovider.dart';
 import 'alldepartmentsfetchpages/Servicepage.dart';
 import 'empwishform.dart';
 
@@ -41,7 +43,7 @@ class _NewPieShowState extends State<NewPieShow> with SingleTickerProviderStateM
     super.initState();
     fetchPieChartData();
     _animationController = AnimationController(
-      duration: const Duration(seconds: 2),
+      duration: const Duration(seconds: 0),
       vsync: this,
     )..addListener(() {
       if (_animationController.isCompleted) {
@@ -237,36 +239,40 @@ class _NewPieShowState extends State<NewPieShow> with SingleTickerProviderStateM
           ],
         ),
       ),
-      drawer: Drawer(
-        child: Container(
-          color: Colors.blue.shade900,
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.only(top: 40, bottom: 20),
-                child: Column(
-                  children: [
-                    ClipOval(
-                      child: Image.asset(
-                        'assets/images/ios.jpg',
-                        width: 80,
-                        height: 80,
-                        fit: BoxFit.cover,
-                      ),
+          drawer: Drawer(
+            child: Container(
+              color: Colors.blue.shade900,
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.only(top: 60, bottom: 20),
+                    child: Column(
+                      children: [
+                        CircleAvatar(
+                          radius: 55,
+                          backgroundImage: AssetImage('assets/images/ios.jpg'),
+                          backgroundColor: Colors.white,
+                        ),
+                        const SizedBox(height: 15),
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                            child: Text(
+                              'TechLead The Engineering Solutions!',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: "Times New Roman",
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    SizedBox(height: 10),
-                    Text(
-                      'Tech Lead',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: "Times New Roman"
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+                  ),
+              Divider(color: Colors.white,thickness: 2,),
               Expanded(
                 child: ListView(
                   children: [
@@ -300,21 +306,21 @@ class _NewPieShowState extends State<NewPieShow> with SingleTickerProviderStateM
                       ),
                       children: [
                         _buildDrawerItem(
-                          icon: Icons.person_add_alt_1, // Changed for registration
+                          icon: Icons.person_add_alt_1,
                           text: 'Employee Registration',
                           onTap: () {
                             Navigator.push(context, MaterialPageRoute(builder: (context) => SignUpPage()));
                           },
                         ),
                         _buildDrawerItem(
-                          icon: Icons.people_alt, // Changed for employee details
+                          icon: Icons.people_alt,
                           text: 'Employee Auth',
                           onTap: () {
                             Navigator.push(context, MaterialPageRoute(builder: (context) => Showemployees()));
                           },
                         ),
                         _buildDrawerItem(
-                          icon: Icons.people_alt, // Changed for employee details
+                          icon: Icons.people_alt,
                           text: 'Employee Profile',
                           onTap: () {
                             Navigator.push(context, MaterialPageRoute(builder: (context) => EmpShowData()));
@@ -405,6 +411,13 @@ class _NewPieShowState extends State<NewPieShow> with SingleTickerProviderStateM
                           },
                         ),
                         _buildDrawerItem(
+                          icon: Icons.sunny_snowing,
+                          text: 'Theme',
+                          onTap: () {
+                            Provider.of<ThemeProvider>(context, listen: false).toggleTheme();
+                          },
+                        ),
+                        _buildDrawerItem(
                           icon: Icons.logout,
                           text: 'Logout',
                           onTap: () {
@@ -439,7 +452,7 @@ class _NewPieShowState extends State<NewPieShow> with SingleTickerProviderStateM
                   Colors.greenAccent,
                   Colors.deepPurpleAccent,
                   Colors.redAccent,
-                ]),
+                ], context),
                 const SizedBox(height: 16),
                 _buildCard("Completed Projects", completedDataMap, [
                   Colors.teal,
@@ -447,7 +460,7 @@ class _NewPieShowState extends State<NewPieShow> with SingleTickerProviderStateM
                   Colors.yellowAccent,
                   Colors.pink,
                   Colors.lightBlue,
-                ]),
+                ], context),
                 const SizedBox(height: 16),
                 // _buildCard("Not Started Projects", notStartedDataMap, [
                 //   Colors.red,
@@ -465,7 +478,8 @@ class _NewPieShowState extends State<NewPieShow> with SingleTickerProviderStateM
     );
   }
 
-  Widget _buildCard(String title, Map<String, double> dataMap, List<Color> colorList) {
+
+  Widget _buildCard(String title, Map<String, double> dataMap, List<Color> colorList, BuildContext context) {
     return Card(
       elevation: 8,
       shape: RoundedRectangleBorder(
@@ -479,21 +493,30 @@ class _NewPieShowState extends State<NewPieShow> with SingleTickerProviderStateM
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue,
-                )
+              title,
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Colors.blue,
+              ),
             ),
             const SizedBox(height: 16),
             dataMap.isEmpty
-                ? const CircularProgressIndicator()
+                ? Text(
+              'No data available.\nTip: Start by adding project data.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: 'Times New Roman',
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: Colors.black,
+              ),
+            )
                 : PieChart(
               dataMap: dataMap,
               chartRadius: MediaQuery.of(context).size.width / 1.6,
               colorList: _getColorListWithGlow(colorList),
-              legendOptions:  LegendOptions(
+              legendOptions: LegendOptions(
                 legendPosition: LegendPosition.bottom,
                 legendTextStyle: TextStyle(
                   fontSize: 14,
@@ -509,6 +532,7 @@ class _NewPieShowState extends State<NewPieShow> with SingleTickerProviderStateM
       ),
     );
   }
+
 
   List<Color> _getColorListWithGlow(List<Color> colorList) {
     final glowingSliceOpacity = _animationController.value;

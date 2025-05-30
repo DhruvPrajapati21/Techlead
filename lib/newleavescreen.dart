@@ -7,7 +7,7 @@ import 'package:mailer/mailer.dart' as mailer;  // Alias mailer package
 import 'package:mailer/smtp_server/gmail.dart';
 import 'package:http/http.dart' as http;
 
-import '../customwidget.dart';
+import 'customwidget.dart';
 final RegExp emailRegExp = RegExp(
   r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$",
 );

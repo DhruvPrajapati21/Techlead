@@ -28,8 +28,12 @@ class _AttendancescreenState extends State<Attendancescreen> {
   late double screenHeight;
   late double screenWidth;
   String userName = '';
+  final GlobalKey<SlideActionState> _slideKey = GlobalKey<SlideActionState>();
+  bool _showLocationError = false;
+  Color attendanceColor = Colors.black;
   String employeeName = '';
   String checkInTime = '--:--';
+  Color _locationMessageColor = Colors.black;
   String checkOutTime = '--:--';
   String attendanceStatus = '';
   bool hasCheckedIn = false;
@@ -121,9 +125,7 @@ class _AttendancescreenState extends State<Attendancescreen> {
     setState(() {});
   }
 
-// Show the check-out dialog
   Future<bool> _showCheckoutDialog() async {
-    // Show the dialog and wait for the user's response (true/false)
     final bool? shouldCheckout = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
@@ -132,49 +134,46 @@ class _AttendancescreenState extends State<Attendancescreen> {
             padding: const EdgeInsets.all(8.0),
             child: Text(
               'Confirm Check Out',
-              style: TextStyle(color: Colors.white), // White color for title
+              style: TextStyle(color: Colors.white),
             ),
           ),
           content: Text(
             'Are you sure you want to check out?',
-            style: TextStyle(color: Colors.white), // White color for content
+            style: TextStyle(color: Colors.white),
           ),
-          backgroundColor: Colors.blue.shade900, // Make the background of AlertDialog transparent
+          backgroundColor: Colors.blue.shade900,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16), // Rounded corners for the dialog
+            borderRadius: BorderRadius.circular(16),
           ),
           actions: <Widget>[
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(false); // User selected "No"
+                Navigator.of(context).pop(false);
               },
               child: Text(
                 'No',
-                style: TextStyle(color: Colors.white), // White text for "No"
+                style: TextStyle(color: Colors.white),
               ),
             ),
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(true); // User selected "Yes"
+                Navigator.of(context).pop(true);
               },
               child: Text(
                 'Yes',
-                style: TextStyle(color: Colors.white), // White text for "Yes"
+                style: TextStyle(color: Colors.white),
               ),
             ),
           ],
-          contentPadding: EdgeInsets.zero, // Remove default padding
+          contentPadding: EdgeInsets.zero,
           insetPadding: EdgeInsets.symmetric(horizontal: 24.0),
         );
       },
     );
-
-    return shouldCheckout ?? false;  // Return false if the value is null
+    return shouldCheckout ?? false;
   }
 
-// Show the check-in dialog
   Future<bool> _showCheckInDialog() async {
-    // Show the dialog and wait for the user's response (true/false)
     final bool? shouldCheckIn = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
@@ -183,82 +182,88 @@ class _AttendancescreenState extends State<Attendancescreen> {
             padding: const EdgeInsets.all(8.0),
             child: Text(
               'Confirm Check In',
-              style: TextStyle(color: Colors.white), // White color for title
+              style: TextStyle(color: Colors.white),
             ),
           ),
           content: Text(
             'Are you sure you want to check in?',
-            style: TextStyle(color: Colors.white), // White color for content
+            style: TextStyle(color: Colors.white),
           ),
-          backgroundColor: Colors.blue.shade900, // Make the background of AlertDialog transparent
+          backgroundColor: Colors.blue.shade900,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16), // Rounded corners for the dialog
+            borderRadius: BorderRadius.circular(16),
           ),
           actions: <Widget>[
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(false); // User selected "No"
+                Navigator.of(context).pop(false);
               },
               child: Text(
                 'No',
-                style: TextStyle(color: Colors.white), // White text for "No"
+                style: TextStyle(color: Colors.white),
               ),
             ),
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(true); // User selected "Yes"
+                Navigator.of(context).pop(true);
               },
               child: Text(
                 'Yes',
-                style: TextStyle(color: Colors.white), // White text for "Yes"
+                style: TextStyle(color: Colors.white),
               ),
             ),
           ],
-          contentPadding: EdgeInsets.zero, // Remove default padding
+          contentPadding: EdgeInsets.zero,
           insetPadding: EdgeInsets.symmetric(horizontal: 24.0),
         );
       },
     );
-
-    return shouldCheckIn ?? false;  // Return false if the value is null
+    return shouldCheckIn ?? false;
   }
-
-
-
-
-
 
   Future<void> _getLocation() async {
     try {
-      Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-      List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
 
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        position.latitude,
+        position.longitude,
+      );
       if (placemarks.isNotEmpty) {
         Placemark place = placemarks[0];
         setState(() {
-          _currentLocation = "${place.street}, ${place.subLocality}, ${place.locality}, ${place.administrativeArea}, ${place.postalCode}, ${place.country}";
+          _currentLocation =
+          "${place.street}, ${place.subLocality}, ${place.locality}, ${place
+              .administrativeArea}, ${place.postalCode}, ${place.country}";
           _center = LatLng(position.latitude, position.longitude);
           initialPosition = _center;
+          _locationMessageColor = Colors.black;
         });
       } else {
         setState(() {
-          _currentLocation = "Location not available";
+          _currentLocation = "Location not available right now";
           _center = LatLng(0.0, 0.0);
+          _locationMessageColor = Colors.orange;
         });
       }
     } catch (e) {
       setState(() {
-        _currentLocation = "Error: ${e.toString()}";
+        _currentLocation = "Please turn on location!";
         _center = LatLng(0.0, 0.0);
+        _locationMessageColor = Colors.red;
       });
     }
   }
 
   void _updateCurrentDateTime() {
     setState(() {
-      _currentDateTime = DateFormat('EE, d MMM yyyy, hh:mm:ss a').format(DateTime.now());
+      _currentDateTime =
+          DateFormat('EE, d MMM yyyy, hh:mm:ss a').format(DateTime.now());
     });
   }
+
   void _resetDailyData() {
     setState(() {
       checkInTime = '--:--';
@@ -311,7 +316,8 @@ class _AttendancescreenState extends State<Attendancescreen> {
     _firestore
         .collection('Attendance')
         .where('userId', isEqualTo: userId)
-        .where('date', isEqualTo: DateFormat('dd/MM/yyyy').format(DateTime.now()))
+        .where(
+        'date', isEqualTo: DateFormat('dd/MM/yyyy').format(DateTime.now()))
         .snapshots()
         .listen((QuerySnapshot snapshot) {
       if (snapshot.docs.isNotEmpty) {
@@ -322,8 +328,10 @@ class _AttendancescreenState extends State<Attendancescreen> {
           setState(() {
             checkInTime = data['checkIn'] ?? '--:--';
             checkOutTime = data['checkOut'] ?? '--:--';
-            hasCheckedIn = data.containsKey('checkIn') && data['checkIn'] != null;
-            hasCheckedOut = data.containsKey('checkOut') && data['checkOut'] != null;
+            hasCheckedIn =
+                data.containsKey('checkIn') && data['checkIn'] != null;
+            hasCheckedOut =
+                data.containsKey('checkOut') && data['checkOut'] != null;
             showEntryCompleteMessage = hasCheckedOut;
           });
 
@@ -354,9 +362,16 @@ class _AttendancescreenState extends State<Attendancescreen> {
     String todayStr = DateFormat('dd/MM/yyyy').format(DateTime.now());
 
     if (userId != null) {
-      DocumentSnapshot userSnapshot = await _firestore.collection('EmpProfile').doc(userId).get();
-      String employeeName = userSnapshot.exists ? userSnapshot['fullName'] : 'Unknown';
-      String department = userSnapshot.exists ? userSnapshot['address'] : 'Unknown';
+      DocumentSnapshot userSnapshot = await _firestore
+          .collection('EmpProfile')
+          .doc(userId)
+          .get();
+      String employeeName = userSnapshot.exists
+          ? userSnapshot['fullName']
+          : 'Unknown';
+      String department = userSnapshot.exists
+          ? userSnapshot['address']
+          : 'Unknown';
 
       QuerySnapshot snapshot = await _firestore
           .collection('Attendance')
@@ -366,7 +381,8 @@ class _AttendancescreenState extends State<Attendancescreen> {
 
       DocumentReference attendanceRef;
       if (snapshot.docs.isNotEmpty) {
-        attendanceRef = _firestore.collection('Attendance').doc(snapshot.docs.first.id);
+        attendanceRef =
+            _firestore.collection('Attendance').doc(snapshot.docs.first.id);
       } else {
         attendanceRef = _firestore.collection('Attendance').doc();
       }
@@ -391,7 +407,6 @@ class _AttendancescreenState extends State<Attendancescreen> {
           'employeeName': employeeName,
           'maplocation': GeoPoint(_center.latitude, _center.longitude),
         });
-
         setState(() {
           checkOutTime = currentTime;
           hasCheckedOut = true;
@@ -404,25 +419,32 @@ class _AttendancescreenState extends State<Attendancescreen> {
     }
   }
 
-  void calculateAttendanceStatus({String? currentCheckoutLocation, bool isAutoCheckout = false}) async {
+  void calculateAttendanceStatus({
+    String? currentCheckoutLocation,
+    bool isAutoCheckout = false,
+  }) async {
     if (checkInTime != '--:--') {
       DateTime checkIn = DateFormat('HH:mm').parse(checkInTime);
       DateTime now = DateTime.now();
       DateTime currentDayStart = DateTime(now.year, now.month, now.day);
 
-      const String defaultCheckoutLocation = 'A-303, S.G.Business Hub, Sarkhej - Gandhinagar Hwy, Gota, Ahmedabad, Gujarat 380060';
+      const String defaultCheckoutLocation =
+          'A-303, S.G.Business Hub, Sarkhej - Gandhinagar Hwy, Gota, Ahmedabad, Gujarat 380060';
 
       if (checkOutTime == '--:--') {
         if (now.isAfter(currentDayStart)) {
           DateTime autoCheckout = checkIn.add(const Duration(hours: 8));
-          if (autoCheckout.isAfter(currentDayStart.add(const Duration(hours: 23, minutes: 59)))) {
-            autoCheckout = currentDayStart.add(const Duration(hours: 23, minutes: 59));
+          if (autoCheckout.isAfter(
+              currentDayStart.add(const Duration(hours: 23, minutes: 59)))) {
+            autoCheckout =
+                currentDayStart.add(const Duration(hours: 23, minutes: 59));
           }
           checkOutTime = DateFormat('HH:mm').format(autoCheckout);
-          isAutoCheckout = true;  // Mark it as automated
+          isAutoCheckout = true;
         } else {
           setState(() {
             attendanceStatus = 'Incomplete Data';
+            attendanceColor = Colors.red;
           });
           return;
         }
@@ -433,10 +455,26 @@ class _AttendancescreenState extends State<Attendancescreen> {
       int hours = duration.inHours;
       int minutes = duration.inMinutes.remainder(60);
 
-      String status = hours >= 8 ? 'Full Day' : 'Half Day';
+      String status;
+      Color color;
+
+      double totalWorkedHours = hours + (minutes / 60);
+
+      if (totalWorkedHours >= 8.0) {
+        status = 'Full Day';
+        color = Colors.green;
+      } else if (totalWorkedHours >= 4.0) {
+        status = 'Half Day';
+        color = Colors.pink;
+      } else {
+        status = 'Absent';
+        color = Colors.red;
+      }
+
 
       setState(() {
-        attendanceStatus = '${hours}Hours: ${minutes}Minutes\n Todays Status: $status';
+        attendanceStatus = '${hours}Hours: ${minutes}Minutes\nToday\'s Status: $status';
+        attendanceColor = color;
       });
 
       if (userId != null) {
@@ -448,7 +486,8 @@ class _AttendancescreenState extends State<Attendancescreen> {
             .get();
 
         if (snapshot.docs.isNotEmpty) {
-          DocumentReference docRef = _firestore.collection('Attendance').doc(snapshot.docs.first.id);
+          DocumentReference docRef =
+          _firestore.collection('Attendance').doc(snapshot.docs.first.id);
 
           Map<String, dynamic> updateData = {
             'status': status,
@@ -473,20 +512,29 @@ class _AttendancescreenState extends State<Attendancescreen> {
     } else {
       setState(() {
         attendanceStatus = 'Incomplete Data';
+        attendanceColor = Colors.red;
       });
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
-    screenHeight = MediaQuery.of(context).size.height;
-    screenWidth = MediaQuery.of(context).size.width;
+    screenHeight = MediaQuery
+        .of(context)
+        .size
+        .height;
+    screenWidth = MediaQuery
+        .of(context)
+        .size
+        .width;
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.blue,
         centerTitle: true,
         iconTheme: IconThemeData(color: Colors.white),
-        title: Text('Todays Screen', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text('Todays Screen',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         actions: [
           IconButton(
             icon: Icon(Icons.announcement, color: Colors.white, size: 20),
@@ -499,90 +547,6 @@ class _AttendancescreenState extends State<Attendancescreen> {
           ),
         ],
       ),
-      drawer: Drawer(
-      child: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color(0xFF0D47A1), // Dark Blue
-              Color(0xFF1976D2), // Mid Blue
-              Color(0xFF42A5F5), // Light Blue
-            ],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            DrawerHeader(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Color(0xFF0D47A1),
-                    Color(0xFF1976D2),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              child: Center(
-                child:
-                Text(
-                  'Techlead',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.5,
-                  ),
-                ),
-              ),
-            ),
-            _buildDrawerTile(
-              icon: Icons.calendar_today,
-              label: 'Calendar Screen',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => Calendarscreen()),
-                );
-              },
-            ),
-            // _buildDrawerTile(
-            //   icon: Icons.note_alt,
-            //   label: 'Leave Form',
-            //   onTap: () {
-            //     Navigator.push(
-            //       context,
-            //       MaterialPageRoute(builder: (context) => Leavescreen()),
-            //     );
-            //   },
-            // ),
-            // _buildDrawerTile(
-            //   icon: Icons.report,
-            //   label: 'Daily Task Report',
-            //   onTap: () {
-            //     Navigator.push(
-            //       context,
-            //       MaterialPageRoute(builder: (context) => DailyTaskReport2()),
-            //     );
-            //   },
-            // ),
-            _buildDrawerTile(
-              icon: Icons.dashboard,
-              label: 'Dashboard',
-              onTap: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => HomeScreen()),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    ),
 
       body: SingleChildScrollView(
         child: Padding(
@@ -605,6 +569,7 @@ class _AttendancescreenState extends State<Attendancescreen> {
       ),
     );
   }
+
   Widget _buildDrawerTile({
     required IconData icon,
     required String label,
@@ -632,7 +597,7 @@ class _AttendancescreenState extends State<Attendancescreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          margin: EdgeInsets.only(top: 30),
+          margin: EdgeInsets.only(top: 10),
           child: Center(
             child: Text(
               "Welcome",
@@ -659,7 +624,6 @@ class _AttendancescreenState extends State<Attendancescreen> {
       ],
     );
   }
-
   Widget _buildTodaysStatus() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -708,22 +672,7 @@ class _AttendancescreenState extends State<Attendancescreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    GestureDetector(
-                      onTap: hasCheckedIn
-                          ? () async {
-                        // Show check-out dialog only if the user is checked in
-                        bool shouldCheckout = await _showCheckoutDialog();
-                        if (shouldCheckout) {
-                          await storeCheckInOutTime(isCheckIn: false);
-                          setState(() {
-                            hasCheckedIn = false;
-                            hasCheckedOut = true;
-                          });
-                        }
-                      }
-                          : null, // Disable check-out dialog if not checked in
-                      child: _buildStatusColumn("Check Out", checkOutTime, isChecked: hasCheckedOut),
-                    ),
+                    _buildStatusColumn("Check Out", checkOutTime, isChecked: hasCheckedOut),
                   ],
                 ),
               ),
@@ -734,8 +683,8 @@ class _AttendancescreenState extends State<Attendancescreen> {
     );
   }
 
-
-  Widget _buildStatusColumn(String title, String time, {bool isChecked = false}) {
+  Widget _buildStatusColumn(String title, String time,
+      {bool isChecked = false}) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -818,6 +767,25 @@ class _AttendancescreenState extends State<Attendancescreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Column(
         children: [
+          if (_showLocationError)
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(12),
+              margin: EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: Colors.red,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                "Please turn on location then do Check In & Check Out!",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontFamily: "NexaRegular",
+                  fontSize: screenWidth / 22,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(30),
@@ -830,6 +798,7 @@ class _AttendancescreenState extends State<Attendancescreen> {
               ],
             ),
             child: SlideAction(
+              key: _slideKey,
               elevation: 0,
               borderRadius: 30,
               text: hasCheckedIn ? "Slide to Check Out" : "Slide to Check In",
@@ -847,34 +816,45 @@ class _AttendancescreenState extends State<Attendancescreen> {
                 size: 24,
               ),
               onSubmit: () async {
+                bool isLocationEnabled = await Geolocator
+                    .isLocationServiceEnabled();
+                if (!isLocationEnabled) {
+                  setState(() {
+                    _showLocationError = true;
+                  });
+
+                  await Future.delayed(Duration(milliseconds: 500));
+                  _slideKey.currentState
+                      ?.reset();
+                  return;
+                }
+
+                setState(() {
+                  _showLocationError = false;
+                });
+
                 if (hasCheckedIn) {
-                  // If the user is already checked in, show the check-out confirmation dialog
-                  bool shouldCheckout = await _showCheckoutDialog();  // Await and get the result
+                  bool shouldCheckout = await _showCheckoutDialog();
                   if (shouldCheckout) {
-                    // If user confirms checkout, store the checkout time in Firestore
                     await storeCheckInOutTime(isCheckIn: false);
                     setState(() {
-                      hasCheckedOut = true;  // Update state to reflect check-out
-                      // Do not reset hasCheckedIn here, because it's already true
+                      hasCheckedOut = true;
                     });
+                  } else {
+                    _slideKey.currentState?.reset();
                   }
                 } else {
-                  // If the user is not checked in, show the check-in dialog
-                  bool shouldCheckIn = await _showCheckInDialog();  // Await and get the result
+                  bool shouldCheckIn = await _showCheckInDialog();
                   if (shouldCheckIn) {
-                    // If user confirms check-in, store the check-in time in Firestore
                     await storeCheckInOutTime(isCheckIn: true);
                     setState(() {
-                      hasCheckedIn = true;  // Update state to reflect check-in
-                      // Do not reset hasCheckedOut here, because the user can later check out
+                      hasCheckedIn = true;
                     });
+                  } else {
+                    _slideKey.currentState?.reset();
                   }
                 }
               },
-
-
-
-
             ),
           ),
           const SizedBox(height: 24),
@@ -882,6 +862,7 @@ class _AttendancescreenState extends State<Attendancescreen> {
       ),
     );
   }
+
 
   Widget _buildEntryCompleteMessage() {
     return Column(
@@ -897,12 +878,12 @@ class _AttendancescreenState extends State<Attendancescreen> {
           ),
         ),
         Container(
-          margin: EdgeInsets.only(top: 12),
+          margin: const EdgeInsets.only(top: 12),
           height: 150,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             color: Colors.orange,
-            boxShadow: [
+            boxShadow: const [
               BoxShadow(
                 color: Colors.black26,
                 blurRadius: 10,
@@ -911,24 +892,71 @@ class _AttendancescreenState extends State<Attendancescreen> {
             ],
           ),
           child: Center(
-            child: Text("Work Duration: $attendanceStatus",
-              style: TextStyle(
-                fontFamily: "NexaBold",
-                fontSize: screenWidth / 18,
-                color: Colors.white,
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: "Work Duration: ",
+                    style: TextStyle(
+                      fontFamily: "NexaBold",
+                      fontSize: screenWidth / 18,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  TextSpan(
+                    text: attendanceStatus.contains("Hours")
+                        ? attendanceStatus.split("\n")[0] + "\n"
+                        : "",
+                    style: TextStyle(
+                      fontFamily: "NexaBold",
+                      fontSize: screenWidth / 18,
+                      color: attendanceColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  TextSpan(
+                    text: "Today's Status: ",
+                    style: TextStyle(
+                      fontFamily: "NexaBold",
+                      fontSize: screenWidth / 18,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  TextSpan(
+                    text: attendanceStatus.contains("Today's Status:")
+                        ? attendanceStatus.split("Today's Status: ").last
+                        : attendanceStatus,
+                    style: TextStyle(
+                      fontFamily: "NexaBold",
+                      fontSize: screenWidth / 18,
+                      color: attendanceColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
         ),
+
         SizedBox(height: 20,),
         SizedBox(
           width: double.infinity,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10,vertical: 10),
-            child: ElevatedButton(onPressed: (){
-              Navigator.push(context, MaterialPageRoute( builder: (context) => MapScreen(initialPosition: initialPosition)));
-            },style: ElevatedButton.styleFrom(backgroundColor: Colors.cyan,shape:RoundedRectangleBorder(borderRadius: BorderRadius.circular(5))),
-                child: Text("View Live Google map",style: TextStyle(fontStyle: FontStyle.italic,fontWeight: FontWeight.bold,color: Colors.white,),)),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            child: ElevatedButton(onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) =>
+                  MapScreen(initialPosition: initialPosition)));
+            },
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.cyan,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(5))),
+                child: Text("View Live Google Map", style: TextStyle(
+                  fontStyle: FontStyle.italic,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,),)),
           ),
         )
       ],
@@ -938,16 +966,34 @@ class _AttendancescreenState extends State<Attendancescreen> {
   Widget _buildLocationInfo() {
     return Container(
       margin: EdgeInsets.only(top: 12),
-      child: Text(
-        "Current Location: $_currentLocation",
-        style: TextStyle(
-          fontFamily: "NexaRegular",
-          fontSize: screenWidth / 20,
+      child: RichText(
+        text: TextSpan(
+          style: TextStyle(
+            fontFamily: "NexaRegular",
+            fontSize: screenWidth / 20,
+          ),
+          children: [
+            TextSpan(
+              text: "Current Location: ",
+              style: TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            TextSpan(
+              text: _currentLocation,
+              style: TextStyle(
+                color: _locationMessageColor,
+                fontWeight: FontWeight.normal,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
+
 int hexColor(String color) {
   String newColor = '0xff' + color.replaceAll('#', '');
   return int.parse(newColor);
