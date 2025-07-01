@@ -3,12 +3,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:techlead/Profilescreen.dart';
+import 'package:techlead/Employee/Profilescreen/Profilescreen.dart';
 
 class AddProfilePage extends StatefulWidget {
   const AddProfilePage({super.key});
@@ -50,7 +51,6 @@ class _AddProfilePageState extends State<AddProfilePage> with SingleTickerProvid
   @override
   void initState() {
     super.initState();
-    _initNotifications();
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 500),
       vsync: this,
@@ -128,80 +128,6 @@ class _AddProfilePageState extends State<AddProfilePage> with SingleTickerProvid
     }
   }
 
-  Future<void> _initNotifications() async {
-    const AndroidInitializationSettings initializationSettingsAndroid =
-    AndroidInitializationSettings('@mipmap/ic_launcher');
-
-    const InitializationSettings initializationSettings = InitializationSettings(
-      android: initializationSettingsAndroid,
-    );
-
-    await _flutterLocalNotificationsPlugin.initialize(initializationSettings);
-
-    FirebaseMessaging.instance.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
-
-
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      _showNotification(message.notification?.title ?? "", message.notification?.body ?? "");
-    });
-
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      _showNotification(message.notification?.title ?? "", message.notification?.body ?? "");
-    });
-  }
-
-
-  final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
-  Future<void> _showNotification(String title, String body) async {
-    const AndroidNotificationDetails androidPlatformChannelSpecifics =
-    AndroidNotificationDetails(
-      'channel_id',
-      'channel_name',
-      channelDescription: 'Task Assign Notifications',
-      importance: Importance.max,
-      priority: Priority.high,
-      showWhen: false,
-      icon: '@mipmap/ic_launcher',
-    );
-
-    const NotificationDetails platformChannelSpecifics =
-    NotificationDetails(android: androidPlatformChannelSpecifics);
-
-    await _flutterLocalNotificationsPlugin.show(
-      0,
-      title,
-      body,
-      platformChannelSpecifics,
-    );
-  }
-
-  void checkTaskAssignment(List<String> categories) async {
-    QuerySnapshot taskSnapshot =
-    await FirebaseFirestore.instance.collection('TaskAssign').get();
-
-    for (var doc in taskSnapshot.docs) {
-      // ✅ Use .contains() to match department more accurately
-      if (categories.any((category) => category.contains(doc['department']))) {
-        _showNotification("New Task Assigned",
-            "You have a new assigned task in ${doc['department']}!");
-        break;
-      }
-    }
-  }
-
-  void checkTaskAssignment2(String empId) async {
-    QuerySnapshot taskSnapshot = await FirebaseFirestore.instance.collection('TaskAssign').get();
-    for (var doc in taskSnapshot.docs) {
-      if (doc['empId'] == empId) {
-        _showNotification("New Task Assigned", "You have a new assigned task!");
-        break;
-      }
-    }
-  }
 
   Future<void> _selectDate(TextEditingController controller) async {
     DateTime initialDate = DateTime.now();
@@ -219,6 +145,16 @@ class _AddProfilePageState extends State<AddProfilePage> with SingleTickerProvid
   }
 
   Future<void> _submitData() async {
+    if (_imageFile == null) {
+      Fluttertoast.showToast(
+        msg: "Please select a profile image.",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+      );
+      return;
+    }
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
@@ -280,7 +216,6 @@ class _AddProfilePageState extends State<AddProfilePage> with SingleTickerProvid
         _isSubmitting = false;
       });
 
-      checkTaskAssignment(selectedCategories);
 
       Navigator.pushReplacement(
         context,
@@ -301,7 +236,6 @@ class _AddProfilePageState extends State<AddProfilePage> with SingleTickerProvid
       });
     }
   }
-
 
 
   @override
@@ -454,6 +388,10 @@ class _AddProfilePageState extends State<AddProfilePage> with SingleTickerProvid
                         label: 'Mobile Number',
                         icon: Icons.phone,
                         keyboardType: TextInputType.phone,
+                        inputFormatters: [
+                          LengthLimitingTextInputFormatter(10),
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
                             return 'Mobile number is required.';
@@ -465,6 +403,8 @@ class _AddProfilePageState extends State<AddProfilePage> with SingleTickerProvid
                           return null;
                         },
                       ),
+
+
                       _buildDecoratedField(
                         controller: _dobController,
                         label: 'Date of Birth',
@@ -600,6 +540,7 @@ class _AddProfilePageState extends State<AddProfilePage> with SingleTickerProvid
     TextInputType keyboardType = TextInputType.text,
     VoidCallback? onTap,
     String? Function(String?)? validator,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -607,9 +548,12 @@ class _AddProfilePageState extends State<AddProfilePage> with SingleTickerProvid
         controller: controller,
         maxLines: maxLines,
         readOnly: onTap != null,
+        textInputAction: TextInputAction.next,
+        onEditingComplete: () => FocusScope.of(context).nextFocus(),
         onTap: onTap,
         keyboardType: keyboardType,
         validator: validator,
+        inputFormatters: inputFormatters,
         decoration: InputDecoration(
           labelText: label,
           prefixIcon: Icon(icon, color: Colors.indigo),

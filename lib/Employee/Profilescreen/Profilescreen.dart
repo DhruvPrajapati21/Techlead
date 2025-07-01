@@ -9,8 +9,8 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:techlead/EnLoginPage.dart';
-import 'package:techlead/Enteredscreen.dart';
+import 'package:techlead/Employee/Authentication/EnLoginPage.dart';
+import 'package:techlead/Employee/Authentication/Enteredscreen.dart';
 import 'addinforemployee.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -27,7 +27,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _hasProfile = false;
   bool _showAddIcon = false;
   bool _loading = true;
-  final Set<String> _shownTaskIds = {};
   late AnimationController _animationController;
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _fullNameController = TextEditingController();
@@ -39,22 +38,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _dateOfJoiningController = TextEditingController();
 
+
   final List<String> _categories = [
     'Digital Marketing', 'Sales', 'Installation', 'Human Resource Dev',
-    'Receptionist', 'Accountant', 'Services', 'Social Media Marketing'
+    'Reception', 'Accountant', 'Services', 'Social Media Marketing'
   ];
 
   final Map<String, bool> _selectedCategories = {};
-  bool _isSubmitting = false;
-  final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-  final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
   @override
   void initState() {
     super.initState();
     _initializeCategories();
     userId = FirebaseAuth.instance.currentUser!.uid;
     _checkProfile();
-    initNotifications();
   }
 
   @override
@@ -77,104 +73,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  Future<void> initNotifications() async {
-    const AndroidInitializationSettings initializationSettingsAndroid =
-    AndroidInitializationSettings('@mipmap/ic_launcher');
-
-    const InitializationSettings initializationSettings = InitializationSettings(
-      android: initializationSettingsAndroid,
-    );
-
-    await _flutterLocalNotificationsPlugin.initialize(
-      initializationSettings,
-      onDidReceiveNotificationResponse: (NotificationResponse response) async {
-        if (response.payload != null && response.payload!.isNotEmpty) {
-          navigatorKey.currentState?.pushNamed('/Categoryscreen', arguments: response.payload);
-        }
-      },
-    );
-
-    FirebaseMessaging.instance.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
-
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      _showNotification(
-        message.notification?.title ?? "New Task",
-        message.data['category'] ?? "/Categoryscreen",
-      );
-    });
-
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      if (message.data.containsKey('category')) {
-        navigatorKey.currentState?.pushNamed('/Categoryscreen', arguments: message.data['category']);
-      }
-    });
-  }
-
-  Future<void> _showNotification(String title, String category) async {
-    const AndroidNotificationDetails androidPlatformChannelSpecifics =
-    AndroidNotificationDetails(
-      'channel_id',
-      'channel_name',
-      channelDescription: 'Task Assign Notifications',
-      importance: Importance.max,
-      priority: Priority.high,
-      showWhen: false,
-      icon: '@mipmap/ic_launcher',
-    );
-
-    const NotificationDetails platformChannelSpecifics =
-    NotificationDetails(android: androidPlatformChannelSpecifics);
-
-    await _flutterLocalNotificationsPlugin.show(
-      0,
-      title,
-      "Click to view details",
-      platformChannelSpecifics,
-      payload: category,
-    );
-  }
-
-  void checkTaskAssignment(List<String> categories) async {
-    QuerySnapshot taskSnapshot = await FirebaseFirestore.instance.collection('TaskAssign').get();
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-
-    for (var doc in taskSnapshot.docs) {
-      final data = doc.data() as Map<String, dynamic>;
-      String docId = doc.id;
-
-      if (prefs.getBool('task_$docId') == true) continue;
-      if (!data.containsKey('department')) continue;
-
-      if (categories.contains(data['department'])) {
-        _showNotification("New Task Assigned", "You have a new assigned task!");
-        prefs.setBool('task_$docId', true);
-        break;
-      }
-    }
-  }
-
-  void checkTaskAssignment2(String empId) async {
-    QuerySnapshot taskSnapshot = await FirebaseFirestore.instance.collection('TaskAssign').get();
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-
-    for (var doc in taskSnapshot.docs) {
-      final data = doc.data() as Map<String, dynamic>;
-      String docId = doc.id;
-
-      if (prefs.getBool('task_$docId') == true) continue;
-      if (!data.containsKey('empIds')) continue;
-
-      if ((data['empIds'] as List).contains(empId)) {
-        _showNotification("New Task Assigned", "You have a new assigned task!");
-        prefs.setBool('task_$docId', true);
-        break;
-      }
-    }
-  }
 
   Future<void> _checkProfile() async {
     User? user = FirebaseAuth.instance.currentUser;
@@ -190,93 +88,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() {
       _hasProfile = profileExists;
       _loading = false;
+      _showAddIcon = !profileExists;
     });
-
-    if (!profileExists) {
-      setState(() => _showAddIcon = true);
-      Future.delayed(const Duration(seconds: 0), () {
-        if (mounted) setState(() => _showAddIcon = false);
-      });
-    }
   }
 
 
-  Future<void> _pickImage(ImageSource source) async {
-    try {
-      final XFile? pickedFile = await _picker.pickImage(source: source);
-      setState(() {
-        _imageFile = pickedFile;
-      });
-    } catch (e) {
-      Fluttertoast.showToast(
-        msg: "Error picking image: $e",
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-      );
-    }
-  }
-
-  Future<void> _showImageSourceDialog() async {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Select Image Source'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.camera_alt),
-                title: const Text('Take Photo'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _pickImage(ImageSource.camera);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.photo),
-                title: const Text('Pick from Gallery'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _pickImage(ImageSource.gallery);
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
 
   String userId = FirebaseAuth.instance.currentUser!.uid;
 
-  Future<void> _updateProfile(Map<String, dynamic> updatedData) async {
-    try {
-      await FirebaseFirestore.instance
-          .collection('EmpProfile')
-          .doc(userId)
-          .update(updatedData);
-
-      Fluttertoast.showToast(
-        msg: "Profile updated successfully!",
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.green,
-        textColor: Colors.white,
-      );
-      Navigator.pop(context);
-    } catch (e) {
-      Fluttertoast.showToast(
-        msg: "Error updating profile: $e",
-        toastLength: Toast.LENGTH_LONG,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-      );
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -291,7 +110,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
         centerTitle: true,
-        backgroundColor: Colors.blue,
+        backgroundColor: Colors.blue.shade900,
         iconTheme: const IconThemeData(color: Colors.white),
         actions: _showAddIcon
             ? [
@@ -309,6 +128,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ]
             : null,
       ),
+
       body: StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance
             .collection('EmpProfile')
@@ -325,7 +145,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           if (!snapshot.hasData || snapshot.data?.data() == null) {
             return const Center(
                 child: Text(
-                  'No profile data available!',
+                  'No profile data available! You can add a profile by tapping the profile icon in the top bar!',
                   style: TextStyle(
                       fontFamily: "Times New Roman", fontWeight: FontWeight.bold),
                 ));
@@ -334,9 +154,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           String empId = profileData['empId'];
           List<String> categories =
           List<String>.from(profileData['categories'] ?? []);
-
-          checkTaskAssignment2(empId);
-          checkTaskAssignment(categories);
 
           return _buildProfileContent(profileData);
         },
@@ -361,7 +178,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       width: 330,
       padding: const EdgeInsets.symmetric(vertical: 20),
       decoration: BoxDecoration(
-        color: Colors.blue,
+        color: Color(0xFF15489C),
         borderRadius: BorderRadius.circular(15),
       ),
       child: Column(
@@ -379,6 +196,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               }
             },
             child: CircleAvatar(
+
               radius: 50,
               backgroundColor: Colors.white,
               backgroundImage: profileData['profileImage'] != null && profileData['profileImage'].toString().isNotEmpty
@@ -410,7 +228,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               IconButton(
                 icon: const Icon(Icons.logout, color: Colors.white),
                 onPressed: () {
-                  _showLogoutConfirmationDialog(context);
+                  showLogoutConfirmationDialog(context);
                 },
               ),
             ],
@@ -453,7 +271,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Card(
         elevation: 4,
-        color: const Color(0xFFFDFEFE),
+        color: const Color(0xFF15489C),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -466,7 +284,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(width: 8),
                   Text(
                     title,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blue),
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
                 ],
               ),
@@ -487,12 +305,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           Text(
             "$label: ",
-            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
+            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.cyanAccent),
           ),
           Expanded(
             child: Text(
               value ?? 'N/A',
-              style: const TextStyle(color: Colors.black54),
+              style: const TextStyle(color: Colors.white),
             ),
           ),
         ],
@@ -677,57 +495,69 @@ class _ProfileScreenState extends State<ProfileScreen> {
   //   );
   // }
 
-  void _showLogoutConfirmationDialog(BuildContext context) {
+  void showLogoutConfirmationDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text("Logout Techlead APP?", style: TextStyle(fontWeight: FontWeight.bold, fontStyle: FontStyle.italic)),
-          content: const Text("Are you sure you want to logout?"),
-          actions: <Widget>[
-            TextButton(
-              child: const Text("No"),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
+      builder: (_) =>
+          AlertDialog(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20)),
+            title: Row(
+              children: const [
+                Icon(Icons.logout, color: Colors.blueAccent),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Logout Techlead App?',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Times New Roman',
+                    ),
+                  ),
+                ),
+              ],
             ),
-            TextButton(
-              child: const Text("Yes"),
-              onPressed: () {
-                FirebaseAuth.instance.signOut();
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (context) => Enteredscreen()),
-                      (route) => false,
-                );
-              },
-            ),
-          ],
-        );
-      },
+            content: const Text('Are you sure you want to logout?',
+                style: TextStyle(fontSize: 16)),
+            actionsPadding: const EdgeInsets.symmetric(
+                horizontal: 16, vertical: 10),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.grey[700],
+                  textStyle: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton.icon(
+                onPressed: () {
+                  FirebaseAuth.instance.signOut();
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (context) => Enteredscreen()),
+                        (route) => false,
+                  );
+                },
+                icon: const Icon(Icons.logout),
+                label: const Text('Logout'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blueAccent,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 12),
+                  textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
     );
   }
 }
 
-Widget _buildInput(TextEditingController controller, String label,
-    {TextInputType keyboardType = TextInputType.text,
-      bool readOnly = false,
-      VoidCallback? onTap,
-      String? Function(String?)? validator}) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 8),
-    child: TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      readOnly: readOnly,
-      onTap: onTap,
-      validator: validator,
-      decoration: InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    ),
-  );
-}
 
 class FullScreenImageView extends StatelessWidget {
   final String imageUrl;
@@ -739,7 +569,7 @@ class FullScreenImageView extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.blue.shade900,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
       ),

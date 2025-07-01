@@ -1,119 +1,154 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:techlead/Accountdailytaskreport.dart';
-import 'package:techlead/assignedtaskemppage.dart';
-import 'package:techlead/Installtionemployeedata.dart';
-import 'package:techlead/serviceinstallationpage.dart';
-import 'package:techlead/shortageofdata.dart';
-import 'package:techlead/taskassignpage.dart';
-import 'Installationdailytaskreport.dart';
-import 'alldepartmentsfetchpages/Accountshowdata.dart';
-import 'alldepartmentsfetchpages/hrreceivedscreen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:techlead/Employee/Categoryscreen/Account/Accountdailytaskreport.dart';
+import 'package:techlead/Employee/Categoryscreen/Installation/Installtionemployeedata.dart';
+import 'package:techlead/Employee/Categoryscreen/Installation/serviceinstallationpage.dart';
+import 'package:techlead/Employee/Categoryscreen/Installation/shortageofdata.dart';
+import 'package:techlead/Admin/Taskdetails/taskassignpage.dart';
+import 'package:techlead/Widgeets/custom_app_bar.dart';
+import '../../../core/app_bar_provider.dart';
+import '../A_Shining_Cooper_Animation/shining_cooper.dart';
+import '../All_Home_Screen_Card_Ui/All_Home_Screen_Card_Ui.dart';
+import '../Installation/Installationdailytaskreport.dart';
+import 'Accountshowdata.dart';
+import '../HR/hrreceivedscreen.dart';
 
-class Accounthomescreen extends StatefulWidget {
+class Accounthomescreen extends ConsumerStatefulWidget {
   const Accounthomescreen({super.key});
 
   @override
-  State<Accounthomescreen> createState() => _AccounthomescreenState();
+  ConsumerState<Accounthomescreen> createState() => _AccounthomescreenState();
 }
 
-class _AccounthomescreenState extends State<Accounthomescreen> {
+class _AccounthomescreenState extends ConsumerState<Accounthomescreen> {
   final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+
+  @override
+  void initState() {
+    super.initState();
+    // Set the title for the custom app bar
+    Future.microtask(() {
+      ref.read(appBarTitleProvider.notifier).state = "Account Section Task";
+      ref.read(appBarGradientColorsProvider.notifier).state = [
+        Color(0xFF000F89), // Royal Blue
+        Color(0xFF0F52BA), // Cobalt Blue (replacing Indigo)
+        Color(0xFF002147),
+      ];
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.blue,
-        title: Text(
-          "Account Page",
-          style: TextStyle(
-            fontFamily: "Times New Roman",
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        centerTitle: true,
-        iconTheme: IconThemeData(color: Colors.white),
-      ),
-      body: Center(
-        child: Column(
-          children: [
-            SizedBox(height: 70,),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+      // Key line
+      appBar: CustomAppBar(),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => Accountshowdata(),
-                      ),
-                    );
-                  },
+                // Welcome Banner
+                Card(
+                  elevation: 3,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
                   child: Container(
-                    width: 150,
-                    height: 150,
                     decoration: BoxDecoration(
-                      color: Colors.blue,
-                      borderRadius: BorderRadius.circular(12),
+                      gradient: LinearGradient(
+                        colors: [
+                          Color(0xFF004FF9),
+                          Color(0xFF000000),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(15),
                     ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
                       children: [
-                        Icon(Icons.assignment, size: 50, color: Colors.white),
-                        SizedBox(height: 10),
-                        Text(
-                          "Task Report",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                        Icon(Icons.info_outline, color: Colors.white),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            "Welcome back! Stay organized and productive today.",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
                 ),
-                SizedBox(width: 20),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
+
+                SizedBox(height: 20,),
+                ShiningCardWrapper(
+                  child: MenuCard(
+                    color: Colors.blue.shade900,
+                    icon: Icons.assignment,
+                    label: "Task Report",
+                    height: 160,
+                    width: 400,
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(40),
+                      topRight: Radius.circular(40),
+                      bottomRight: Radius.circular(10),
+                      topLeft: Radius.circular(10),
+                    ),
+                    gradient: const LinearGradient(
+                      colors: [
+                        Color(0xFF004FF9),
+                        Color(0xFF000000),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => Accountshowdata()),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                ShiningCardWrapper(
+                  child: MenuCard(
+                    icon: Icons.report,
+                    label: "Show Daily-Task",
+                    height: 160,
+                    width: 400,
+                    borderRadius: const BorderRadius.only(
+                      topRight: Radius.circular(10),
+                      topLeft: Radius.circular(40),
+                      bottomRight: Radius.circular(40),
+                      bottomLeft: Radius.circular(10),
+                    ),
+                    gradient: const LinearGradient(
+                      colors: [
+                        Color(0xFF004FF9),
+                        Color(0xFF000000),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => Accountdailytaskreport(),
-                      ),
-                    );
-                  },
-                  child: Container(
-                    width: 150,
-                    height: 150,
-                    decoration: BoxDecoration(
-                      color: Colors.green,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.report, size: 50, color: Colors.white),
-                        SizedBox(height: 10),
-                        Text(
-                          "Show Daily-Task",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
+                          builder: (_) => Accountdailytaskreport()),
                     ),
                   ),
                 ),
               ],
             ),
-          ],
+          ),
         ),
-
       ),
     );
   }

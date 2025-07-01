@@ -1,30 +1,34 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:slide_to_act/slide_to_act.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:techlead/Calendarscreen.dart';
-import 'package:techlead/EmpHomescreen.dart';
+import 'package:techlead/Employee/Homescreen/Calendarscreen.dart';
+import 'package:techlead/Employee/Homescreen/EmpHomescreen.dart';
 import 'dart:async';
-import 'package:techlead/Authentication/Splashscreen.dart';
-import 'package:techlead/taskreportpage.dart';
-import 'Leavescreen.dart';
-import 'Themeprovider.dart';
-import 'Viewguildlines.dart';
+import 'package:techlead/Employee/Homescreen/taskreportpage.dart';
+import '../../Widgeets/custom_app_bar.dart';
+import '../../core/app_bar_provider.dart';
+import '../Homescreen/Leavescreen.dart';
+import '../../Default/Themeprovider.dart';
+import '../Homescreen/Viewguildlines.dart';
 import 'googlescreen.dart';
 
-class Attendancescreen extends StatefulWidget {
+class Attendancescreen extends ConsumerStatefulWidget {
   const Attendancescreen({Key? key}) : super(key: key);
 
   @override
-  State<Attendancescreen> createState() => _AttendancescreenState();
+  ConsumerState<Attendancescreen> createState() => _AttendancescreenState();
 }
 
-class _AttendancescreenState extends State<Attendancescreen> {
+class _AttendancescreenState extends ConsumerState<Attendancescreen> {
+  @override
   late double screenHeight;
   late double screenWidth;
   String userName = '';
@@ -36,6 +40,7 @@ class _AttendancescreenState extends State<Attendancescreen> {
   Color _locationMessageColor = Colors.black;
   String checkOutTime = '--:--';
   String attendanceStatus = '';
+  bool _initialized = false;
   bool hasCheckedIn = false;
   bool hasCheckedOut = false;
   bool showEntryCompleteMessage = false;
@@ -51,13 +56,14 @@ class _AttendancescreenState extends State<Attendancescreen> {
   late LatLng _center;
   bool isLoading = false;
   late LatLng initialPosition;
+  final userNameProvider = StateProvider<String>((ref) => "Employee");
+
 
   @override
   void initState() {
     super.initState();
     _center = LatLng(0.0, 0.0);
     initialPosition = _center;
-    fetchUserName();
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       userId = user.uid;
@@ -71,13 +77,41 @@ class _AttendancescreenState extends State<Attendancescreen> {
     _liveTimeTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       _updateCurrentDateTime();
     });
-  }
 
+    if (user != null) {
+      FirebaseFirestore.instance
+          .collection('EmpProfile')
+          .doc(user.uid)
+          .snapshots()
+          .listen((snapshot) {
+        final name = snapshot.data()?['fullName'] ?? "Employee";
+        if (mounted) {
+          ref.read(userNameProvider.notifier).state = name;
+        }
+      });
+    }
+
+    super.initState();
+
+  }
   @override
   void dispose() {
     _timer.cancel();
     _liveTimeTimer.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    Future.microtask(() {
+      ref.read(appBarTitleProvider.notifier).state = "Your Attendance";
+      ref.read(appBarGradientColorsProvider.notifier).state = [
+        const Color(0xFF1E3C72),
+        const Color(0xFF2A5298),
+      ];
+    });
   }
 
   Future<void> requestLocationPermission() async {
@@ -130,43 +164,60 @@ class _AttendancescreenState extends State<Attendancescreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              'Confirm Check Out',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-          content: Text(
-            'Are you sure you want to check out?',
-            style: TextStyle(color: Colors.white),
-          ),
-          backgroundColor: Colors.blue.shade900,
+          backgroundColor: Colors.transparent,
+          contentPadding: EdgeInsets.zero,
+          insetPadding: EdgeInsets.symmetric(horizontal: 24.0),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(false);
-              },
-              child: Text(
-                'No',
-                style: TextStyle(color: Colors.white),
+          content: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFF000F89), // Royal Blue
+                  Color(0xFF0F52BA), // Cobalt Blue (replacing Indigo)
+                  Color(0xFF002147), // Light Sky Blue
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
+              borderRadius: BorderRadius.circular(16),
             ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(true);
-              },
-              child: Text(
-                'Yes',
-                style: TextStyle(color: Colors.white),
-              ),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Confirm Check Out',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Are you sure you want to check out?',
+                  style: TextStyle(color: Colors.white),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      child: Text('No', style: TextStyle(color: Colors.white)),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      child: Text('Yes', style: TextStyle(color: Colors.white)),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
-          contentPadding: EdgeInsets.zero,
-          insetPadding: EdgeInsets.symmetric(horizontal: 24.0),
+          ),
         );
       },
     );
@@ -178,43 +229,60 @@ class _AttendancescreenState extends State<Attendancescreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              'Confirm Check In',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-          content: Text(
-            'Are you sure you want to check in?',
-            style: TextStyle(color: Colors.white),
-          ),
-          backgroundColor: Colors.blue.shade900,
+          backgroundColor: Colors.transparent,
+          contentPadding: EdgeInsets.zero,
+          insetPadding: EdgeInsets.symmetric(horizontal: 24.0),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(false);
-              },
-              child: Text(
-                'No',
-                style: TextStyle(color: Colors.white),
+          content: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFF000F89), // Royal Blue
+                  Color(0xFF0F52BA), // Cobalt Blue (replacing Indigo)
+                  Color(0xFF002147), // Midnight Blue
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
+              borderRadius: BorderRadius.circular(16),
             ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(true);
-              },
-              child: Text(
-                'Yes',
-                style: TextStyle(color: Colors.white),
-              ),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Confirm Check In',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Are you sure you want to check in?',
+                  style: TextStyle(color: Colors.white),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      child: Text('No', style: TextStyle(color: Colors.white)),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      child: Text('Yes', style: TextStyle(color: Colors.white)),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
-          contentPadding: EdgeInsets.zero,
-          insetPadding: EdgeInsets.symmetric(horizontal: 24.0),
+          ),
         );
       },
     );
@@ -235,8 +303,7 @@ class _AttendancescreenState extends State<Attendancescreen> {
         Placemark place = placemarks[0];
         setState(() {
           _currentLocation =
-          "${place.street}, ${place.subLocality}, ${place.locality}, ${place
-              .administrativeArea}, ${place.postalCode}, ${place.country}";
+              "${place.street}, ${place.subLocality}, ${place.locality}, ${place.administrativeArea}, ${place.postalCode}, ${place.country}";
           _center = LatLng(position.latitude, position.longitude);
           initialPosition = _center;
           _locationMessageColor = Colors.black;
@@ -276,32 +343,6 @@ class _AttendancescreenState extends State<Attendancescreen> {
     _listenForRealtimeUpdates();
   }
 
-  Future<void> fetchUserName() async {
-    try {
-      User? user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        print("No authenticated user found.");
-        return;
-      }
-
-      String userId = user.uid;
-      DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
-          .collection('EmpProfile')
-          .doc(userId)
-          .get();
-
-      if (userSnapshot.exists && userSnapshot.data() != null) {
-        setState(() {
-          userName = userSnapshot.get('fullName') ?? "Unknown";
-        });
-        print("Fetched User Name: $userName");
-      } else {
-        print("No user data found for userId: $userId");
-      }
-    } catch (e) {
-      print('Error fetching user data: $e');
-    }
-  }
 
   void _onMapCreated(GoogleMapController controller) {
     mapController = controller;
@@ -316,8 +357,8 @@ class _AttendancescreenState extends State<Attendancescreen> {
     _firestore
         .collection('Attendance')
         .where('userId', isEqualTo: userId)
-        .where(
-        'date', isEqualTo: DateFormat('dd/MM/yyyy').format(DateTime.now()))
+        .where('date',
+            isEqualTo: DateFormat('dd/MM/yyyy').format(DateTime.now()))
         .snapshots()
         .listen((QuerySnapshot snapshot) {
       if (snapshot.docs.isNotEmpty) {
@@ -362,16 +403,12 @@ class _AttendancescreenState extends State<Attendancescreen> {
     String todayStr = DateFormat('dd/MM/yyyy').format(DateTime.now());
 
     if (userId != null) {
-      DocumentSnapshot userSnapshot = await _firestore
-          .collection('EmpProfile')
-          .doc(userId)
-          .get();
-      String employeeName = userSnapshot.exists
-          ? userSnapshot['fullName']
-          : 'Unknown';
-      String department = userSnapshot.exists
-          ? userSnapshot['address']
-          : 'Unknown';
+      DocumentSnapshot userSnapshot =
+          await _firestore.collection('EmpProfile').doc(userId).get();
+      String employeeName =
+          userSnapshot.exists ? userSnapshot['fullName'] : 'Unknown';
+      String department =
+          userSnapshot.exists ? userSnapshot['address'] : 'Unknown';
 
       QuerySnapshot snapshot = await _firestore
           .collection('Attendance')
@@ -471,9 +508,9 @@ class _AttendancescreenState extends State<Attendancescreen> {
         color = Colors.red;
       }
 
-
       setState(() {
-        attendanceStatus = '${hours}Hours: ${minutes}Minutes\nToday\'s Status: $status';
+        attendanceStatus =
+            '${hours}Hours: ${minutes}Minutes\nToday\'s Status: $status';
         attendanceColor = color;
       });
 
@@ -487,7 +524,7 @@ class _AttendancescreenState extends State<Attendancescreen> {
 
         if (snapshot.docs.isNotEmpty) {
           DocumentReference docRef =
-          _firestore.collection('Attendance').doc(snapshot.docs.first.id);
+              _firestore.collection('Attendance').doc(snapshot.docs.first.id);
 
           Map<String, dynamic> updateData = {
             'status': status,
@@ -517,48 +554,51 @@ class _AttendancescreenState extends State<Attendancescreen> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
-    screenHeight = MediaQuery
-        .of(context)
-        .size
-        .height;
-    screenWidth = MediaQuery
-        .of(context)
-        .size
-        .width;
+    final gradientColors = ref.watch(appBarGradientColorsProvider);
+    screenHeight = MediaQuery.of(context).size.height;
+    screenWidth = MediaQuery.of(context).size.width;
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.blue,
-        centerTitle: true,
-        iconTheme: IconThemeData(color: Colors.white),
-        title: Text('Todays Screen',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.announcement, color: Colors.white, size: 20),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => Viewguildlines()),
-              );
-            },
+        title: Text(
+          "Your Attendance",
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontFamily: "Times New Roman",
+            fontSize: 16,
           ),
-        ],
+        ),
+        centerTitle: true,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: gradientColors,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
-
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(8.0),
           child: Column(
             children: [
               _buildWelcomeMessage(),
-              SizedBox(height: 16,),
+              SizedBox(
+                height: 16,
+              ),
               _buildTodaysStatus(),
-              SizedBox(height: 16,),
+              SizedBox(
+                height: 16,
+              ),
               _buildDateTime(),
-              SizedBox(height: 10),
+              SizedBox(height: 26),
               if (!hasCheckedOut) _buildSlideAction(),
               if (showEntryCompleteMessage) _buildEntryCompleteMessage(),
               SizedBox(height: 10),
@@ -570,80 +610,150 @@ class _AttendancescreenState extends State<Attendancescreen> {
     );
   }
 
-  Widget _buildDrawerTile({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.white),
-      title: Text(
-        label,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-      onTap: onTap,
-      hoverColor: Colors.white24,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-    );
+  Stream<DocumentSnapshot> getUserProfileStream(String uid) {
+    return FirebaseFirestore.instance
+        .collection('EmpProfile')
+        .doc(uid)
+        .snapshots()
+        .distinct(); // ✅ Avoids duplicate updates
   }
 
+
+
+
   Widget _buildWelcomeMessage() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          margin: EdgeInsets.only(top: 10),
-          child: Center(
-            child: Text(
-              "Welcome",
-              style: TextStyle(
-                  color: Colors.green,
-                  fontFamily: "NexaRegular",
-                  fontSize: screenWidth / 16,
-                  fontWeight: FontWeight.bold
+    final userName = ref.watch(userNameProvider);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 20),
+      child: Center(
+        child: SizedBox(
+          width: screenWidth * 1.0,
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: const LinearGradient(
+                colors: [
+                  Color(0xFF000F89),
+                  Color(0xFF0F52BA),
+                  Color(0xFF002147),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 10,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 25.0, horizontal: 25.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 16),
+                  Text(
+                    "Welcome",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontFamily: "NexaRegular",
+                      fontSize: screenWidth / 14,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    userName,
+                    style: TextStyle(
+                      fontFamily: "NexaBold",
+                      fontSize: screenWidth / 18,
+                      color: const Color(0xFF00D4FF),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    "Hope you have a productive day!",
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: screenWidth / 26,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
         ),
-        Container(
-          child: Center(
-            child: Text(
-              userName.isNotEmpty ? userName : "Employee",
-              style: TextStyle(
-                  fontFamily: "NexaBold",
-                  fontSize: screenWidth / 18,
-                  color: Color(hexColor('#18A2D0'))),
-            ),
-          ),
-        ),
-      ],
+      ),
     );
   }
+
+
+  Widget buildSectionTitle(String title, IconData icon) {
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Color(0xFF000F89),
+            Color(0xFF0F52BA),
+            Color(0xFF002147),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black26,
+            blurRadius: 6,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.white, size: screenWidth * 0.06),
+          const SizedBox(width: 10),
+          Text(
+            title,
+            style: TextStyle(
+              fontFamily: "NexaBold",
+              fontSize: screenWidth / 20,
+              color: Colors.white,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTodaysStatus() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          margin: EdgeInsets.only(top: 12),
-          child: Text(
-            "Today's Status",
-            style: TextStyle(
-              fontFamily: "NexaBold",
-              fontSize: screenWidth / 18,
-            ),
-          ),
-        ),
+        buildSectionTitle("Today's Status", Icons.fact_check),
         Container(
           margin: EdgeInsets.only(top: 12),
           height: 150,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            color: Colors.blue,
+            gradient: LinearGradient(
+              colors: [
+                Color(0xFF000F89), // Royal Blue
+                Color(0xFF0F52BA), // Cobalt Blue (replacing Indigo)
+                Color(0xFF002147), // Midnight Blue
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
             boxShadow: [
               BoxShadow(
                 color: Colors.black26,
@@ -659,7 +769,8 @@ class _AttendancescreenState extends State<Attendancescreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    _buildStatusColumn("Check In", checkInTime, isChecked: hasCheckedIn),
+                    _buildStatusColumn("Check In", checkInTime,
+                        isChecked: hasCheckedIn),
                   ],
                 ),
               ),
@@ -672,7 +783,8 @@ class _AttendancescreenState extends State<Attendancescreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    _buildStatusColumn("Check Out", checkOutTime, isChecked: hasCheckedOut),
+                    _buildStatusColumn("Check Out", checkOutTime,
+                        isChecked: hasCheckedOut),
                   ],
                 ),
               ),
@@ -705,8 +817,7 @@ class _AttendancescreenState extends State<Attendancescreen> {
             color: Colors.white,
           ),
         ),
-        if (isChecked)
-          Icon(Icons.check, color: Colors.orange, size: 28),
+        if (isChecked) Icon(Icons.check, color: Colors.orange, size: 28),
       ],
     );
   }
@@ -715,22 +826,21 @@ class _AttendancescreenState extends State<Attendancescreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          margin: EdgeInsets.only(top: 12),
-          child: Text(
-            "Date & Time",
-            style: TextStyle(
-              fontFamily: "NexaBold",
-              fontSize: screenWidth / 18,
-            ),
-          ),
-        ),
+        buildSectionTitle("Date & Time", Icons.calendar_today),
         Container(
           margin: EdgeInsets.only(top: 12),
           height: 150,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            color: Colors.green,
+            gradient: LinearGradient(
+              colors: [
+                Color(0xFF000F89), // Royal Blue
+                Color(0xFF0F52BA), // Cobalt Blue (replacing Indigo)
+                Color(0xFF002147), // Midnight Blue
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
             boxShadow: [
               BoxShadow(
                 color: Colors.black26,
@@ -739,23 +849,15 @@ class _AttendancescreenState extends State<Attendancescreen> {
               ),
             ],
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    _currentDateTime,
-                    style: TextStyle(
-                      fontFamily: "NexaRegular",
-                      fontSize: screenWidth / 20,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
+          child: Center(
+            child: Text(
+              _currentDateTime,
+              style: TextStyle(
+                fontFamily: "NexaRegular",
+                fontSize: screenWidth / 20,
+                color: Colors.white,
               ),
-            ],
+            ),
           ),
         ),
       ],
@@ -764,13 +866,12 @@ class _AttendancescreenState extends State<Attendancescreen> {
 
   Widget _buildSlideAction() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      padding: const EdgeInsets.symmetric(horizontal: 10.0),
       child: Column(
         children: [
           if (_showLocationError)
             Container(
               width: double.infinity,
-              padding: EdgeInsets.all(12),
               margin: EdgeInsets.only(bottom: 12),
               decoration: BoxDecoration(
                 color: Colors.red,
@@ -786,75 +887,88 @@ class _AttendancescreenState extends State<Attendancescreen> {
                 textAlign: TextAlign.center,
               ),
             ),
+          // Gradient background container
           Container(
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(30),
+              borderRadius: BorderRadius.circular(15),
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFF000F89), // Royal Blue
+                  Color(0xFF0F52BA), // Cobalt Blue (replacing Indigo)
+                  Color(0xFF002147), // Midnight Blue
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.cyan.withOpacity(0.2),
+                  color: Colors.black.withOpacity(0.3),
                   blurRadius: 10,
                   offset: Offset(0, 4),
                 ),
               ],
             ),
-            child: SlideAction(
-              key: _slideKey,
-              elevation: 0,
-              borderRadius: 30,
-              text: hasCheckedIn ? "Slide to Check Out" : "Slide to Check In",
-              textStyle: TextStyle(
-                fontSize: screenWidth / 22,
-                color: Colors.cyan.shade700,
-                fontFamily: "NexaRegular",
-                letterSpacing: 1.2,
-              ),
-              outerColor: Colors.white,
-              innerColor: Colors.cyan,
-              sliderButtonIcon: Icon(
-                Icons.arrow_forward_ios_rounded,
-                color: Colors.white,
-                size: 24,
-              ),
-              onSubmit: () async {
-                bool isLocationEnabled = await Geolocator
-                    .isLocationServiceEnabled();
-                if (!isLocationEnabled) {
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: SlideAction(
+                key: _slideKey,
+                elevation: 0,
+                borderRadius: 20,
+                text: hasCheckedIn ? "Slide to Check Out" : "Slide to Check In",
+                textStyle: TextStyle(
+                  fontSize: screenWidth / 22,
+                  color: Colors.white,
+                  fontFamily: "NexaRegular",
+                  letterSpacing: 1.2,
+                ),
+                outerColor:
+                    Colors.transparent, // transparent to show gradient bg
+                innerColor: Colors.white, // slider button color
+                sliderButtonIcon: Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: Colors.black,
+                  size: 24,
+                ),
+                onSubmit: () async {
+                  bool isLocationEnabled =
+                      await Geolocator.isLocationServiceEnabled();
+                  if (!isLocationEnabled) {
+                    setState(() {
+                      _showLocationError = true;
+                    });
+
+                    await Future.delayed(Duration(milliseconds: 500));
+                    _slideKey.currentState?.reset();
+                    return;
+                  }
+
                   setState(() {
-                    _showLocationError = true;
+                    _showLocationError = false;
                   });
 
-                  await Future.delayed(Duration(milliseconds: 500));
-                  _slideKey.currentState
-                      ?.reset();
-                  return;
-                }
-
-                setState(() {
-                  _showLocationError = false;
-                });
-
-                if (hasCheckedIn) {
-                  bool shouldCheckout = await _showCheckoutDialog();
-                  if (shouldCheckout) {
-                    await storeCheckInOutTime(isCheckIn: false);
-                    setState(() {
-                      hasCheckedOut = true;
-                    });
+                  if (hasCheckedIn) {
+                    bool shouldCheckout = await _showCheckoutDialog();
+                    if (shouldCheckout) {
+                      await storeCheckInOutTime(isCheckIn: false);
+                      setState(() {
+                        hasCheckedOut = true;
+                      });
+                    } else {
+                      _slideKey.currentState?.reset();
+                    }
                   } else {
-                    _slideKey.currentState?.reset();
+                    bool shouldCheckIn = await _showCheckInDialog();
+                    if (shouldCheckIn) {
+                      await storeCheckInOutTime(isCheckIn: true);
+                      setState(() {
+                        hasCheckedIn = true;
+                      });
+                    } else {
+                      _slideKey.currentState?.reset();
+                    }
                   }
-                } else {
-                  bool shouldCheckIn = await _showCheckInDialog();
-                  if (shouldCheckIn) {
-                    await storeCheckInOutTime(isCheckIn: true);
-                    setState(() {
-                      hasCheckedIn = true;
-                    });
-                  } else {
-                    _slideKey.currentState?.reset();
-                  }
-                }
-              },
+                },
+              ),
             ),
           ),
           const SizedBox(height: 24),
@@ -862,7 +976,6 @@ class _AttendancescreenState extends State<Attendancescreen> {
       ),
     );
   }
-
 
   Widget _buildEntryCompleteMessage() {
     return Column(
@@ -882,7 +995,15 @@ class _AttendancescreenState extends State<Attendancescreen> {
           height: 150,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            color: Colors.orange,
+            gradient: LinearGradient(
+              colors: [
+                Color(0xFF000F89), // Royal Blue
+                Color(0xFF0F52BA), // Cobalt Blue (replacing Indigo)
+                Color(0xFF002147), // Midnight Blue
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
             boxShadow: const [
               BoxShadow(
                 color: Colors.black26,
@@ -940,61 +1061,120 @@ class _AttendancescreenState extends State<Attendancescreen> {
             ),
           ),
         ),
-
-        SizedBox(height: 20,),
         SizedBox(
           width: double.infinity,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-            child: ElevatedButton(onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) =>
-                  MapScreen(initialPosition: initialPosition)));
-            },
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.cyan,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(5))),
-                child: Text("View Live Google Map", style: TextStyle(
-                  fontStyle: FontStyle.italic,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,),)),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Color(0xFF000F89), // Royal Blue
+                    Color(0xFF0F52BA), // Cobalt Blue
+                    Color(0xFF002147), // Midnight Blue
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(5),
+              ),
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => MapScreen(initialPosition: initialPosition),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                ),
+                child: Text(
+                  "View Live Google Map",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
           ),
         )
+
       ],
     );
   }
 
   Widget _buildLocationInfo() {
     return Container(
-      margin: EdgeInsets.only(top: 12),
-      child: RichText(
-        text: TextSpan(
-          style: TextStyle(
-            fontFamily: "NexaRegular",
-            fontSize: screenWidth / 20,
-          ),
-          children: [
-            TextSpan(
-              text: "Current Location: ",
-              style: TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            TextSpan(
-              text: _currentLocation,
-              style: TextStyle(
-                color: _locationMessageColor,
-                fontWeight: FontWeight.normal,
-              ),
-            ),
+      margin: const EdgeInsets.only(top: 16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          colors: [
+            Color(0xFF000F89), // Royal Blue
+            Color(0xFF0F52BA), // Cobalt Blue (replacing Indigo)
+            Color(0xFF002147), // Midnight Blue
           ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black26,
+            blurRadius: 8,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.location_on,
+            color: Colors.redAccent,
+            size: screenWidth * 0.08,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Current Location",
+                  style: TextStyle(
+                    fontFamily: "NexaBold",
+                    color: Colors.white,
+                    fontSize: screenWidth / 22,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  _currentLocation.isNotEmpty
+                      ? _currentLocation
+                      : "Fetching location...",
+                  style: TextStyle(
+                    fontFamily: "NexaRegular",
+                    color: Colors.white70,
+                    fontSize: screenWidth / 24,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
-}
 
-int hexColor(String color) {
-  String newColor = '0xff' + color.replaceAll('#', '');
-  return int.parse(newColor);
+  int hexColor(String color) {
+    String newColor = '0xff' + color.replaceAll('#', '');
+    return int.parse(newColor);
+  }
 }

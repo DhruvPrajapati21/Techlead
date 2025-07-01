@@ -88,11 +88,36 @@ class _ServicePageListState extends State<ServicePageList> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.blue,
-        title: Text('Smart Products for Residential & Commercial',style: TextStyle(fontWeight: FontWeight.bold,color: Colors.white,fontFamily: "Times New Roman",fontSize: 11)),
+        elevation: 4,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color(0xFF0A2A5A), // Deep navy blue
+                Color(0xFF15489C), // Strong steel blue
+                Color(0xFF1E64D8), // Vivid rich blue
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
         centerTitle: true,
-        iconTheme: IconThemeData(color: Colors.white),
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text(
+          'Smart Products for\nResidential & Commercial',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+            fontFamily: 'Poppins', // Or 'Times New Roman' if you're using a custom font
+            fontSize: 19,
+            height: 1.4, // Controls spacing between lines
+          ),
+        ),
       ),
+
+
       body: SingleChildScrollView(
         child: Center(
           child: Column(
@@ -105,14 +130,30 @@ class _ServicePageListState extends State<ServicePageList> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      category,
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blueAccent,
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade900, // same blue background color
+                        borderRadius: BorderRadius.circular(8), // rounded corners for style
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.blue.shade700.withOpacity(0.5),
+                            offset: const Offset(0, 3),
+                            blurRadius: 6,
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        category,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white, // white font color
+                          letterSpacing: 1.1, // slight spacing for better readability
+                        ),
                       ),
                     ),
+
                     SizedBox(height: 10),
                     Column(
                       children: products.entries.map((productEntry) {
@@ -122,31 +163,51 @@ class _ServicePageListState extends State<ServicePageList> {
                         return Padding(
                           padding: const EdgeInsets.symmetric(vertical: 8.0),
                           child: Card(
-                            elevation: 4,
+                            elevation: 6,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(16),
                             ),
-                            child: ListTile(
-                              contentPadding: EdgeInsets.all(16),
-                              leading: Icon(
-                                icon,
-                                size: 40,
-                                color: Colors.blueAccent,
+                            margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFF0A2A5A),
+                                    Color(0xFF15489C),
+                                    Color(0xFF1E64D8),
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(16),
                               ),
-                              title: Text(
-                                product,
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
+                              child: ListTile(
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                                leading: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.white.withOpacity(0.1),
+                                  ),
+                                  child: Icon(
+                                    icon,
+                                    size: 32,
+                                    color: Colors.cyanAccent,
+                                  ),
+                                ),
+                                title: Text(
+                                  product,
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    fontFamily: 'Roboto',
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ),
-                              trailing: Icon(Icons.arrow_forward_ios),
-                              onTap: () {
-                                // Handle the tap action, maybe navigate to product details page
-                                print('Tapped on $product');
-                              },
                             ),
                           ),
+
                         );
                       }).toList(),
                     ),

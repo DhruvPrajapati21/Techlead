@@ -1,4 +1,3 @@
-// 📦 Imports
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
@@ -181,62 +180,69 @@ class _EditReceptionReportScreenState extends State<EditReceptionReportScreen> {
       onTap: () {
         showModalBottomSheet(
           context: context,
-          backgroundColor: Colors.blue.shade900,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          builder: (context) => Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+          backgroundColor: Colors.transparent, // So gradient shows
+          isScrollControlled: true,
+          builder: (context) => Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [
+                  Color(0xFF000F89),
+                  Color(0xFF0F52BA),
+                  Color(0xFF002147),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            child: Wrap(
+              runSpacing: 12,
               children: [
-                Text(fileName, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 20),
-                ElevatedButton.icon(
+                Center(
+                  child: Text(
+                    fileName,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                _buildActionButton(
+                  icon: Icons.swap_horiz,
+                  label: 'Replace File',
+                  color: Colors.teal,
                   onPressed: () {
                     Navigator.pop(context);
                     _replaceFile(file);
                   },
-                  icon: const Icon(Icons.swap_horiz),
-                  label: const Text("Replace File"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
-                    foregroundColor: Colors.white,
-                  ),
                 ),
-                ElevatedButton.icon(
+                _buildActionButton(
+                  icon: Icons.edit,
+                  label: 'Rename File',
+                  color: Colors.orange,
                   onPressed: () {
                     Navigator.pop(context);
                     _renameFile(file);
                   },
-                  icon: const Icon(Icons.edit),
-                  label: const Text("Rename File"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    foregroundColor: Colors.white,
-                  ),
                 ),
-                ElevatedButton.icon(
+                _buildActionButton(
+                  icon: Icons.delete,
+                  label: 'Delete File',
+                  color: Colors.red,
                   onPressed: () {
                     Navigator.pop(context);
                     _deleteFile(file);
                   },
-                  icon: const Icon(Icons.delete),
-                  label: const Text("Delete File"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
-                  ),
                 ),
-                const SizedBox(height: 10),
-                ElevatedButton.icon(
+                _buildActionButton(
+                  icon: Icons.close,
+                  label: 'Close',
+                  color: Colors.grey,
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close),
-                  label: const Text("Close"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey,
-                    foregroundColor: Colors.white,
-                  ),
                 ),
               ],
             ),
@@ -262,13 +268,10 @@ class _EditReceptionReportScreenState extends State<EditReceptionReportScreen> {
                 width: 100,
                 height: 70,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) =>
-                const Icon(Icons.broken_image, color: Colors.white),
+                errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image, color: Colors.white),
               )
                   : Icon(
-                fileType == 'pdf'
-                    ? Icons.picture_as_pdf
-                    : Icons.insert_drive_file,
+                fileType == 'pdf' ? Icons.picture_as_pdf : Icons.insert_drive_file,
                 color: Colors.white,
                 size: 50,
               ),
@@ -285,6 +288,7 @@ class _EditReceptionReportScreenState extends State<EditReceptionReportScreen> {
       ),
     );
   }
+
 
   void _addFile() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(withData: true);
@@ -345,15 +349,18 @@ class _EditReceptionReportScreenState extends State<EditReceptionReportScreen> {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
         gradient: LinearGradient(
-          colors: [Colors.blue.shade900, Colors.blue.shade700],
+          colors: [
+            Color(0xFF000F89), // Royal Blue
+            Color(0xFF0F52BA), // Cobalt Blue (replacing Indigo)
+            Color(0xFF002147), // Light Sky Blue
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Scaffold(
-        backgroundColor: Colors.white,
         appBar: AppBar(
           title: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -379,119 +386,215 @@ class _EditReceptionReportScreenState extends State<EditReceptionReportScreen> {
           flexibleSpace: Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
+                colors: [
+                  Color(0xFF000F89), // Royal Blue
+                  Color(0xFF0F52BA), // Cobalt Blue (replacing Indigo)
+                  Color(0xFF002147), // Light Sky Blue
+                ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Colors.blue.shade900, Colors.indigo.shade700],
               ),
+
             ),
           ),
         ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              for (var entry in controllers.entries)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: entry.key == 'service_status'
-                      ? DropdownButtonFormField<String>(
-                    value: entry.value.text.isNotEmpty ? entry.value.text : null,
-                    onChanged: (value) {
-                      setState(() {
-                        entry.value.text = value!;
-                      });
-                    },
-                    items: serviceStatuses
-                        .map((status) => DropdownMenuItem(
-                      value: status,
-                      child: Text(status),
-                    ))
-                        .toList(),
-                    decoration: InputDecoration(
-                      labelText: 'Service Status',
-                      labelStyle: TextStyle(color: Colors.blue.shade900),
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        body: Container(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                for (var entry in controllers.entries)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: entry.key == 'service_status'
+                        ? Container(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [
+                            Color(0xFF000F89),
+                            Color(0xFF0F52BA),
+                            Color(0xFF002147),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.white),
+                      ),
+                      child: DropdownButtonFormField<String>(
+                        value: entry.value.text.isNotEmpty ? entry.value.text : null,
+                        onChanged: (value) {
+                          setState(() {
+                            entry.value.text = value!;
+                          });
+                        },
+                        items: serviceStatuses
+                            .map((status) => DropdownMenuItem(
+                          value: status,
+                          child: Text(status, style: const TextStyle(color: Colors.white)),
+                        ))
+                            .toList(),
+                        dropdownColor: const Color(0xFF0F52BA),
+                        style: const TextStyle(color: Colors.white),
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                        ),
+                        iconEnabledColor: Colors.white,
+                      ),
+                    )
+                        : Container(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [
+                            Color(0xFF000F89),
+                            Color(0xFF0F52BA),
+                            Color(0xFF002147),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.white),
+                      ),
+                      child: TextField(
+                        controller: entry.value,
+                        readOnly: ['employeeName', 'Service_department', 'employeeId'].contains(entry.key),
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                          labelText: entry.key.replaceAll("_", " ").toUpperCase(),
+                          labelStyle: const TextStyle(color: Colors.cyanAccent,fontWeight: FontWeight.bold),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                        ),
+                      ),
                     ),
-                    dropdownColor: Colors.blue.shade900,
-                    style: TextStyle(color: Colors.blue.shade900),
-                  )
-                      : TextField(
-                    controller: entry.value,
-                    readOnly: ['employeeName', 'Service_department', 'employeeId']
-                        .contains(entry.key),
-                    style: TextStyle(color: Colors.blue.shade900),
-                    decoration: InputDecoration(
-                      labelText: entry.key.replaceAll("_", " ").toUpperCase(),
-                      labelStyle: TextStyle(
+                  ),
+
+                const SizedBox(height: 20),
+                if (uploadedFiles.isNotEmpty) ...[
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      "Attached Files:",
+                      style: TextStyle(
                         color: Colors.blue.shade900,
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
-                      filled: true,
-                      fillColor: ['employeeName', 'Service_department', 'employeeId']
-                          .contains(entry.key)
-                          ? Colors.grey.shade200
-                          : Colors.white,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                   ),
-                ),
-              const SizedBox(height: 20),
-              if (uploadedFiles.isNotEmpty) ...[
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    "Attached Files:",
-                    style: TextStyle(
-                      color: Colors.blue.shade900,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    height: 120,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: uploadedFiles.length,
+                      itemBuilder: (context, index) =>
+                          _buildFileTile(uploadedFiles[index]),
                     ),
                   ),
-                ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  height: 120,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: uploadedFiles.length,
-                    itemBuilder: (context, index) =>
-                        _buildFileTile(uploadedFiles[index]),
-                  ),
+                  const SizedBox(height: 20),
+                ],
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    // Add File Button with gradient background
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [
+                            Color(0xFF000F89),
+                            Color(0xFF0F52BA),
+                            Color(0xFF002147),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: ElevatedButton.icon(
+                        onPressed: _addFile,
+                        icon: const Icon(Icons.add),
+                        label: const Text("Add File"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent, // Important: transparent so gradient shows
+                          shadowColor: Colors.transparent, // Remove shadow to keep it clean
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                      ),
+                    ),
+
+                    // Submit Button with gradient background
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [
+                            Color(0xFF000F89),
+                            Color(0xFF0F52BA),
+                            Color(0xFF002147),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: ElevatedButton.icon(
+                        onPressed: _submit,
+                        icon: const Icon(Icons.save, color: Colors.white),
+                        label: const Text(
+                          "Submit",
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent, // transparent again for gradient
+                          shadowColor: Colors.transparent,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 20),
+
               ],
-              ElevatedButton.icon(
-                onPressed: _addFile,
-                icon: const Icon(Icons.add),
-                label: const Text("Add File"),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue.shade900,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton.icon(
-                onPressed: _submit,
-                icon: const Icon(Icons.save, color: Colors.white),
-                label: const Text(
-                  "Submit",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue.shade900,
-                  foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
+}
+
+Widget _buildActionButton({
+  required IconData icon,
+  required String label,
+  required Color color,
+  required VoidCallback onPressed,
+}) {
+  return SizedBox(
+    width: double.infinity,
+    child: ElevatedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon, color: Colors.white),
+      label: Text(
+        label,
+        style: const TextStyle(
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
+      ),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color,
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+    ),
+  );
 }

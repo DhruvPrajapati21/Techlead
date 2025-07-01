@@ -7,7 +7,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:open_file/open_file.dart';
-import 'customwidget.dart';
+import '../../../Default/customwidget.dart';
 
 class InstallationPage extends StatefulWidget {
   const InstallationPage({super.key});
@@ -18,7 +18,6 @@ class InstallationPage extends StatefulWidget {
 
 class _InstallationPageState extends State<InstallationPage> {
   final _formKey = GlobalKey<FormState>();
-
   final FirebaseStorage _storage = FirebaseStorage.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   TextEditingController technicianNameController = TextEditingController();
@@ -456,6 +455,7 @@ class _InstallationPageState extends State<InstallationPage> {
                   child: Column(
                     children: [
                       buildTextField(
+                        context: context,
                         controller: technicianNameController,
                         labelText: "Technician Name",
                         icon: Icons.person,
@@ -463,6 +463,7 @@ class _InstallationPageState extends State<InstallationPage> {
                       ),
                       SizedBox(height: 16),
                       buildTextField(
+                        context: context,
                         controller: installationSiteController,
                         labelText: "Installation Site",
                         icon: Icons.location_on,
@@ -487,6 +488,7 @@ class _InstallationPageState extends State<InstallationPage> {
                       SizedBox(height: 16),
                       buildDropdownField(
                         labelText: "Home Automation Product",
+                        context: context,
                         icon: Icons.devices,
                         value: selectedProduct,
                         items: products.entries
@@ -638,8 +640,6 @@ class _InstallationPageState extends State<InstallationPage> {
                                       ),
                                     ),
                                     SizedBox(height: 5),
-
-                                    // Rename button
                                     ElevatedButton(
                                       onPressed: () => renameFile(index),
                                       style: ElevatedButton.styleFrom(
@@ -687,6 +687,7 @@ class _InstallationPageState extends State<InstallationPage> {
                       SizedBox(height: 16),
                       buildDropdownField(
                         labelText: "Service Status",
+                        context: context,
                         icon: Icons.assignment,
                         value: selectedServiceStatus,
                         items: serviceStatuses
@@ -701,6 +702,7 @@ class _InstallationPageState extends State<InstallationPage> {
                       ),
                       SizedBox(height: 16),
                       buildTextField(
+                        context: context,
                         controller: customerNameController,
                         labelText: "Customer Name",
                         icon: Icons.person,
@@ -708,6 +710,7 @@ class _InstallationPageState extends State<InstallationPage> {
                       ),
                       SizedBox(height: 16),
                       buildTextField(
+                        context: context,
                         controller: customerContactController,
                         labelText: "Customer Contact",
                         icon: Icons.phone,
@@ -716,6 +719,7 @@ class _InstallationPageState extends State<InstallationPage> {
                       ),
                       SizedBox(height: 16),
                       buildTextField(
+                        context: context,
                         controller: serviceDescriptionController,
                         labelText: "Service Description",
                         icon: Icons.description,
@@ -724,6 +728,7 @@ class _InstallationPageState extends State<InstallationPage> {
                       ),
                       SizedBox(height: 16),
                       buildTextField(
+                        context: context,
                         controller: remarksController,
                         labelText: "Remarks or Notes",
                         icon: Icons.notes,

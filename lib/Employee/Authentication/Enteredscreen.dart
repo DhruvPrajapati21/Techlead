@@ -2,9 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:techlead/EnLoginPage.dart';
+import 'package:techlead/Employee/Authentication/EnLoginPage.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'Alogin.dart';
+import '../../Admin/Authentication/Admin_login_repository/Admin_login_Screen.dart';
 
 class Enteredscreen extends StatefulWidget {
   const Enteredscreen({super.key});
@@ -15,7 +15,6 @@ class Enteredscreen extends StatefulWidget {
 
 class _EnteredscreenState extends State<Enteredscreen> with TickerProviderStateMixin {
 
-
   late AnimationController _textController;
   late AnimationController _imageController;
 
@@ -25,11 +24,41 @@ class _EnteredscreenState extends State<Enteredscreen> with TickerProviderStateM
   late Animation<double> _solutionAnimation;
   late Animation<double> _flipAnimation;
 
+  late final List<AnimationController> _iconControllers;
+  late final List<Animation<double>> _iconAnimations;
+
+  final List<Map<String, String>> _socialButtons = [
+    {
+      'asset': 'assets/images/globe.png',
+      'label': 'Website',
+      'url': 'https://techleadsolution.in/',
+    },
+    {
+      'asset': 'assets/images/facebook.png',
+      'label': 'Facebook',
+      'url': 'https://www.facebook.com/techleadtheengineeringsolution/',
+    },
+    {
+      'asset': 'assets/images/instagram.png',
+      'label': 'Instagram',
+      'url': 'https://www.instagram.com/techleadhomeautomation/',
+    },
+    {
+      'asset': 'assets/images/linkedin.png',
+      'label': 'LinkedIn',
+      'url': 'https://in.linkedin.com/company/techlead-the-engineering-solutions',
+    },
+    {
+      'asset': 'assets/images/youtubem.png',
+      'label': 'YouTube',
+      'url': 'https://www.youtube.com/@techleadautomation2120',
+    },
+  ];
+
   @override
   void initState() {
     super.initState();
 
-    // Text Animation Controller (one-time)
     _textController = AnimationController(
       vsync: this,
       duration: Duration(seconds: 2),
@@ -62,19 +91,42 @@ class _EnteredscreenState extends State<Enteredscreen> with TickerProviderStateM
       CurvedAnimation(parent: _imageController, curve: Curves.easeInOut),
     );
 
-    // Repeating flip every 5 seconds
     Timer.periodic(Duration(seconds: 5), (timer) {
       if (_imageController.status == AnimationStatus.completed ||
           _imageController.status == AnimationStatus.dismissed) {
         _imageController.forward(from: 0.0);
       }
     });
+    _iconControllers = List.generate(
+      _socialButtons.length,
+          (index) => AnimationController(
+        vsync: this,
+        duration: Duration(milliseconds: 600),
+      ),
+    );
+
+    _iconAnimations = _iconControllers.map((controller) {
+      return Tween<double>(begin: 0, end: 1).animate(
+        CurvedAnimation(parent: controller, curve: Curves.elasticOut),
+      );
+    }).toList();
+
+    for (int i = 0; i < _iconControllers.length; i++) {
+      Future.delayed(Duration(milliseconds: i * 200), () {
+        _iconControllers[i].forward();
+      });
+    }
+
   }
 
   @override
   void dispose() {
     _textController.dispose();
     _imageController.dispose();
+    for (final controller in _iconControllers) {
+      controller.dispose();
+    }
+
     super.dispose();
   }
 
@@ -87,7 +139,11 @@ class _EnteredscreenState extends State<Enteredscreen> with TickerProviderStateM
         margin: const EdgeInsets.all(10.0),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.blue.shade400, Colors.blue.shade900],
+            colors: [
+              Color(0xFF000F89), // Royal Blue
+              Color(0xFF0F52BA), // Cobalt Blue
+              Color(0xFF002147), // Midnight Blue
+            ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -114,19 +170,18 @@ class _EnteredscreenState extends State<Enteredscreen> with TickerProviderStateM
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SizedBox.expand( // Ensures background fills entire screen
+      body: SizedBox.expand(
         child: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                Color(0xFFD4E9FB), // deeper bluish-white
-                Color(0xFFBBDDFD), // cool light blue
-                Color(0xFFD9EBF8), // muted steel blue
+                Color(0xFF000F89), // Royal Blue
+                Color(0xFF0F52BA), // Cobalt Blue
+                Color(0xFF002147), // Midnight Blue
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            borderRadius: BorderRadius.circular(20),
           ),
           child: SingleChildScrollView(
             child: Padding(
@@ -136,7 +191,8 @@ class _EnteredscreenState extends State<Enteredscreen> with TickerProviderStateM
                 children: [
                   // Image with border and gradient background
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 20),
                     child: Center(
                       child: Container(
                         decoration: BoxDecoration(
@@ -164,15 +220,14 @@ class _EnteredscreenState extends State<Enteredscreen> with TickerProviderStateM
 
                   const SizedBox(height: 10),
 
-                  // Animated App name row with animation from different directions
-                  Row(
+                  Column(
                     mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Column(
+                      // Top Row: Techlead
+                      Row(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          // Techlead animation from the left
                           AnimatedBuilder(
                             animation: _techleadAnimation,
                             builder: (context, child) {
@@ -187,7 +242,7 @@ class _EnteredscreenState extends State<Enteredscreen> with TickerProviderStateM
                                 fontWeight: FontWeight.bold,
                                 fontSize: 24,
                                 letterSpacing: 1.5,
-                                color: Colors.blue.shade900,
+                                color: Colors.cyanAccent,
                                 shadows: [
                                   Shadow(
                                     color: Colors.black.withOpacity(0.1),
@@ -198,9 +253,15 @@ class _EnteredscreenState extends State<Enteredscreen> with TickerProviderStateM
                               ),
                             ),
                           ),
-                          SizedBox(height: 6),
+                        ],
+                      ),
 
-                          // "The" animation from the right
+                      const SizedBox(height: 12),
+
+                      // Bottom Row: The Engineering Solution (in one line)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
                           AnimatedBuilder(
                             animation: _theAnimation,
                             builder: (context, child) {
@@ -210,12 +271,12 @@ class _EnteredscreenState extends State<Enteredscreen> with TickerProviderStateM
                               );
                             },
                             child: Text(
-                              "The",
+                              "The ",
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 22,
                                 letterSpacing: 1.5,
-                                color: Colors.blue.shade900,
+                                color: Colors.cyanAccent,
                                 shadows: [
                                   Shadow(
                                     color: Colors.black.withOpacity(0.1),
@@ -226,9 +287,6 @@ class _EnteredscreenState extends State<Enteredscreen> with TickerProviderStateM
                               ),
                             ),
                           ),
-                          SizedBox(height: 6),
-
-                          // Engineering animation from the top
                           AnimatedBuilder(
                             animation: _engineeringAnimation,
                             builder: (context, child) {
@@ -238,12 +296,12 @@ class _EnteredscreenState extends State<Enteredscreen> with TickerProviderStateM
                               );
                             },
                             child: Text(
-                              "Engineering",
+                              "Engineering ",
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 24,
                                 letterSpacing: 1.5,
-                                color: Colors.blue.shade900,
+                                color: Colors.cyanAccent,
                                 shadows: [
                                   Shadow(
                                     color: Colors.black.withOpacity(0.1),
@@ -254,9 +312,6 @@ class _EnteredscreenState extends State<Enteredscreen> with TickerProviderStateM
                               ),
                             ),
                           ),
-                          SizedBox(height: 12),
-
-                          // Solution animation from the bottom
                           AnimatedBuilder(
                             animation: _solutionAnimation,
                             builder: (context, child) {
@@ -271,7 +326,7 @@ class _EnteredscreenState extends State<Enteredscreen> with TickerProviderStateM
                                 fontWeight: FontWeight.bold,
                                 fontSize: 22,
                                 letterSpacing: 1.5,
-                                color: Colors.blue.shade900,
+                                color: Colors.cyanAccent,
                                 shadows: [
                                   Shadow(
                                     color: Colors.black.withOpacity(0.1),
@@ -289,7 +344,6 @@ class _EnteredscreenState extends State<Enteredscreen> with TickerProviderStateM
 
                   const SizedBox(height: 30),
 
-                  // Login option cards
                   GridView.count(
                     crossAxisCount: 2,
                     shrinkWrap: true,
@@ -309,17 +363,18 @@ class _EnteredscreenState extends State<Enteredscreen> with TickerProviderStateM
                             const Text(
                               "Admin Login",
                               style: TextStyle(
-                                color: Colors.white,
+                                color: Colors.cyanAccent,
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                           ],
                         ),
-                            () {
+                        () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => const Login()),
+                            MaterialPageRoute(
+                                builder: (context) => const AdminLoginScreen()),
                           );
                         },
                       ),
@@ -336,17 +391,18 @@ class _EnteredscreenState extends State<Enteredscreen> with TickerProviderStateM
                             const Text(
                               "Employee Login",
                               style: TextStyle(
-                                color: Colors.white,
+                                color: Colors.cyanAccent,
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                           ],
                         ),
-                            () {
+                        () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (context) => LoginPage()),
+                            MaterialPageRoute(
+                                builder: (context) => LoginPage()),
                           );
                         },
                       ),
@@ -360,36 +416,19 @@ class _EnteredscreenState extends State<Enteredscreen> with TickerProviderStateM
                       alignment: WrapAlignment.center,
                       spacing: 16.0,
                       runSpacing: 16.0,
-                      children: const [
-                        SocialButton(
-                          assetPath: 'assets/images/globe.png',
-                          label: 'Website',
-                          url: 'https://techleadsolution.in/',
-                        ),
-                        SocialButton(
-                          assetPath: 'assets/images/facebook.png',
-                          label: 'Facebook',
-                          url: 'https://www.facebook.com/techleadtheengineeringsolution/',
-                        ),
-                        SocialButton(
-                          assetPath: 'assets/images/instagram.png',
-                          label: 'Instagram',
-                          url: 'https://www.instagram.com/techleadhomeautomation/',
-                        ),
-                        SocialButton(
-                          assetPath: 'assets/images/linkedin.png',
-                          label: 'LinkedIn',
-                          url: 'https://in.linkedin.com/company/techlead-the-engineering-solutions',
-                        ),
-                        SocialButton(
-                          assetPath: 'assets/images/youtubem.png',
-                          label: 'YouTube',
-                          url: 'https://www.youtube.com/@techleadautomation2120',
-                        ),
-                      ],
+                      children: List.generate(_socialButtons.length, (index) {
+                        final item = _socialButtons[index];
+                        return RotationTransition(
+                          turns: _iconAnimations[index],
+                          child: SocialButton(
+                            assetPath: item['asset']!,
+                            label: item['label']!,
+                            url: item['url']!,
+                          ),
+                        );
+                      }),
                     ),
                   ),
-
 
                 ],
               ),
@@ -405,23 +444,23 @@ class SocialButton extends StatelessWidget {
   final String assetPath;
   final String label;
   final String url;
+  final Animation<double>? rotationAnimation;
 
   const SocialButton({
     Key? key,
     required this.assetPath,
     required this.label,
     required this.url,
+    this.rotationAnimation, // <-- Now nullable
   }) : super(key: key);
 
   Future<void> _launchURL(BuildContext context) async {
     final uri = Uri.parse(url);
     try {
       if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-        debugPrint('Falling back to platformDefault');
         await launchUrl(uri, mode: LaunchMode.platformDefault);
       }
     } catch (e) {
-      debugPrint('launchUrl error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Could not open $label')),
       );
@@ -450,14 +489,20 @@ class SocialButton extends StatelessWidget {
                 ),
               ],
             ),
-            child: Image.asset(assetPath, fit: BoxFit.contain),
+            child: rotationAnimation != null
+                ? RotationTransition(
+              turns: rotationAnimation!,
+              child: Image.asset(assetPath, fit: BoxFit.contain),
+            )
+                : Image.asset(assetPath, fit: BoxFit.contain),
           ),
           const SizedBox(height: 6),
           Text(
             label,
             style: const TextStyle(
               fontSize: 12,
-              color: Colors.black,
+              color: Colors.cyanAccent,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ],

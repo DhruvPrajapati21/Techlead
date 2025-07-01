@@ -1,6 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+
+import '../../../Default/customwidget.dart';
 
 class SalesPage extends StatefulWidget {
   const SalesPage({super.key});
@@ -11,12 +14,26 @@ class SalesPage extends StatefulWidget {
 
 class _SalesPageState extends State<SalesPage> {
   final _formKey = GlobalKey<FormState>();
+  FocusNode checkbox1Focus = FocusNode();
+  FocusNode checkbox2Focus = FocusNode();
+  FocusNode checkbox3Focus = FocusNode();
+  FocusNode checkbox4Focus = FocusNode();
+  FocusNode checkbox5Focus = FocusNode();
+  FocusNode checkbox6Focus = FocusNode();
+  FocusNode checkbox7Focus = FocusNode();
+  FocusNode checkbox8Focus = FocusNode();
+  FocusNode checkbox9Focus = FocusNode();
+  FocusNode checkbox10Focus = FocusNode();
+  FocusNode checkbox11Focus = FocusNode();
+
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   final TextEditingController _fullNameController = TextEditingController();
-  final TextEditingController _contactNumberController = TextEditingController();
+  final TextEditingController _contactNumberController =
+      TextEditingController();
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _additionalDetailsController = TextEditingController();
+  final TextEditingController _additionalDetailsController =
+      TextEditingController();
   final TextEditingController _propertySizeController = TextEditingController();
 
   String? _preferredContactMethod;
@@ -43,12 +60,21 @@ class _SalesPageState extends State<SalesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Sales Lead Form',style: TextStyle(fontWeight: FontWeight.bold,fontFamily: "Times New Roman"),),
+        title: Text(
+          'Sales Lead Form',
+          style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontFamily: "Times New Roman",
+              color: Colors.white),
+        ),
+        backgroundColor: Colors.blue.shade900,
+        iconTheme: IconThemeData(color: Colors.white),
+        centerTitle: true,
       ),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.blue.shade900, Colors.blue.shade700],
+            colors: [Colors.blue.shade400, Colors.blue.shade700],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -69,6 +95,7 @@ class _SalesPageState extends State<SalesPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     buildTextField(
+                      context: context,
                       controller: _fullNameController,
                       labelText: 'Full Name',
                       icon: Icons.person_outline,
@@ -81,22 +108,29 @@ class _SalesPageState extends State<SalesPage> {
                     ),
                     SizedBox(height: 15),
                     buildTextField(
+                      context: context,
                       controller: _contactNumberController,
                       labelText: 'Contact Number',
                       icon: Icons.phone_outlined,
                       keyboardType: TextInputType.phone,
+                      inputFormatters: [
+                        LengthLimitingTextInputFormatter(10),
+                        FilteringTextInputFormatter.digitsOnly,
+                      ],
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your contact number';
-                        }
-                        if (!RegExp(r'^\d{10}$').hasMatch(value)) {
-                          return 'Please enter a valid 10-digit phone number';
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Mobile number is required.';
+                        } else if (value.length != 10) {
+                          return 'Mobile number must be 10 digits.';
+                        } else if (!RegExp(r'^\d{10}$').hasMatch(value)) {
+                          return 'Enter a valid 10-digit number.';
                         }
                         return null;
                       },
                     ),
                     SizedBox(height: 15),
                     buildTextField(
+                      context: context,
                       controller: _emailController,
                       labelText: 'Email Address',
                       icon: Icons.email_outlined,
@@ -113,6 +147,7 @@ class _SalesPageState extends State<SalesPage> {
                     ),
                     SizedBox(height: 15),
                     buildDropdownField(
+                      context: context,
                       labelText: 'Preferred Contact Method',
                       icon: Icons.contact_phone_outlined,
                       value: _preferredContactMethod,
@@ -136,21 +171,40 @@ class _SalesPageState extends State<SalesPage> {
                     ),
                     SizedBox(height: 15),
                     buildDropdownField(
+                      context: context,
                       labelText: 'Lead Source',
                       icon: Icons.source_outlined,
                       value: _leadSource,
                       items: [
                         {'text': 'Website', 'icon': FontAwesomeIcons.globe},
-                        {'text': 'Social Media', 'icon': FontAwesomeIcons.instagram},
-                        {'text': 'Personal Reference', 'icon': FontAwesomeIcons.userFriends},
+                        {
+                          'text': 'Social Media',
+                          'icon': FontAwesomeIcons.instagram
+                        },
+                        {
+                          'text': 'Personal Reference',
+                          'icon': FontAwesomeIcons.userFriends
+                        },
                         {'text': 'Advertisement', 'icon': FontAwesomeIcons.ad},
                         {'text': 'Event', 'icon': FontAwesomeIcons.calendarAlt},
-                        {'text': 'Indiamart', 'icon': FontAwesomeIcons.shoppingCart},
+                        {
+                          'text': 'Indiamart',
+                          'icon': FontAwesomeIcons.shoppingCart
+                        },
                         {'text': 'Facebook', 'icon': FontAwesomeIcons.facebook},
-                        {'text': 'Architect Interior', 'icon': FontAwesomeIcons.building},
+                        {
+                          'text': 'Architect Interior',
+                          'icon': FontAwesomeIcons.building
+                        },
                         {'text': 'Builder', 'icon': FontAwesomeIcons.hammer},
-                        {'text': 'Walkthrough', 'icon': FontAwesomeIcons.walking},
-                        {'text': 'Electrician', 'icon': FontAwesomeIcons.lightbulb},
+                        {
+                          'text': 'Walkthrough',
+                          'icon': FontAwesomeIcons.walking
+                        },
+                        {
+                          'text': 'Electrician',
+                          'icon': FontAwesomeIcons.lightbulb
+                        },
                         {'text': 'Dealer', 'icon': FontAwesomeIcons.store},
                       ],
                       onChanged: (value) {
@@ -167,13 +221,23 @@ class _SalesPageState extends State<SalesPage> {
                     ),
                     SizedBox(height: 15),
                     buildDropdownField(
+                      context: context,
                       labelText: 'Lead Type',
                       icon: FontAwesomeIcons.userTag,
                       value: _leadType,
                       items: [
-                        {'text': 'New Inquiry', 'icon': FontAwesomeIcons.userPlus},
-                        {'text': 'Returning Customer', 'icon': FontAwesomeIcons.recycle},
-                        {'text': 'Referral', 'icon': FontAwesomeIcons.peopleArrows},
+                        {
+                          'text': 'New Inquiry',
+                          'icon': FontAwesomeIcons.userPlus
+                        },
+                        {
+                          'text': 'Returning Customer',
+                          'icon': FontAwesomeIcons.recycle
+                        },
+                        {
+                          'text': 'Referral',
+                          'icon': FontAwesomeIcons.peopleArrows
+                        },
                       ],
                       onChanged: (value) {
                         setState(() {
@@ -208,6 +272,7 @@ class _SalesPageState extends State<SalesPage> {
                             });
                           },
                           icon: Icons.lightbulb,
+                          focusNode: checkbox1Focus,
                           color: Colors.amber,
                         ),
                         buildCustomCheckboxTile(
@@ -220,6 +285,7 @@ class _SalesPageState extends State<SalesPage> {
                           },
                           icon: Icons.settings_remote_rounded,
                           color: Colors.blue,
+                          focusNode: checkbox2Focus,
                         ),
                         buildCustomCheckboxTile(
                           title: 'Digital Door Lock',
@@ -230,6 +296,7 @@ class _SalesPageState extends State<SalesPage> {
                             });
                           },
                           icon: Icons.door_back_door_rounded,
+                          focusNode: checkbox3Focus,
                           color: Colors.red,
                         ),
                         buildCustomCheckboxTile(
@@ -241,6 +308,7 @@ class _SalesPageState extends State<SalesPage> {
                             });
                           },
                           icon: Icons.curtains_closed,
+                          focusNode: checkbox4Focus,
                           color: Colors.purple,
                         ),
                         buildCustomCheckboxTile(
@@ -252,6 +320,7 @@ class _SalesPageState extends State<SalesPage> {
                             });
                           },
                           icon: FontAwesomeIcons.tv,
+                          focusNode: checkbox5Focus,
                           color: Colors.green,
                         ),
                         buildCustomCheckboxTile(
@@ -264,6 +333,7 @@ class _SalesPageState extends State<SalesPage> {
                           },
                           icon: Icons.tv,
                           color: Colors.purple,
+                          focusNode: checkbox6Focus,
                         ),
                         buildCustomCheckboxTile(
                           title: 'Gate Automation',
@@ -275,6 +345,7 @@ class _SalesPageState extends State<SalesPage> {
                           },
                           icon: Icons.door_back_door_sharp,
                           color: Colors.purple,
+                          focusNode: checkbox7Focus,
                         ),
                         buildCustomCheckboxTile(
                           title: 'CCTV',
@@ -286,6 +357,7 @@ class _SalesPageState extends State<SalesPage> {
                           },
                           icon: Icons.video_camera_back_sharp,
                           color: Colors.purple,
+                          focusNode: checkbox8Focus,
                         ),
                         buildCustomCheckboxTile(
                           title: 'Video Door Phone',
@@ -297,6 +369,7 @@ class _SalesPageState extends State<SalesPage> {
                           },
                           icon: Icons.phone_android,
                           color: Colors.purple,
+                          focusNode: checkbox9Focus,
                         ),
                         buildCustomCheckboxTile(
                           title: 'Boom Barrier',
@@ -308,6 +381,7 @@ class _SalesPageState extends State<SalesPage> {
                           },
                           icon: Icons.desk_sharp,
                           color: Colors.purple,
+                          focusNode: checkbox10Focus,
                         ),
                         buildCustomCheckboxTile(
                           title: 'Others',
@@ -319,11 +393,13 @@ class _SalesPageState extends State<SalesPage> {
                           },
                           icon: Icons.devices_other_outlined,
                           color: Colors.purple,
+                          focusNode: checkbox11Focus,
                         ),
                       ],
                     ),
                     SizedBox(height: 30),
                     buildTextField(
+                      context: context,
                       controller: _additionalDetailsController,
                       labelText: 'Additional Details',
                       icon: FontAwesomeIcons.infoCircle,
@@ -337,6 +413,7 @@ class _SalesPageState extends State<SalesPage> {
                     ),
                     SizedBox(height: 15),
                     buildDropdownField(
+                      context: context,
                       labelText: 'Type of Property',
                       icon: FontAwesomeIcons.building,
                       value: _propertyType,
@@ -359,6 +436,7 @@ class _SalesPageState extends State<SalesPage> {
                     ),
                     SizedBox(height: 15),
                     buildTextField(
+                      context: context,
                       controller: _propertySizeController,
                       labelText: 'Size of Property (sq ft)',
                       icon: FontAwesomeIcons.ruler,
@@ -375,14 +453,21 @@ class _SalesPageState extends State<SalesPage> {
                     ),
                     SizedBox(height: 15),
                     buildDropdownField(
+                      context: context,
                       labelText: 'Current Home Automation Setup',
                       icon: FontAwesomeIcons.robot,
                       value: _currentHomeAutomation,
                       items: [
                         {'text': 'None', 'icon': FontAwesomeIcons.timesCircle},
                         {'text': 'Partial', 'icon': FontAwesomeIcons.expand},
-                        {'text': 'Fully Automated', 'icon': FontAwesomeIcons.robot},
-                        {'text': 'Interested in Upgrading', 'icon': FontAwesomeIcons.arrowUp},
+                        {
+                          'text': 'Fully Automated',
+                          'icon': FontAwesomeIcons.robot
+                        },
+                        {
+                          'text': 'Interested in Upgrading',
+                          'icon': FontAwesomeIcons.arrowUp
+                        },
                       ],
                       onChanged: (value) {
                         setState(() {
@@ -398,13 +483,23 @@ class _SalesPageState extends State<SalesPage> {
                     ),
                     SizedBox(height: 15),
                     buildDropdownField(
+                      context: context,
                       labelText: 'Budget Range',
                       icon: FontAwesomeIcons.moneyBillWave,
                       value: _budgetRange,
                       items: [
-                        {'text': 'Below \$1,000', 'icon': FontAwesomeIcons.dollarSign},
-                        {'text': '\$1,000 - \$5,000', 'icon': FontAwesomeIcons.dollarSign},
-                        {'text': 'Above \$5,000', 'icon': FontAwesomeIcons.dollarSign},
+                        {
+                          'text': 'Below \$1,000',
+                          'icon': FontAwesomeIcons.dollarSign
+                        },
+                        {
+                          'text': '\$1,000 - \$5,000',
+                          'icon': FontAwesomeIcons.dollarSign
+                        },
+                        {
+                          'text': 'Above \$5,000',
+                          'icon': FontAwesomeIcons.dollarSign
+                        },
                       ],
                       onChanged: (value) {
                         setState(() {
@@ -422,20 +517,24 @@ class _SalesPageState extends State<SalesPage> {
                     SizedBox(
                       width: double.infinity,
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12,vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 12),
                         child: ElevatedButton(
                           onPressed: _isLoading ? null : _submitForm,
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.blue,shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                          style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue.shade900,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10))),
                           child: _isLoading
                               ? CircularProgressIndicator(color: Colors.white)
                               : Text(
-                            'Submit',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
-                          ),
+                                  'Submit',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
+                                  ),
+                                ),
                         ),
                       ),
                     ),
@@ -449,87 +548,23 @@ class _SalesPageState extends State<SalesPage> {
     );
   }
 
-  Widget buildTextField({
-    required TextEditingController controller,
-    required String labelText,
-    required IconData icon,
-    TextInputType keyboardType = TextInputType.text,
-    String? Function(String?)? validator,
-    int maxLines = 1,
-  }) {
-    return TextFormField(
-      controller: controller,
-      textInputAction: TextInputAction.next,
-      onEditingComplete: () =>
-          FocusScope.of(context).nextFocus(),
-      decoration: InputDecoration(
-        labelText: labelText,
-        prefixIcon: Icon(icon, color: Colors.blue.shade900),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-      ),
-      keyboardType: keyboardType,
-      maxLines: maxLines,
-      validator: validator,
-    );
-  }
-
-  Widget buildDropdownField({
-    required String labelText,
-    required IconData icon,
-    required List<Map<String, dynamic>> items,
-    required void Function(String?)? onChanged,
-    required String? Function(String?) validator,
-    String? value,
-  }) {
-    return DropdownButtonFormField<String>(
-      decoration: InputDecoration(
-        labelText: labelText,
-        prefixIcon: Icon(icon, color: Colors.blue.shade900),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-      ),
-      value: value,
-      items: items
-          .map((item) => DropdownMenuItem<String>(
-        value: item['text'],
-        child: Row(
-          children: [
-            Icon(item['icon'], color: Colors.blue.shade900),
-            SizedBox(width: 10),
-            Text(item['text']),
-          ],
-        ),
-      ))
-          .toList(),
-      onChanged: onChanged,
-      validator: validator,
-    );
-  }
-
-  Widget buildCustomCheckboxTile({
-    required String title,
-    required bool value,
-    required ValueChanged<bool?>? onChanged,
-    required IconData icon,
-    required Color color,
-  }) {
-    return CheckboxListTile(
-      title: Text(title),
-      value: value,
-      onChanged: onChanged,
-      secondary: Icon(icon, color: color),
-    );
-  }
-
   void _submitForm() async {
     if (_formKey.currentState!.validate()) {
-      if (!_touchswitchboard && !_rfremos && !_digitaldoorlock && !_curtainautomation && !_hometheatre &&
-          !_vbusautomation && !_gateautomation && !_cctv && !_videodoorphone && !_boombarrier && !_others) {
+      if (!_touchswitchboard &&
+          !_rfremos &&
+          !_digitaldoorlock &&
+          !_curtainautomation &&
+          !_hometheatre &&
+          !_vbusautomation &&
+          !_gateautomation &&
+          !_cctv &&
+          !_videodoorphone &&
+          !_boombarrier &&
+          !_others) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Please select at least one service'), backgroundColor: Colors.red),
+          SnackBar(
+              content: Text('Please select at least one service'),
+              backgroundColor: Colors.red),
         );
         return;
       }
@@ -567,14 +602,30 @@ class _SalesPageState extends State<SalesPage> {
 
       try {
         await _firestore.collection('Salesinfo').add(formData);
+
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Form submitted successfully!'), backgroundColor: Colors.green),
+          SnackBar(
+            content: const Text(
+              'Form submitted successfully!',
+              style: TextStyle(color: Colors.white),
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
         );
+
         _formKey.currentState!.reset();
         _resetForm();
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error submitting form: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(
+              'Error submitting form: $e',
+              style: const TextStyle(color: Colors.white),
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
         );
       } finally {
         setState(() {

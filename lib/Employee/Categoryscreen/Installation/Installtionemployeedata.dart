@@ -3,21 +3,31 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'FileViwerscreen.dart';
+import '../FileViwerscreen.dart';
 
 class AssignedTaskForInstallation extends StatefulWidget {
-  const AssignedTaskForInstallation({super.key});
+  final String? projectName;
+  final int? unreadCount;
+  final String? highlightedTaskId;
+
+  const AssignedTaskForInstallation({this.projectName, this.unreadCount,this.highlightedTaskId,});
 
   @override
-  State<AssignedTaskForInstallation> createState() => _AssignedTaskForInstallationState();
+  State<AssignedTaskForInstallation> createState() =>
+      _AssignedTaskForInstallationState();
 }
 
-class _AssignedTaskForInstallationState extends State<AssignedTaskForInstallation> {
+class _AssignedTaskForInstallationState
+    extends State<AssignedTaskForInstallation> {
   String searchQuery = "";
   DateTime? startDate;
   DateTime? endDate;
 
   TextEditingController searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  bool scrolledToProject = false;
+  bool scrolledToUnread = false;
+  String? get currentUserId => FirebaseAuth.instance.currentUser?.uid;
 
   @override
   Widget build(BuildContext context) {
@@ -35,188 +45,397 @@ class _AssignedTaskForInstallationState extends State<AssignedTaskForInstallatio
             AppBar(
               title: const Text(
                 "Assigned Tasks From Admin",
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                style:
+                TextStyle(color: Colors.white, fontWeight: FontWeight.bold,fontSize: 14,fontFamily: "Times New Roman"),
               ),
               centerTitle: true,
               backgroundColor: Colors.blue.shade900,
               iconTheme: IconThemeData(color: Colors.white),
             ),
+            if ((widget.unreadCount ?? 0) > 0)
+              Container(
+                width: double.infinity,
+                color: Colors.red,
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Center(
+                  child: Text(
+                    '🔔You have ${widget.unreadCount} unread task(s) as a green color card',
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold,fontFamily: "Times New Roman"),
+                  ),
+                ),
+              ),
             _buildSearchBar(),
             _buildDateFilters(),
             Expanded(
-              child: StreamBuilder(
-                stream: FirebaseFirestore.instance
-                    .collection('TaskAssign')
-                    .where('department', isEqualTo: 'Installation')
-                    .snapshots(),
-                builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
+              child: currentUserId == null
+                  ? const Center(child: Text("User not logged in"))
+                  : FutureBuilder<DocumentSnapshot>(
+                future: FirebaseFirestore.instance
+                    .collection('EmpProfile')
+                    .doc(currentUserId)
+                    .get(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState ==
+                      ConnectionState.waiting) {
+                    return const Center(
+                        child: CircularProgressIndicator());
                   }
 
-                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  if (!snapshot.hasData || !snapshot.data!.exists) {
                     return const Center(
                       child: Text(
-                        "No tasks assigned.",
-                        style: TextStyle(color: Colors.black, fontSize: 18),
+                        "User profile not found.",
+                        style: TextStyle(color: Colors.red),
                       ),
                     );
                   }
 
-                  var assignedTasks = snapshot.data!.docs.where((doc) {
-                    var task = doc.data() as Map<String, dynamic>;
+                  final empId = snapshot.data!.get('fullName');
 
-                    if (searchQuery.isNotEmpty &&
-                        !task['employeeName'].toString().toLowerCase().contains(searchQuery.toLowerCase())) {
-                      return false;
-                    }
+                  return StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('TaskAssign')
+                        .where('department', isEqualTo: 'Installation')
+                        .where('employeeNames', arrayContains: empId)
+                        .snapshots(),
+                    builder: (context, taskSnapshot) {
+                      if (taskSnapshot.connectionState ==
+                          ConnectionState.waiting) {
+                        return const Center(
+                            child: CircularProgressIndicator());
+                      }
 
-                    if (startDate != null && endDate != null) {
-                      DateTime assignedDate = DateFormat('dd MMMM yy').parse(task['date']);
-                      DateTime normalizedStartDate = DateTime(startDate!.year, startDate!.month, startDate!.day);
-                      DateTime normalizedEndDate = DateTime(endDate!.year, endDate!.month, endDate!.day, 23, 59, 59);
-                      return assignedDate.isAfter(normalizedStartDate) && assignedDate.isBefore(normalizedEndDate);
-                    }
+                      if (!taskSnapshot.hasData ||
+                          taskSnapshot.data!.docs.isEmpty) {
+                        return const Center(
+                          child: Text(
+                            "No tasks assigned.",
+                            style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 16,
+                                fontFamily: "Times New Roman"),
+                          ),
+                        );
+                      }
 
-                    return true;
-                  }).toList();
+                      var assignedTasks =
+                      taskSnapshot.data!.docs.where((doc) {
+                        var task = doc.data() as Map<String, dynamic>;
+                        final isUnread = task['isUnread'] == true;
+                        if (searchQuery.isNotEmpty &&
+                            !task['projectName']
+                                .toString()
+                                .toLowerCase()
+                                .contains(searchQuery.toLowerCase())) {
+                          return false;
+                        }
 
-                  if (assignedTasks.isEmpty) {
-                    return const Center(
-                      child: Text(
-                        "No tasks available between these dates.",
-                        style: TextStyle(color: Colors.white, fontSize: 18),
-                      ),
-                    );
-                  }
+                        if (startDate != null && endDate != null) {
+                          DateTime assignedDate = DateFormat('dd MMMM yy')
+                              .parse(task['date']);
+                          DateTime normalizedStartDate = DateTime(
+                              startDate!.year,
+                              startDate!.month,
+                              startDate!.day);
+                          DateTime normalizedEndDate = DateTime(
+                              endDate!.year,
+                              endDate!.month,
+                              endDate!.day,
+                              23,
+                              59,
+                              59);
+                          return !assignedDate
+                              .isBefore(normalizedStartDate) &&
+                              !assignedDate.isAfter(normalizedEndDate);
+                        }
 
-                  return ListView.builder(
-                    itemCount: assignedTasks.length,
-                    itemBuilder: (context, index) {
-                      var task = assignedTasks[index].data() as Map<String, dynamic>;
+                        return true;
+                      }).toList();
 
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
-                        child: Card(
-                          elevation: 6,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(10),
-                              gradient: LinearGradient(
-                                colors: [Colors.blue.shade900, Colors.blue.shade700],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
+                      if (assignedTasks.isEmpty) {
+                        return Center(
+                          child: Text(
+                            (widget.unreadCount ?? 0) > 0
+                                ? "You have unread tasks, but none match the filters."
+                                : "No tasks assigned.",
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontFamily: "Times New Roman",
                             ),
-                            padding: const EdgeInsets.all(16.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildTaskDetail('Admin Name', task['adminName']),
-                                _buildTaskDetail('Employee Name', task['employeeName']),
-                                _buildTaskDetail('Project Name', task['projectName']),
-                                _buildTaskDetail('Department', task['department']),
-                                _buildTaskDetail('Site Location', task['siteLocation']),
-                                _buildTaskDetail('Task Description', task['taskDescription']),
-                                _buildTaskDetail('Assigned Date', task['date']),
-                                _buildTaskDetail('Deadline Date', task['deadlineDate']),
-                                _buildTaskDetail('Time', task['time']),
+                          ),
+                        );
+                      }
 
-                                // 📂 Show Files If Present
-                                // 📂 Show Files If Present
-                                if (task['files'] != null && task['files'] is List && task['files'].isNotEmpty)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 10),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        const Text(
-                                          "Attached Files:",
+                      if (assignedTasks.isEmpty) {
+                        return const Center(
+                          child: Text(
+                            "No tasks available between these dates.",
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontFamily: "Times New Roman"),
+                          ),
+                        );
+                      }
+
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (!scrolledToProject && widget.projectName != null) {
+                        } else if (!scrolledToUnread && widget.highlightedTaskId != null) {
+                          final unreadIndex = assignedTasks.indexWhere((doc) {
+                            final task = doc.data() as Map<String, dynamic>;
+                            return task['taskId'] == widget.highlightedTaskId;
+                          });
+                          if (unreadIndex != -1) {
+                            _scrollController.animateTo(
+                              unreadIndex * 280.0,
+                              duration: const Duration(seconds: 1),
+                              curve: Curves.easeInOut,
+                            );
+                            scrolledToUnread = true;
+                          }
+                        } else if (!scrolledToUnread && (widget.unreadCount ?? 0) > 0) {
+                          final unreadIndex = assignedTasks.indexWhere((doc) {
+                            final task = doc.data() as Map<String, dynamic>;
+                            return task['isUnread'] == true;
+                          });
+                          if (unreadIndex != -1) {
+                            _scrollController.animateTo(
+                              unreadIndex * 280.0,
+                              duration: const Duration(seconds: 1),
+                              curve: Curves.easeInOut,
+                            );
+                            scrolledToUnread = true;
+                          }
+                        }
+                      });
+
+                      return ListView.builder(
+                        controller: _scrollController,
+                        itemCount: assignedTasks.length,
+                        itemBuilder: (context, index) {
+                          final doc = assignedTasks[index];
+                          final task = doc.data() as Map<String, dynamic>;
+
+                          final isProjectHighlighted = widget.projectName != null &&
+                              task['projectName']?.toString().toLowerCase().trim() ==
+                                  widget.projectName!.toLowerCase().trim();
+
+                          final isUnreadHighlighted =
+                              task['isUnread'] == true && (widget.unreadCount ?? 0) > 0;
+
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+                            child: Card(
+                              elevation: 8,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10)),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(10),
+                                  gradient: LinearGradient(
+                                    colors: (isProjectHighlighted || isUnreadHighlighted ||
+                                        (widget.highlightedTaskId != null &&
+                                            task['taskId']?.toString() == widget.highlightedTaskId))
+                                        ? [Colors.green.shade800, Colors.green.shade600]
+                                        : [Colors.blue.shade900, Colors.blue.shade700],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                ),
+                                padding: const EdgeInsets.all(16.0),
+                                child: Column(
+                                  crossAxisAlignment:
+                                  CrossAxisAlignment.start,
+                                  children: [
+                                    _buildTaskDetail(
+                                        'Admin Name', task['adminName']),
+                                    _buildTaskDetail(
+                                        'Employee Id', task['empIds']),
+                                    _buildTaskDetail(
+                                        'Employee Name',
+                                        (task['employeeNames'] as List)
+                                            .join(', ')),
+                                    _buildTaskDetail('Project Name',
+                                        task['projectName']),
+                                    _buildTaskDetail(
+                                        'Department', task['department']),
+                                    if (task['siteLocation'] != null)
+                                      Padding(
+                                        padding: const EdgeInsets.only(
+                                            bottom: 12.0),
+                                        child: Text(
+                                          "Note: Please tap the location to view it on the map.",
                                           style: TextStyle(
-                                            color: Colors.tealAccent,
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                          ),
+                                              color: Colors.orangeAccent,
+                                              fontSize: 14),
                                         ),
-                                        const SizedBox(height: 8),
-                                        SizedBox(
-                                          height: 120,
-                                          child: ListView.builder(
-                                            scrollDirection: Axis.horizontal,
-                                            itemCount: task['files'].length,
-                                            itemBuilder: (context, fileIndex) {
-                                              var file = task['files'][fileIndex];
-                                              final String url = file['downloadUrl'] ?? '';
-                                              final String fileType = (file['fileType'] ?? '').toLowerCase();
-                                              final String fileName = file['fileName'] ?? 'Unnamed';
+                                      ),
 
-                                              bool isImage = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].contains(fileType);
+                                    _buildTaskDetail('Site Location',
+                                        task['siteLocation']),
+                                    _buildTaskDetail('Task Description',
+                                        task['taskDescription']),
+                                    _buildTaskDetail(
+                                        'Assigned Date', task['date']),
+                                    _buildTaskDetail('Deadline Date',
+                                        task['deadlineDate']),
+                                    _buildTaskDetail(
+                                        'Time', task['time']),
 
-                                              return GestureDetector(
-                                                onTap: () {
-                                                  Navigator.push(
-                                                    context,
-                                                    MaterialPageRoute(
-                                                      builder: (context) => FileViewerScreen(
-                                                        url: url,
-                                                        fileType: fileType,
+                                    // 📂 Show Files If Present
+                                    // 📂 Show Files If Present
+                                    if (task['files'] != null &&
+                                        task['files'] is List &&
+                                        task['files'].isNotEmpty)
+                                      Padding(
+                                        padding: const EdgeInsets.only(
+                                            top: 10),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                          children: [
+                                            const Text(
+                                              "Attached Files:",
+                                              style: TextStyle(
+                                                color: Colors.tealAccent,
+                                                fontSize: 16,
+                                                fontWeight:
+                                                FontWeight.bold,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            SizedBox(
+                                              height: 120,
+                                              child: ListView.builder(
+                                                scrollDirection:
+                                                Axis.horizontal,
+                                                itemCount:
+                                                task['files'].length,
+                                                itemBuilder:
+                                                    (context, fileIndex) {
+                                                  var file = task['files']
+                                                  [fileIndex];
+                                                  final String url = file[
+                                                  'downloadUrl'] ??
+                                                      '';
+                                                  final String fileType =
+                                                  (file['fileType'] ??
+                                                      '')
+                                                      .toLowerCase();
+                                                  final String fileName =
+                                                      file['fileName'] ??
+                                                          'Unnamed';
+
+                                                  bool isImage = [
+                                                    'jpg',
+                                                    'jpeg',
+                                                    'png',
+                                                    'gif',
+                                                    'bmp',
+                                                    'webp'
+                                                  ].contains(fileType);
+
+                                                  return GestureDetector(
+                                                    onTap: () {
+                                                      Navigator.push(
+                                                        context,
+                                                        MaterialPageRoute(
+                                                          builder:
+                                                              (context) =>
+                                                              FileViewerScreen(
+                                                                url: url,
+                                                                fileType:
+                                                                fileType,
+                                                              ),
+                                                        ),
+                                                      );
+                                                    },
+                                                    child: Container(
+                                                      width: 120,
+                                                      margin:
+                                                      const EdgeInsets
+                                                          .only(
+                                                          right: 10),
+                                                      padding:
+                                                      const EdgeInsets
+                                                          .all(6),
+                                                      decoration:
+                                                      BoxDecoration(
+                                                        color: Colors
+                                                            .white
+                                                            .withOpacity(
+                                                            0.1),
+                                                        border: Border.all(
+                                                            color: Colors
+                                                                .tealAccent),
+                                                        borderRadius:
+                                                        BorderRadius
+                                                            .circular(
+                                                            10),
+                                                      ),
+                                                      child: Column(
+                                                        children: [
+                                                          ClipRRect(
+                                                            borderRadius:
+                                                            BorderRadius
+                                                                .circular(
+                                                                6),
+                                                            child: isImage
+                                                                ? Image
+                                                                .network(
+                                                              url,
+                                                              width:
+                                                              100,
+                                                              height:
+                                                              70,
+                                                              fit: BoxFit
+                                                                  .cover,
+                                                              errorBuilder: (context, error, stackTrace) => const Icon(
+                                                                  Icons.broken_image,
+                                                                  color: Colors.white),
+                                                            )
+                                                                : Icon(
+                                                              fileType == 'pdf'
+                                                                  ? Icons.picture_as_pdf
+                                                                  : Icons.insert_drive_file,
+                                                              color:
+                                                              Colors.white,
+                                                              size:
+                                                              50,
+                                                            ),
+                                                          ),
+                                                          const SizedBox(
+                                                              height: 5),
+                                                          Text(
+                                                            fileName,
+                                                            maxLines: 1,
+                                                            overflow:
+                                                            TextOverflow
+                                                                .ellipsis,
+                                                            style: const TextStyle(
+                                                                color: Colors
+                                                                    .white,
+                                                                fontSize:
+                                                                12),
+                                                          ),
+                                                        ],
                                                       ),
                                                     ),
                                                   );
                                                 },
-
-                                                child: Container(
-                                                  width: 120,
-                                                  margin: const EdgeInsets.only(right: 10),
-                                                  padding: const EdgeInsets.all(6),
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.white.withOpacity(0.1),
-                                                    border: Border.all(color: Colors.tealAccent),
-                                                    borderRadius: BorderRadius.circular(10),
-                                                  ),
-                                                  child: Column(
-                                                    children: [
-                                                      ClipRRect(
-                                                        borderRadius: BorderRadius.circular(6),
-                                                        child: isImage
-                                                            ? Image.network(
-                                                          url,
-                                                          width: 100,
-                                                          height: 70,
-                                                          fit: BoxFit.cover,
-                                                          errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image, color: Colors.white),
-                                                        )
-                                                            : Icon(
-                                                          fileType == 'pdf' ? Icons.picture_as_pdf : Icons.insert_drive_file,
-                                                          color: Colors.white,
-                                                          size: 50,
-                                                        ),
-                                                      ),
-                                                      const SizedBox(height: 5),
-                                                      Text(
-                                                        fileName,
-                                                        maxLines: 1,
-                                                        overflow: TextOverflow.ellipsis,
-                                                        style: const TextStyle(color: Colors.white, fontSize: 12),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                          ),
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                      ],
-                                    ),
-                                  ),
-
-                              ],
+                                      ),
+                                  ],
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
+                          );
+                        },
                       );
-
                     },
                   );
                 },
@@ -226,7 +445,6 @@ class _AssignedTaskForInstallationState extends State<AssignedTaskForInstallatio
         ),
       ),
     );
-
   }
 
   // Search Bar
@@ -236,8 +454,9 @@ class _AssignedTaskForInstallationState extends State<AssignedTaskForInstallatio
       child: TextField(
         controller: searchController,
         decoration: InputDecoration(
-          labelText: "Search by Employee Name",
-          labelStyle: const TextStyle(color: Colors.white,fontWeight: FontWeight.bold),
+          labelText: "Search by Project Name",
+          labelStyle:
+          const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           prefixIcon: const Icon(Icons.search, color: Colors.white),
           filled: true,
           fillColor: Colors.blue.shade900,
@@ -276,7 +495,8 @@ class _AssignedTaskForInstallationState extends State<AssignedTaskForInstallatio
   }
 
   // Date Picker
-  Widget _buildDateButton(String label, DateTime? date, Function(DateTime) onDateSelected) {
+  Widget _buildDateButton(
+      String label, DateTime? date, Function(DateTime) onDateSelected) {
     return ElevatedButton(
       style: ElevatedButton.styleFrom(backgroundColor: Colors.blue.shade700),
       onPressed: () async {
@@ -297,28 +517,50 @@ class _AssignedTaskForInstallationState extends State<AssignedTaskForInstallatio
     );
   }
 
-  // Task Detail Widget
   Widget _buildTaskDetail(String label, dynamic value) {
+    final isLocationField = label == 'Site Location';
+    final displayText = value != null ? value.toString() : 'N/A';
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
-      child: RichText(
-        text: TextSpan(
-          text: "$label: ",
-          style: const TextStyle(
-            color: Colors.tealAccent,
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
-          children: [
-            TextSpan(
-              text: value != null ? value.toString() : 'N/A',
-              style: const TextStyle(
-                color: Colors.white,
+      child: GestureDetector(
+        onTap: isLocationField && value != null
+            ? () async {
+          final location = Uri.encodeComponent(value.toString());
+          final googleMapsUrl =
+              'https://www.google.com/maps/search/?api=1&query=$location';
+          if (await canLaunchUrl(Uri.parse(googleMapsUrl))) {
+            await launchUrl(Uri.parse(googleMapsUrl),
+                mode: LaunchMode.externalApplication);
+          } else {
+            debugPrint('Could not launch Maps for location: $location');
+          }
+        }
+            : null,
+        child: RichText(
+          text: TextSpan(
+            text: "$label: ",
+            style: const TextStyle(
+                color: Colors.tealAccent,
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
+                fontFamily: "Times New Roman"),
+            children: [
+              TextSpan(
+                text: displayText,
+                style: TextStyle(
+                  color:
+                  isLocationField ? Colors.lightBlueAccent : Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: "Times New Roman",
+                  decoration: isLocationField
+                      ? TextDecoration.underline
+                      : TextDecoration.none,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

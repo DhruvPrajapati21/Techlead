@@ -1,6 +1,8 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ReportSendToAdminSide extends StatefulWidget {
@@ -18,11 +20,38 @@ class _ReportSendToAdminSideState extends State<ReportSendToAdminSide> {
   Future<void> _selectStartDate(BuildContext context) async {
     final now = DateTime.now();
     final previousMonth = DateTime(now.year, now.month - 1, 1);
+
     final picked = await showDatePicker(
       context: context,
       initialDate: _startDate ?? now,
       firstDate: previousMonth,
       lastDate: now,
+      builder: (BuildContext context, Widget? child) {
+        return Theme(
+          data: ThemeData(
+            dialogBackgroundColor: const Color(0xFF0D1B3E),
+            colorScheme: const ColorScheme.dark(
+              primary: Colors.white,
+              onPrimary: Color(0xFF0D1B3E),
+              surface: Color(0xFF0D1B3E),
+              onSurface: Colors.white,
+            ),
+            primaryTextTheme: const TextTheme(
+              titleLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              bodyLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              bodyMedium: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              labelLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.white,
+                textStyle: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (picked != null) {
@@ -32,12 +61,39 @@ class _ReportSendToAdminSideState extends State<ReportSendToAdminSide> {
     }
   }
 
+
   Future<void> _selectEndDate(BuildContext context) async {
     final picked = await showDatePicker(
       context: context,
       initialDate: _endDate ?? DateTime.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime(2101),
+      builder: (BuildContext context, Widget? child) {
+        return Theme(
+          data: ThemeData(
+            dialogBackgroundColor: const Color(0xFF0D1B3E),
+            colorScheme: const ColorScheme.dark(
+              primary: Colors.white,
+              onPrimary: Color(0xFF0D1B3E),
+              surface: Color(0xFF0D1B3E),
+              onSurface: Colors.white,
+            ),
+            primaryTextTheme: const TextTheme(
+              titleLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              bodyLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              bodyMedium: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              labelLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.white,
+                textStyle: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (picked != null) {
@@ -47,6 +103,7 @@ class _ReportSendToAdminSideState extends State<ReportSendToAdminSide> {
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -55,8 +112,8 @@ class _ReportSendToAdminSideState extends State<ReportSendToAdminSide> {
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.white),
         flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(colors: [Colors.indigo, Colors.blue]),
+          decoration:  BoxDecoration(
+            gradient: LinearGradient(colors: [Colors.indigo.shade900, Colors.indigo.shade900]),
           ),
         ),
       ),
@@ -68,10 +125,10 @@ class _ReportSendToAdminSideState extends State<ReportSendToAdminSide> {
               style: const TextStyle(color: Colors.white), // White text
               decoration: InputDecoration(
                 hintText: "Search by Employee Name",
-                hintStyle: const TextStyle(color: Colors.white70), // Hint text color
+                hintStyle: const TextStyle(color: Colors.white), // Hint text color
                 prefixIcon: const Icon(Icons.search, color: Colors.white),
                 filled: true,
-                fillColor: Colors.blue, // Blue background
+                fillColor: Colors.indigo.shade900, // Blue background
                 contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -112,8 +169,14 @@ class _ReportSendToAdminSideState extends State<ReportSendToAdminSide> {
               stream: FirebaseFirestore.instance.collection("DailyTaskReport").snapshots(),
               builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
+                  // Show shimmer placeholders (e.g., 3 shimmer cards)
+                  return ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: 3,
+                    itemBuilder: (context, index) => _buildShimmerReportCard(),
+                  );
                 }
+
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                   return const Center(child: Text("No reports found", style: TextStyle(color: Colors.black)));
                 }
@@ -156,9 +219,9 @@ class _ReportSendToAdminSideState extends State<ReportSendToAdminSide> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.blue.shade700,
+        color: Colors.blue.shade900,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.cyanAccent, width: 1.5),
+        border: Border.all(color: Colors.indigo.shade900, width: 1.5),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -180,7 +243,7 @@ class _ReportSendToAdminSideState extends State<ReportSendToAdminSide> {
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       elevation: 4,
-      color: Colors.blue.shade800,
+      color: Colors.indigo.shade900,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -271,18 +334,24 @@ class _ReportSendToAdminSideState extends State<ReportSendToAdminSide> {
                   tag: fileName,
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: Image.network(
-                      fileUrl,
+                    child: CachedNetworkImage(
+                      imageUrl: fileUrl,
                       width: double.infinity,
                       height: 150,
                       fit: BoxFit.cover,
-                      loadingBuilder: (context, child, progress) {
-                        if (progress == null) return child;
-                        return const Center(child: CircularProgressIndicator(color: Colors.white));
-                      },
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Text("Image failed to load", style: TextStyle(color: Colors.red));
-                      },
+                      placeholder: (context, url) => Shimmer.fromColors(
+                        baseColor: Colors.indigo.shade700,
+                        highlightColor: Colors.indigo.shade400,
+                        child: Container(
+                          width: double.infinity,
+                          height: 150,
+                          color: Colors.indigo.shade900,
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => const Text(
+                        "Image failed to load",
+                        style: TextStyle(color: Colors.red),
+                      ),
                     ),
                   ),
                 ),
@@ -324,6 +393,37 @@ class _ReportSendToAdminSideState extends State<ReportSendToAdminSide> {
       ],
     );
   }
+  Widget _buildShimmerReportCard() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Shimmer.fromColors(
+        baseColor: Colors.indigo.shade700,
+        highlightColor: Colors.indigo.shade400,
+        child: Card(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          color: Colors.indigo.shade900,
+          child: Container(
+            height: 250,
+            padding: const EdgeInsets.all(16),
+            // Simulate text and image blocks
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(height: 20, width: 150, color: Colors.indigo.shade700),
+                const SizedBox(height: 10),
+                Container(height: 16, width: double.infinity, color: Colors.indigo.shade700),
+                const SizedBox(height: 10),
+                Container(height: 16, width: 250, color: Colors.indigo.shade700),
+                const SizedBox(height: 10),
+                Container(height: 80, width: double.infinity, color: Colors.indigo.shade700),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
 
   Future<void> _launchURL(String url) async {
     if (await canLaunch(url)) {

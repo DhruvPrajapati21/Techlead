@@ -4,31 +4,54 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
+import 'package:provider/provider.dart' as legacy_provider;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:techlead/taskreportpage.dart';
-import 'Attendacescreen.dart';
+import 'package:techlead/Employee/Homescreen/taskreportpage.dart';
+import 'package:techlead/Widgeets/custom_app_bar.dart';
+import '../../core/app_bar_provider.dart';
+import '../Attendacescreen/Attendacescreen.dart';
 import 'Calendarscreen.dart';
-import 'Categoryscreen.dart';
+import '../Categoryscreen/Categoryscreen.dart';
+import 'Home_Screen_Bottom_code/home_screen_bottom_code.dart';
 import 'Leavescreen.dart';
 import 'Taskdeatils.dart';
-import 'Profilescreen.dart';
-import 'Supportscreen.dart';
+import '../Profilescreen/Profilescreen.dart';
+import '../Supportscreen/Supportscreen.dart';
 import 'Teammemberslist.dart';
-import 'Themeprovider.dart';
-import 'inhome.dart';
+import '../../Default/Themeprovider.dart';
+import '../Categoryscreen/Installation/installationhome.dart';
+import 'Viewguildlines.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
+  const HomeScreen({Key? key}) : super(key: key);
+
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+class _HomeScreenState extends ConsumerState<HomeScreen>
+    with TickerProviderStateMixin {
+  final int cardCount = 6;
+
+  late final List<AnimationController> _controllers;
+  late final List<Animation<double>> _animations;
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+  List<Widget> get _screens => [
+        _buildHomeScreenContent(),
+        Attendancescreen(),
+        Categoryscreen(),
+        ContactUs(),
+        ProfileScreen(category: '', userId: userId ?? ''),
+      ];
+
+  int _currentIndex = 0;
+  int profileIndex = 4;
+
   int totalTasks = 0;
   int inProgress = 0;
   String? userDepartment;
@@ -43,7 +66,7 @@ class _HomeScreenState extends State<HomeScreen> {
   StreamSubscription? _attendanceSubscription;
   StreamSubscription? _empProfileSubscription;
   List<String> userDepartments = [];
-  String todayWorkingStatus = "Absent";
+  String todayWorkingStatus = "No Attendance Today";
   int todayWorkingHours = 0;
   int todayWorkingMinutes = 0;
   String? profileImageUrl;
@@ -55,15 +78,104 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _initializeStats();
     _setupRealtimeListeners();
-    _initializeNotifications();
     _loadProfile();
+    _listenToUnreadNotifications();
+
+    _controllers = List.generate(
+      cardCount,
+      (index) => AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 400),
+      ),
+    );
+
+    _animations = _controllers.map((controller) {
+      return CurvedAnimation(
+        parent: controller,
+        curve: Curves.easeOutBack,
+      );
+    }).toList();
+
+    _startStaggeredAnimation();
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(appBarTitleProvider.notifier).state = "Your Task Dashboard";
+
+      ref.read(appBarGradientColorsProvider.notifier).state = [
+        const Color(0xFF283593),
+        const Color(0xFF1E88E5), // Blue shade
+      ];
+    });
+  }
+
+  Future<void> _startStaggeredAnimation() async {
+    for (int i = 0; i < _controllers.length; i++) {
+      await Future.delayed(const Duration(milliseconds: 120));
+      _controllers[i].forward();
+    }
+  }
+
+  Future<bool> _onWillPop(BuildContext context) async {
+    final shouldExit = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: const [
+            Icon(Icons.exit_to_app, color: Colors.blueAccent),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Exit Techlead App?',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontFamily: "Times New Roman",
+                  fontSize: 18,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          'Are you sure you want to exit?',
+          style: TextStyle(fontSize: 16, fontStyle: FontStyle.italic),
+        ),
+        actionsPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.grey[700],
+              textStyle: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.pop(context, true),
+            icon: const Icon(Icons.exit_to_app),
+            label: const Text('Exit'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blueAccent,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              textStyle: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+    return shouldExit ?? false;
   }
 
   Future<void> _initializeStats() async {
     await _fetchUserDepartments();
     await _fetchDepartmentStats(userDepartments);
     await _fetchOverallStats();
-    await _fetchUnreadNotifications();
+    _listenToUnreadNotifications();
   }
 
   @override
@@ -71,7 +183,20 @@ class _HomeScreenState extends State<HomeScreen> {
     _taskSubscription?.cancel();
     _attendanceSubscription?.cancel();
     _empProfileSubscription?.cancel();
+    for (final controller in _controllers) {
+      controller.dispose();
+    }
     super.dispose();
+  }
+
+  Widget _buildAnimatedCard(int index, Widget child) {
+    return ScaleTransition(
+      scale: _animations[index],
+      child: FadeTransition(
+        opacity: _animations[index],
+        child: child,
+      ),
+    );
   }
 
   Future<void> _loadProfile() async {
@@ -94,109 +219,23 @@ class _HomeScreenState extends State<HomeScreen> {
   void _setupRealtimeListeners() async {
     await _fetchUserDepartments();
 
-    _taskSubscription = _firestore.collection('DailyTaskReport').snapshots().listen((snapshot) {
+    _taskSubscription =
+        _firestore.collection('DailyTaskReport').snapshots().listen((snapshot) {
       _fetchDepartmentStats(userDepartments);
       _fetchOverallStats();
     });
 
-    _attendanceSubscription = _firestore.collection('Attendance').snapshots().listen((snapshot) {
+
+    _attendanceSubscription =
+        _firestore.collection('Attendance').snapshots().listen((snapshot) {
       _fetchOverallStats();
     });
 
-    _empProfileSubscription = _firestore.collection('EmpProfile').snapshots().listen((snapshot) {
-      _fetchUnreadNotifications();
+    _empProfileSubscription =
+        _firestore.collection('EmpProfile').snapshots().listen((snapshot) {
+          _listenToUnreadNotifications();
     });
   }
-
-  Future<void> _initializeNotifications() async {
-    const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const InitializationSettings initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
-
-    await _flutterLocalNotificationsPlugin.initialize(
-      initializationSettings,
-      onDidReceiveNotificationResponse: (NotificationResponse response) async {
-        if (response.payload != null && response.payload!.isNotEmpty) {
-          navigatorKey.currentState?.pushNamed('/Categoryscreen', arguments: response.payload);
-        }
-      },
-    );
-
-    FirebaseMessaging.instance.requestPermission(alert: true, badge: true, sound: true);
-
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      _showNotification(
-        message.notification?.title ?? "New Task",
-        message.data['category'] ?? "/Categoryscreen",
-      );
-    });
-
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      if (message.data.containsKey('category')) {
-        navigatorKey.currentState?.pushNamed('/Categoryscreen', arguments: message.data['category']);
-      }
-    });
-  }
-
-  Future<void> _showNotification(String title, String category) async {
-    const AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
-      'channel_id',
-      'channel_name',
-      channelDescription: 'Task Assign Notifications',
-      importance: Importance.max,
-      priority: Priority.high,
-      showWhen: false,
-      icon: '@mipmap/ic_launcher',
-    );
-
-    const NotificationDetails platformChannelSpecifics = NotificationDetails(android: androidPlatformChannelSpecifics);
-
-    await _flutterLocalNotificationsPlugin.show(
-      0,
-      title,
-      "Click to view details",
-      platformChannelSpecifics,
-      payload: category,
-    );
-  }
-
-  void checkTaskAssignment(List<String> categories) async {
-    QuerySnapshot taskSnapshot = await _firestore.collection('TaskAssign').get();
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-
-    for (var doc in taskSnapshot.docs) {
-      final data = doc.data() as Map<String, dynamic>;
-      String docId = doc.id;
-
-      if (prefs.getBool('task_\$docId') == true) continue;
-      if (!data.containsKey('department')) continue;
-
-      if (categories.contains(data['department'])) {
-        _showNotification("New Task Assigned", "You have a new assigned task!");
-        prefs.setBool('task_\$docId', true);
-        break;
-      }
-    }
-  }
-
-  void checkTaskAssignment2(String empId) async {
-    QuerySnapshot taskSnapshot = await _firestore.collection('TaskAssign').get();
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-
-    for (var doc in taskSnapshot.docs) {
-      final data = doc.data() as Map<String, dynamic>;
-      String docId = doc.id;
-
-      if (prefs.getBool('task_\$docId') == true) continue;
-      if (!data.containsKey('empIds')) continue;
-
-      if ((data['empIds'] as List).contains(empId)) {
-        _showNotification("New Task Assigned", "You have a new assigned task!");
-        prefs.setBool('task_\$docId', true);
-        break;
-      }
-    }
-  }
-
 
   Future<void> _fetchUserDepartments() async {
     if (userId == null) return;
@@ -216,40 +255,97 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _fetchUnreadNotifications() async {
-    if (userId == null) return;
 
-    QuerySnapshot snapshot = await _firestore
+  void _listenToUnreadNotifications() {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
+    final uid = currentUser.uid;
+
+    FirebaseFirestore.instance
         .collection('EmpProfile')
-        .where('read', isEqualTo: false)
-        .get();
+        .doc(uid)
+        .snapshots()
+        .listen((profileDoc) async {
+      if (!profileDoc.exists) {
+        print("⚠️ No EmpProfile found. Setting unread count to 0.");
+        if (mounted) {
+          setState(() {
+            _unreadNotifications = 0;
+          });
+        }
+        return;
+      }
 
-    setState(() {
-      _unreadNotifications = snapshot.docs.length;
+      final profileData = profileDoc.data();
+      if (profileData == null) return;
+
+      final empId = profileData['empId']?.toString().trim() ?? '';
+      final department = (profileData['categories'] as List<dynamic>?)
+          ?.map((e) => e.toString())
+          .toList() ??
+          [];
+
+      print("✅ Listening for notifications assigned to empId: $empId and departments: $department");
+
+      FirebaseFirestore.instance
+          .collection('TaskAssign')
+          .where('read', isEqualTo: false)
+          .snapshots()
+          .listen((taskSnapshot) {
+        final unreadDocs = taskSnapshot.docs.where((doc) {
+          final data = doc.data();
+
+          final empIdsRaw = data['empIds'] ?? '';
+          final empIds = empIdsRaw
+              .toString()
+              .split(',')
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty)
+              .toList();
+
+          final taskDepartment = data['department']?.toString().trim() ?? '';
+
+          final bool isEmpIdMatched = empIds.contains(empId);
+          final bool isDepartmentMatched = department.contains(taskDepartment);
+          final bool matched = isEmpIdMatched && isDepartmentMatched;
+
+          print("🎯 CHECK MATCH:\n🔸 empIds=$empIds\n🔸 empId=$empId\n🔸 taskDepartment=$taskDepartment\n🔸 userDepartments=$department\n🔸 matched=$matched");
+
+          return matched;
+        }).toList();
+
+        print("🔔 Total matched unread tasks (empId + department): ${unreadDocs.length}");
+
+        if (mounted) {
+          setState(() {
+            _unreadNotifications = unreadDocs.length;
+          });
+        }
+      });
     });
   }
 
-  Future<void> _markNotificationsAsRead() async {
-    if (userId == null) return;
-    QuerySnapshot snapshot = await _firestore.collection('EmpProfile').get();
-
-    for (var doc in snapshot.docs) {
-      await doc.reference.update({'read': true});
-    }
-
-    setState(() {
-      _unreadNotifications = 0;
-    });
-  }
 
   final String currentUserId = FirebaseAuth.instance.currentUser?.uid ?? "";
 
   Future<void> _fetchDepartmentStats(List<String> departments) async {
     try {
-      int completed = 0, pending = 0, inProgressCount = 0;
+      final profileDoc =
+      await _firestore.collection('EmpProfile').doc(currentUserId).get();
 
-      if (departments.isEmpty) {
-        print('No departments provided.');
+      if (!profileDoc.exists || profileDoc.data() == null) {
+        print("⚠️ EmpProfile not found for user. Skipping department stats.");
+        setState(() {
+          totalTasks = 0;
+          pendingTasks = 0;
+          inProgress = 0;
+        });
+        return;
+      }
+
+      final empId = profileDoc.get('empId') ?? '';
+      if (empId.isEmpty) {
+        print("⚠️ empId is empty. Skipping user-specific stats.");
         return;
       }
 
@@ -257,30 +353,30 @@ class _HomeScreenState extends State<HomeScreen> {
       final DateTime monthStart = DateTime(now.year, now.month, 1);
       final DateTime monthEnd = DateTime(now.year, now.month + 1, 1);
 
-      // 2) Loop over each status and accumulate counts
+      int completed = 0, pending = 0, inProgressCount = 0;
+
       for (String status in ['Completed', 'Pending', 'In Progress']) {
         int totalCount = 0;
 
-        // Firestore ".where(..., whereIn: chunk)" can only take up to 10 values at a time:
         for (int i = 0; i < departments.length; i += 10) {
           List<String> chunk = departments.sublist(
             i,
             (i + 10 > departments.length) ? departments.length : i + 10,
           );
 
-          // A) Try querying by 'category' field first:
           QuerySnapshot snapshot = await _firestore
               .collection('DailyTaskReport')
+              .where('employeeId', isEqualTo: empId)
               .where('service_status', isEqualTo: status)
-              .where('category', whereIn: chunk)
+              .where('Service_department', whereIn: chunk)
               .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(monthStart))
               .where('date', isLessThan: Timestamp.fromDate(monthEnd))
               .get();
 
-          // B) If none found under 'category', retry under 'Service_department':
           if (snapshot.docs.isEmpty) {
             snapshot = await _firestore
                 .collection('DailyTaskReport')
+                .where('employeeId', isEqualTo: empId)
                 .where('service_status', isEqualTo: status)
                 .where('Service_department', whereIn: chunk)
                 .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(monthStart))
@@ -306,23 +402,46 @@ class _HomeScreenState extends State<HomeScreen> {
         inProgress = inProgressCount;
       });
 
-      print('Current Month (${DateFormat('MMMM yyyy').format(monthStart)}) → '
+      print('📊 Stats for $empId (${DateFormat('MMMM yyyy').format(monthStart)}) → '
           'Completed: $completed, Pending: $pending, In Progress: $inProgressCount');
-    }
-    catch (e) {
-      print('Error fetching department stats: $e');
+    } catch (e) {
+      print('❌ Error fetching department stats: $e');
     }
   }
 
-
   Future<void> _fetchOverallStats() async {
     try {
-      QuerySnapshot attendanceSnapshot =
-      await _firestore.collection('Attendance').get();
-      QuerySnapshot empSnapshot =
-      await _firestore.collection('EmpProfile').get();
+      final profileDoc =
+      await _firestore.collection('EmpProfile').doc(currentUserId).get();
 
+      if (!profileDoc.exists) {
+        print("⚠️ EmpProfile not found for user. Skipping overall stats.");
+        setState(() {
+          totalWorkingHours = 0;
+          performancePercentage = 0;
+          totalEmployees = 0;
+          todayWorkingHours = 0;
+          todayWorkingMinutes = 0;
+          todayWorkingStatus = "No Record of User";
+          todayStatusColor = Colors.grey;
+        });
+        return;
+      }
+
+      final empId = profileDoc.get('empId') ?? '';
+      if (empId.isEmpty) {
+        print("⚠️ empId is empty. Skipping user-specific stats.");
+        return;
+      }
+
+      QuerySnapshot attendanceSnapshot = await _firestore
+          .collection('Attendance')
+          .where('userId', isEqualTo: currentUserId)
+          .get();
+
+      QuerySnapshot empSnapshot = await _firestore.collection('EmpProfile').get();
       int employeeCount = empSnapshot.docs.length;
+
       int completedTasks = 0, pendingTasksCount = 0, inProgressCount = 0;
 
       if (userDepartments.isNotEmpty) {
@@ -338,6 +457,7 @@ class _HomeScreenState extends State<HomeScreen> {
             QuerySnapshot snapshot = await _firestore
                 .collection('DailyTaskReport')
                 .where('service_status', isEqualTo: status)
+                .where('employeeId', isEqualTo: empId) // ✅ filter by user
                 .where('category', whereIn: chunk)
                 .get();
 
@@ -345,6 +465,7 @@ class _HomeScreenState extends State<HomeScreen> {
               snapshot = await _firestore
                   .collection('DailyTaskReport')
                   .where('service_status', isEqualTo: status)
+                  .where('employeeId', isEqualTo: empId) // ✅ filter by user
                   .where('Service_department', whereIn: chunk)
                   .get();
             }
@@ -365,66 +486,58 @@ class _HomeScreenState extends State<HomeScreen> {
       String todayStr =
           "${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}";
 
-      Map<String, Map<String, dynamic>> attendanceByUserDate = {};
-
       for (var doc in attendanceSnapshot.docs) {
         Map<String, dynamic>? data = doc.data() as Map<String, dynamic>?;
+
         if (data != null &&
             data.containsKey('record') &&
-            data.containsKey('userId') &&
             data.containsKey('date')) {
-          String key = "${data['userId']}_${data['date']}";
-          if (!attendanceByUserDate.containsKey(key)) {
-            attendanceByUserDate[key] = data;
+          List<String> parts = data['record'].toString().split(' ');
+          int hours = int.tryParse(parts[0]) ?? 0;
+          int minutes = int.tryParse(parts.length > 2 ? parts[2] : '0') ?? 0;
+          double workedHours = hours + (minutes / 60);
+          totalHours += workedHours;
+
+          String date = data['date'];
+
+          if (date == todayStr) {
+            todayWorkingHours = hours;
+            todayWorkingMinutes = minutes;
+
+            if (workedHours < 4) {
+              todayWorkingStatus = "Absent";
+              todayStatusColor = Colors.red;
+            } else if (workedHours < 8) {
+              todayWorkingStatus = "Half Day";
+              todayStatusColor = Colors.orange;
+            } else {
+              todayWorkingStatus = "Full Day";
+              todayStatusColor = Colors.green;
+            }
           }
-        }
-      }
 
-      for (var data in attendanceByUserDate.values) {
-        List<String> parts = data['record'].toString().split(' ');
-        int hours = int.tryParse(parts[0]) ?? 0;
-        int minutes = int.tryParse(parts.length > 2 ? parts[2] : '0') ?? 0;
-        double workedHours = hours + (minutes / 60);
-        totalHours += workedHours;
-
-        String date = data['date'];
-        String userId = data['userId'];
-
-        if (date == todayStr && userId == currentUserId) {
-          todayWorkingHours = hours;
-          todayWorkingMinutes = minutes;
-
-          if (workedHours < 4) {
-            todayWorkingStatus = "Absent";
-            todayStatusColor = Colors.red;
-          } else if (workedHours < 8) {
-            todayWorkingStatus = "Half Day";
-            todayStatusColor = Colors.orange;
+          if (workedHours >= 8.0) {
+            fullDays++;
+          } else if (workedHours >= 4.0) {
+            halfDays++;
           } else {
-            todayWorkingStatus = "Full Day";
-            todayStatusColor = Colors.green;
+            absentDays++;
           }
-        }
 
-        if (workedHours >= 8.0) {
-          fullDays++;
-        } else if (workedHours >= 4.0) {
-          halfDays++;
-        } else {
-          absentDays++;
+          totalDays++;
         }
-
-        totalDays++;
       }
 
-      double avgWorkingHours =
-          totalHours / (employeeCount > 0 ? employeeCount : 1);
       double fullDayPercentage =
           (fullDays / (totalDays > 0 ? totalDays : 1)) * 100;
       double halfDayPercentage =
           (halfDays / (totalDays > 0 ? totalDays : 1)) * 50;
       double overallPerformance =
           (fullDayPercentage + halfDayPercentage + (completedTasks * 2)) / 3;
+
+      if (fullDays == 0 && halfDays == 0 && completedTasks == 0) {
+        overallPerformance = 0;
+      }
 
       setState(() {
         totalWorkingHours = totalHours;
@@ -436,11 +549,13 @@ class _HomeScreenState extends State<HomeScreen> {
         todayStatusColor = todayStatusColor;
       });
 
-      print('Employee count: $employeeCount, Performance: $overallPerformance');
+      print('📊 Performance for $empId → $overallPerformance');
     } catch (e) {
-      print('Error fetching overall stats: $e');
+      print('❌ Error fetching overall stats: $e');
     }
   }
+
+
 
   void _onCardTapped(String label) async {
     if (label == "Working Hours" || label == "Performance Rating") {
@@ -480,16 +595,17 @@ class _HomeScreenState extends State<HomeScreen> {
                     backgroundColor: Colors.blue,
                     child: Text(
                       '$index',
-                      style: const TextStyle(color: Colors.white, fontFamily: 'Times New Roman'),
+                      style: const TextStyle(
+                          color: Colors.white, fontFamily: 'Times New Roman'),
                     ),
                   ),
                   title: Text(
                     data['employeeName'] ?? 'Unknown',
-                    style: const TextStyle(fontFamily: 'Times New Roman'),
+                    style: const TextStyle(fontFamily: 'Times New Roman',color: Colors.white),
                   ),
                   subtitle: Text(
                     "Today’s working time: $recordTime",
-                    style: const TextStyle(fontFamily: 'Times New Roman'),
+                    style: const TextStyle(fontFamily: 'Times New Roman',color: Colors.white),
                   ),
                 ),
               );
@@ -502,14 +618,15 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: EdgeInsets.all(12),
               child: Text(
                 "Performance is calculated as:\n"
-                    "• Full Day = 100%\n"
-                    "• Half Day = 50%\n"
-                    "• Completed Task = 2 Points\n\n"
-                    "Combined Score = Avg of all.",
+                "• Full Day = 100%\n"
+                "• Half Day = 50%\n"
+                "• Completed Task = 2 Points\n\n"
+                "Combined Score = Avg of all.",
                 style: TextStyle(
                   fontFamily: 'Times New Roman',
                   fontSize: 16,
                   height: 1.5,
+                  color: Colors.white,
                 ),
               ),
             ),
@@ -519,11 +636,16 @@ class _HomeScreenState extends State<HomeScreen> {
         showDialog(
           context: context,
           builder: (_) => Dialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color(0xFFE0F0FF), Colors.white],
+                  colors: [
+                    Color(0xFF000F89),
+                    Color(0xFF0F52BA),
+                    Color(0xFF002147)
+                  ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -535,11 +657,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   Text(
                     label,
+                    textAlign: TextAlign.center,
                     style: const TextStyle(
                       fontFamily: 'Times New Roman',
                       fontWeight: FontWeight.bold,
                       fontSize: 20,
-                      color: Colors.black87,
+                      color: Colors.white,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -548,23 +671,34 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: content.isNotEmpty
                         ? ListView(children: content)
                         : const Center(
-                      child: Text(
-                        "No data found",
-                        style: TextStyle(fontFamily: 'Times New Roman', fontSize: 16),
-                      ),
-                    ),
+                            child: Text(
+                              "No data found",
+                              style: TextStyle(
+                                fontFamily: 'Times New Roman',
+                                fontSize: 16,
+                                color: Colors.white70,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
                   ),
                   const SizedBox(height: 20),
                   Align(
                     alignment: Alignment.bottomRight,
                     child: TextButton(
                       onPressed: () => Navigator.of(context).pop(),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                      ),
                       child: const Text(
                         "Close",
                         style: TextStyle(
                           fontFamily: 'Times New Roman',
                           fontWeight: FontWeight.bold,
-                          color: Colors.blueAccent,
+                          color: Colors.white,
+                          fontSize: 16,
                         ),
                       ),
                     ),
@@ -577,13 +711,13 @@ class _HomeScreenState extends State<HomeScreen> {
       } catch (e) {
         print("Error loading dialog data for $label: $e");
       }
-
-
-  } else if (["Pending Tasks", "InProgress Tasks", "Completed Tasks"].contains(label)) {
+    } else if (["Pending Tasks", "InProgress Tasks", "Completed Tasks"]
+        .contains(label)) {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => TaskDetailsScreen(label: label, userDepartments: userDepartments),
+          builder: (_) =>
+              TaskDetailsScreen(label: label, userDepartments: userDepartments),
         ),
       );
     } else if (label == "Team Members") {
@@ -606,40 +740,51 @@ class _HomeScreenState extends State<HomeScreen> {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))
-          ],
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFF000F89),
+              Color(0xFF0F52BA),
+              Color(0xFF002147),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                margin: const EdgeInsets.only(bottom: 16),
-                child: Icon(icon, size: 40, color: Colors.blue),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(15),
+                  color: Colors.white.withOpacity(0.1),
+                  border: Border.all(color: Colors.white24, width: 1.5),
+                ),
+                child: Icon(icon, size: 32, color: Colors.white),
               ),
+              const SizedBox(height: 14),
               Text(
-                label,
+                label.toUpperCase(),
                 style: const TextStyle(
-                  fontSize: 12,
+                  fontSize: 9,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: Colors.white,
+                  fontFamily: "Times New Roman",
+                  letterSpacing: 1.1,
                 ),
                 textAlign: TextAlign.center,
               ),
-              SizedBox(
-                height: 5,
-              ),
+              const SizedBox(height: 6),
               Text(
                 value,
                 style: const TextStyle(
-                  fontSize: 14,
-                  color: Colors.blue,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                    fontFamily: "Times New Roman"
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -658,54 +803,86 @@ class _HomeScreenState extends State<HomeScreen> {
     required String status,
     required VoidCallback onTap,
   }) {
-    // Choose color based on status
     Color valueColor;
+    List<Color> gradientColors;
+
     if (status == "Full Day") {
       valueColor = Colors.green;
+      gradientColors = [Color(0xFF43A047), Color(0xFF66BB6A)];
     } else if (status == "Half Day") {
       valueColor = Colors.orange;
+      gradientColors = [Color(0xFFF57C00), Color(0xFFFFA726)];
     } else {
       valueColor = Colors.red;
+      gradientColors = [Color(0xFFD32F2F), Color(0xFFEF5350)];
     }
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          gradient: LinearGradient(
+            colors: gradientColors,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-                color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))
+              color: valueColor.withOpacity(0.3),
+              blurRadius: 10,
+              offset: Offset(0, 6),
+            ),
           ],
         ),
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 14),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                margin: const EdgeInsets.only(bottom: 16),
-                child: Icon(icon, size: 40, color: valueColor),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  border: Border.all(color: Colors.white24, width: 1.2),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Icon(icon, size: 20, color: Colors.white),
               ),
+              const SizedBox(height: 12),
               Text(
-                label,
+                label.toUpperCase(),
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  letterSpacing: 1.0,
+                  fontFamily: "Times New Roman"
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 3),
+              Text(
+                "$hours Hrs $minutes Min",
                 style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  fontFamily: "Times New Roman",
+                  color: Colors.white,
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 5),
+              const SizedBox(height: 4),
               Text(
-                "$hours Hrs $minutes Min\n$status",
+                status,
                 style: TextStyle(
-                  fontSize: 14,
-                  color: valueColor,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white.withOpacity(0.95),
+                    fontFamily: "Times New Roman"
                 ),
                 textAlign: TextAlign.center,
+
               ),
             ],
           ),
@@ -714,18 +891,252 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildHomeScreenContent() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 35),
+      child: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFF004FF9),
+              Color(0xFF000000),
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Builder(
+                      builder: (context) => IconButton(
+                        icon: const Icon(Icons.menu, color: Colors.white),
+                        onPressed: () => Scaffold.of(context).openDrawer(),
+                      ),
+                    ),
+                    SizedBox(
+                      width: 6,
+                    ),
+                    const Text(
+                      'Dashboard Metrics',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: "Times New Roman",
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 45),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Expanded(
+                child: GridView.count(
+                  crossAxisCount:
+                      MediaQuery.of(context).size.width < 600 ? 2 : 3,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  children: [
+                    _buildAnimatedCard(
+                        0,
+                        _buildDashboardCard2(
+                          icon: Icons.access_time,
+                          label: "Working Hours",
+                          hours: todayWorkingHours,
+                          minutes: todayWorkingMinutes,
+                          status: todayWorkingStatus,
+                          onTap: () => _onCardTapped("Working Hours"),
+                        )),
+                    _buildAnimatedCard(
+                        1,
+                        _buildDashboardCard(
+                          icon: Icons.pending,
+                          label: "Pending Tasks",
+                          value: "$pendingTasks",
+                          onTap: () => _onCardTapped("Pending Tasks"),
+                        )),
+                    _buildAnimatedCard(
+                        2,
+                        _buildDashboardCard(
+                          icon: Icons.production_quantity_limits,
+                          label: "InProgress Tasks",
+                          value: "$inProgress",
+                          onTap: () => _onCardTapped("InProgress Tasks"),
+                        )),
+                    _buildAnimatedCard(
+                        3,
+                        _buildDashboardCard(
+                          icon: Icons.task_alt,
+                          label: "Completed Tasks",
+                          value: "$totalTasks",
+                          onTap: () => _onCardTapped("Completed Tasks"),
+                        )),
+                    _buildAnimatedCard(
+                        4,
+                        _buildDashboardCard(
+                          icon: Icons.group,
+                          label: "Team Members",
+                          value: "$totalEmployees",
+                          onTap: () => _onCardTapped("Team Members"),
+                        )),
+                    _buildAnimatedCard(
+                        5,
+                        _buildDashboardCard(
+                          icon: Icons.thumb_up,
+                          label: "Performance Rating",
+                          value: "${performancePercentage.toStringAsFixed(1)}%",
+                          onTap: () => _onCardTapped("Performance Rating"),
+                        )),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Stream<DocumentSnapshot> getProfileStream(String uid) {
+    return FirebaseFirestore.instance.collection('EmpProfile').doc(uid).snapshots();
+  }
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.blue,
-        title: Text("Employee Dashboard",
-            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-        centerTitle: true,
-        iconTheme: IconThemeData(color: Colors.white),
-      ),
-      drawer: Drawer(
-        child: Container(
+    final user = FirebaseAuth.instance.currentUser;
+
+    return WillPopScope(
+      onWillPop: () => _onWillPop(context),
+      child: Scaffold(
+        backgroundColor: const Color(0xFF000000),
+        drawer: Drawer(
+          child: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFF0D47A1),
+                  Color(0xFF1976D2),
+                  Color(0xFF42A5F5),
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
+            child: user == null
+                ? const Center(child: Text("Not logged in", style: TextStyle(color: Colors.white)))
+                : StreamBuilder<DocumentSnapshot>(
+                stream: getProfileStream(user.uid),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  if (!snapshot.hasData || !snapshot.data!.exists) {
+                    return const Center(child: Text("No profile found", style: TextStyle(color: Colors.white)));
+                  }
+
+                  final data = snapshot.data!;
+                  final profileImageUrl = data['profileImage'] ?? '';
+                  final fullName = data['fullName'] ?? 'Techlead The Engineering Solution!';
+
+                  return ListView(
+                    padding: EdgeInsets.zero,
+                    children: [
+                      const SizedBox(height: 40),
+                      Center(
+                        child: CircleAvatar(
+                          backgroundColor: Colors.white,
+                          radius: 55,
+                          backgroundImage: profileImageUrl.isNotEmpty ? NetworkImage(profileImageUrl) : null,
+                          child: profileImageUrl.isEmpty
+                              ? const Icon(Icons.person, size: 50, color: Colors.grey)
+                              : null,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Center(
+                        child: Text(
+                          fullName,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontFamily: "Times New Roman",
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.1,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                Divider(
+                  thickness: 1,
+                  color: Colors.cyan,
+                ),
+                SizedBox(
+                  height: 10,
+                ),
+                _buildDrawerTile(
+                  icon: Icons.calendar_today,
+                  label: 'Calendar Screen',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => Calendarscreen()),
+                    );
+                  },
+                ),
+                _buildDrawerTile(
+                  icon: Icons.note_alt,
+                  label: 'Leave Form',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => Leavescreen()),
+                    );
+                  },
+                ),
+                _buildDrawerTile(
+                  icon: Icons.report,
+                  label: 'Daily Task Report',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => DailyTaskReport2()),
+                    );
+                  },
+                ),
+                _buildDrawerTile(
+                  icon: Icons.announcement,
+                  label: 'View Guildlines',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => Viewguildlines()),
+                    );
+                  },
+                ),
+                _buildDrawerTile(
+                  icon: Icons.sunny_snowing,
+                  label: 'Theme',
+                  onTap: () {
+                    legacy_provider.Provider.of<ThemeProvider>(context,
+                        listen: false)
+                        .toggleTheme();
+                  },
+                ),
+              ],
+            );
+          }
+            ),
+          ),
+        ),
+        body: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               colors: [
@@ -737,144 +1148,13 @@ class _HomeScreenState extends State<HomeScreen> {
               end: Alignment.bottomCenter,
             ),
           ),
-          child: ListView(
-            padding: EdgeInsets.zero,
-            children: [
-              SizedBox(height: 40),
-              Center(
-                child: CircleAvatar(
-                  backgroundColor: Colors.white,
-                  radius: 55,
-                  backgroundImage: (profileImageUrl != null && profileImageUrl!.isNotEmpty)
-                      ? NetworkImage(profileImageUrl!)
-                      : null,
-                  child: (profileImageUrl == null || profileImageUrl!.isEmpty)
-                      ? const Icon(Icons.person, size: 50, color: Colors.grey)
-                      : null,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Center(
-                child: Text(
-                  fullName ?? 'Techlead The Engineering Solution!',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontFamily: "Times New Roman",
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.1,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              Divider(thickness: 1,color: Colors.cyan,),
-              SizedBox(height: 10,),
-              _buildDrawerTile(
-                icon: Icons.calendar_today,
-                label: 'Calendar Screen',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => Calendarscreen()),
-                  );
-                },
-              ),
-              _buildDrawerTile(
-                icon: Icons.note_alt,
-                label: 'Leave Form',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => Leavescreen()),
-                  );
-                },
-              ),
-              _buildDrawerTile(
-                icon: Icons.report,
-                label: 'Daily Task Report',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => DailyTaskReport2()),
-                  );
-                },
-              ),
-              _buildDrawerTile(
-                icon: Icons.sunny_snowing,
-                label: 'Theme',
-                onTap: () {
-                  Provider.of<ThemeProvider>(context, listen: false).toggleTheme();
-                },
-              ),
-            ],
+          child: IndexedStack(
+            index: _currentIndex,
+            children: _screens,
           ),
         ),
+        bottomNavigationBar: _buildBottomNav(),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8.0),
-              child: Text('Dashboard Metrics',
-                  style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue)),
-            ),
-            SizedBox(height: 16),
-            Expanded(
-              child: GridView.count(
-                crossAxisCount: MediaQuery.of(context).size.width < 600 ? 2 : 3,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                children: [
-                  _buildDashboardCard2(
-                    icon: Icons.access_time,
-                    label: "Working Hours",
-                    hours: todayWorkingHours,
-                    minutes: todayWorkingMinutes,
-                    status: todayWorkingStatus,
-                    onTap: () => _onCardTapped("Working Hours"),
-                  ),
-                  _buildDashboardCard(
-                    icon: Icons.pending,
-                    label: "Pending Tasks",
-                    value: "$pendingTasks",
-                    onTap: () => _onCardTapped("Pending Tasks"),
-                  ),
-                  _buildDashboardCard(
-                    icon: Icons.production_quantity_limits,
-                    label: "InProgress Tasks",
-                    value: "$inProgress",
-                    onTap: () => _onCardTapped("InProgress Tasks"),
-                  ),
-                  _buildDashboardCard(
-                    icon: Icons.task_alt,
-                    label: "Completed Tasks",
-                    value: "$totalTasks",
-                    onTap: () => _onCardTapped("Completed Tasks"),
-                  ),
-                  _buildDashboardCard(
-                    icon: Icons.group,
-                    label: "Team Members",
-                    value: "$totalEmployees",
-                    onTap: () => _onCardTapped("Team Members"),
-                  ),
-                  _buildDashboardCard(
-                    icon: Icons.thumb_up,
-                    label: "Performance Rating",
-                    value: "${performancePercentage.toStringAsFixed(1)}%",
-                    onTap: () => _onCardTapped("Performance Rating"),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-      bottomNavigationBar: _buildBottomNav(),
     );
   }
 
@@ -883,103 +1163,112 @@ class _HomeScreenState extends State<HomeScreen> {
       clipBehavior: Clip.none,
       children: [
         Container(
-          height: 100,
+          height: 70,
           decoration: BoxDecoration(
-            color: Colors.white,
-            boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
+            gradient: LinearGradient(
+              colors: [
+                Color(0xFF000F89),
+                Color(0xFF0F52BA),
+                Color(0xFF002147),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 6)],
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(24),
+              topRight: Radius.circular(24),
+            ),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildBottomNavItem(
-                icon: Icons.home,
+                icon: Icons.home_rounded,
                 label: 'Home',
-                onTap: () {
-                  if (ModalRoute.of(context)?.settings.name != 'HomeScreen') {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => HomeScreen(),
-                        settings: RouteSettings(name: 'HomeScreen'),
-                      ),
-                    );
-                  }
-                },
+                isActive: _currentIndex == 0,
+                onTap: () => setState(() => _currentIndex = 0),
               ),
               _buildBottomNavItem(
-                icon: Icons.calendar_today,
+                icon: Icons.event_note,
                 label: 'Attendance',
-                onTap: () {
-                  if (ModalRoute.of(context)?.settings.name !=
-                      'Attendancescreen') {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => Attendancescreen(),
-                        settings: RouteSettings(name: 'Attendancescreen'),
-                      ),
-                    );
-                  }
-                },
+                isActive: _currentIndex == 1,
+                onTap: () => setState(() => _currentIndex = 1),
               ),
               BottomNavItemWithBadge(
-                icon: Icons.category,
+                icon: Icons.dashboard_customize,
                 label: 'Category',
                 badgeCount: _unreadNotifications,
+                isActive: _currentIndex == 2,
                 onTap: () async {
-                  if (ModalRoute.of(context)?.settings.name !=
-                      'CategoryScreen') {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => Categoryscreen(),
-                        settings: const RouteSettings(name: 'CategoryScreen'),
-                      ),
-                    );
-                    await _markNotificationsAsRead(); // Await properly
-                  }
+                  setState(() => _currentIndex = 2);
                 },
               ),
               _buildBottomNavItem(
-                icon: Icons.support_agent,
+                icon: Icons.chat_bubble_outline,
                 label: 'Support',
-                onTap: () {
-                  if (ModalRoute.of(context)?.settings.name != 'ContactUs') {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ContactUs(),
-                        settings: RouteSettings(name: 'ContactUs'),
-                      ),
-                    );
-                  }
-                },
+                isActive: _currentIndex == 3,
+                onTap: () => setState(() => _currentIndex = 3),
               ),
             ],
           ),
         ),
         Positioned(
           top: -30,
-          left: MediaQuery.of(context).size.width / 2 - 35,
-          child: FloatingActionButton(
-            backgroundColor: Colors.deepPurple,
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      ProfileScreen(category: '', userId: userId ?? ''),
-                  settings: RouteSettings(name: 'ProfileScreen'),
-                ),
-              );
+          left: MediaQuery.of(context).size.width / 2 - 30,
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: () {
+              if (_currentIndex != profileIndex) {
+                setState(() {
+                  _currentIndex = profileIndex;
+                });
+              }
+              // Else: already on profileIndex, do nothing
             },
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.person, color: Colors.white),
-                Text('Profile',
-                    style: TextStyle(fontSize: 10, color: Colors.white)),
-              ],
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.transparent,
+                boxShadow: _currentIndex == profileIndex
+                    ? [
+                  BoxShadow(
+                    color: Colors.amber.withOpacity(0.4),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+                    : [],
+              ),
+              child: Transform.scale(
+                scale: _currentIndex == profileIndex ? 1.2 : 1.0,
+                child: FloatingActionButton(
+                  backgroundColor: const Color(0xFF005CFF),
+                  elevation: 8,
+                  onPressed: null, // GestureDetector handles tap
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.account_circle,
+                        color: _currentIndex == profileIndex ? Colors.amber : Colors.white,
+                        size: 24,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Profile',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: _currentIndex == profileIndex ? Colors.amber : Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
         ),
@@ -990,6 +1279,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildBottomNavItem({
     required IconData icon,
     required String label,
+    required bool isActive,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
@@ -999,98 +1289,39 @@ class _HomeScreenState extends State<HomeScreen> {
         onTap();
         setState(() => _isNavigating = false);
       },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: Colors.deepPurple),
-          SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.deepPurple,
-              fontSize: 12,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          vertical: 8,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              transform: isActive
+                  ? (Matrix4.identity()..scale(1.2))
+                  : Matrix4.identity(),
+              child: Icon(
+                icon,
+                color: isActive ? Colors.amber : Colors.white,
+                size: 28,
+              ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class BottomNavItemWithBadge extends StatefulWidget {
-  final IconData icon;
-  final String label;
-  final int badgeCount;
-  final Future<void> Function() onTap;
-
-  const BottomNavItemWithBadge({
-    Key? key,
-    required this.icon,
-    required this.label,
-    required this.badgeCount,
-    required this.onTap,
-  }) : super(key: key);
-
-  @override
-  State<BottomNavItemWithBadge> createState() => _BottomNavItemWithBadgeState();
-}
-
-class _BottomNavItemWithBadgeState extends State<BottomNavItemWithBadge> {
-  bool _isNavigating = false;
-
-  Future<void> _handleTap() async {
-    if (_isNavigating) return;
-    setState(() => _isNavigating = true);
-
-    try {
-      await widget.onTap();
-    } finally {
-      if (mounted) {
-        setState(() => _isNavigating = false);
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: _handleTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Stack(
-            children: [
-              Icon(widget.icon, color: Colors.deepPurple),
-              if (widget.badgeCount > 0)
-                Positioned(
-                  right: 0,
-                  top: 0,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(
-                      color: Colors.blue,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Text(
-                      widget.badgeCount.toString(),
-                      style: const TextStyle(
-                        fontSize: 10,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          SizedBox(height: 4),
-          Text(
-            widget.label,
-            style: TextStyle(
-              color: Colors.deepPurple,
-              fontSize: 12,
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: isActive ? Colors.amber : Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1112,8 +1343,10 @@ Widget _buildDrawerTile({
       ),
     ),
     onTap: onTap,
-    hoverColor: Colors.white24,
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
     contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+    // add this to prevent parent ListTileTheme overrides:
+    selectedTileColor: Colors.transparent,
+    tileColor: Colors.transparent,
   );
 }

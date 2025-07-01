@@ -132,20 +132,46 @@ class _AddGuidelinesState extends State<AddGuidelines> {
             children: [
               TextFormField(
                 controller: headlinesController,
+                textInputAction: TextInputAction.next,
+                onEditingComplete: () => FocusScope.of(context).nextFocus(),
                 decoration: _buildInputDecoration(label: 'Headings', icon: Icons.title),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Headings is required.';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: guidelinesController,
+                textInputAction: TextInputAction.next,
+                onEditingComplete: () => FocusScope.of(context).nextFocus(),
                 maxLines: 6,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Guidelines is required.';
+                  }
+                  return null;
+                },
                 decoration: _buildInputDecoration(label: 'Guidelines', icon: Icons.list_alt),
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: contactusController,
+                textInputAction: TextInputAction.next,
+                onEditingComplete: () => FocusScope.of(context).nextFocus(),
                 maxLines: 2,
                 keyboardType: TextInputType.emailAddress,
-                decoration: _buildInputDecoration(label: 'Contact Us', icon: Icons.contact_mail),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Email is required.';
+                  } else if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+                    return 'Enter a valid email address.';
+                  }
+                  return null;
+                },
+                decoration: _buildInputDecoration(label: 'Contact Us(Email-Id)', icon: Icons.contact_mail),
               ),
               const SizedBox(height: 24),
               SizedBox(

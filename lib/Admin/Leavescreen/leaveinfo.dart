@@ -1,24 +1,45 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:http/http.dart' as http;
+
 import 'package:intl/intl.dart';
 import 'package:mailer/mailer.dart';
 import 'package:mailer/smtp_server/gmail.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:excel/excel.dart';
+import 'package:shimmer/shimmer.dart';
+import '../../Employee/Homescreen/Leavemodel.dart';
+import '../../Widgeets/custom_app_bar.dart';
+import '../../core/app_bar_provider.dart';
 
-import 'Employee/Homescreen/Leavemodel.dart';
-
-class LeaveInfo extends StatefulWidget {
+class LeaveInfo extends ConsumerStatefulWidget {
   const LeaveInfo({super.key});
 
   @override
-  State<LeaveInfo> createState() => _LeaveInfoState();
+  ConsumerState<LeaveInfo> createState() => _LeaveInfoState();
 }
 
-class _LeaveInfoState extends State<LeaveInfo> {
+class _LeaveInfoState extends ConsumerState<LeaveInfo> {
+
+  @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(appBarTitleProvider.notifier).state = "Employee Leave Records";
+      ref.read(appBarGradientColorsProvider.notifier).state = [
+        Color(0xFF1155AA),
+        Color(0xFF025BB6),
+      ];
+    });
+  }
+
+
   bool isAdmin = true;
   TextEditingController searchController = TextEditingController();
   int selectedYear = DateTime.now().year;
@@ -60,21 +81,121 @@ class _LeaveInfoState extends State<LeaveInfo> {
 
   Future<void> _selectMonth(BuildContext context) async {
     final DateTime initialDate = DateTime(selectedDate.year, selectedDate.month);
+
     final DateTime? pickedDate = await showDialog<DateTime>(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: Text('Select Month and Year'),
-          content: SingleChildScrollView(
+        DateTime tempSelectedDate = initialDate;
+
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [
+                  Color(0xFF0A2A5A),
+                  Color(0xFF1E64D8),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Month and Year Picker
-                MonthYearPicker(
-                  selectedDate: initialDate,
-                  onChanged: (date) {
-                    Navigator.of(context).pop(date);
-                  },
+                const Text(
+                  'Select Month and Year',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Theme(
+                  data: ThemeData(
+                    dialogBackgroundColor: const Color(0xFF0A2A5A), // List background
+                    canvasColor: const Color(0xFF0A2A5A), // Dropdown popup background
+                    inputDecorationTheme: InputDecorationTheme(
+                      filled: true,
+                      fillColor: const Color(0xFF0A2A5A), // Field background
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: const BorderSide(color: Colors.white),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: const BorderSide(color: Colors.white, width: 2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    ),
+                    textTheme: const TextTheme(
+                      titleMedium: TextStyle(
+                        color: Colors.white, // Field text
+                        fontWeight: FontWeight.bold,
+                      ),
+                      bodyMedium: TextStyle(
+                        color: Colors.white, // Dropdown list item text
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    iconTheme: const IconThemeData(color: Colors.white), // Arrow icon
+                    dropdownMenuTheme: DropdownMenuThemeData(
+                      menuStyle: MenuStyle(
+                        backgroundColor: MaterialStatePropertyAll(Color(0xFF0A2A5A)),
+                      ),
+                      textStyle: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  child: MonthYearPicker(
+                    selectedDate: tempSelectedDate,
+                    onChanged: (date) {
+                      tempSelectedDate = date;
+                    },
+                  ),
+                ),
+
+
+
+                const SizedBox(height: 24),
+                Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF0A2A5A), Color(0xFF0A2A5A)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () {
+                        Navigator.of(context).pop(tempSelectedDate);
+                      },
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 14),
+                        child: Center(
+                          child: Text(
+                            'Select',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -87,9 +208,11 @@ class _LeaveInfoState extends State<LeaveInfo> {
       setState(() {
         selectedDate = DateTime(pickedDate.year, pickedDate.month, 1);
         currentMonth = DateFormat('MMMM yyyy').format(selectedDate);
-      });// Re-fetch records for the selected month
+      });
+      // Add your logic here if you want to re-fetch records or update UI
     }
   }
+
 
 
   Future<void> downloadMonthlyLeaveExcel(DateTime startDate, DateTime endDate) async {
@@ -397,188 +520,272 @@ class _LeaveInfoState extends State<LeaveInfo> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.blue,
-        title: Text(
-          "LeaveInfo",
-          style: TextStyle(
-            fontStyle: FontStyle.italic,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+      appBar: const CustomAppBar(),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFFE6EDF3), // Very light blue-gray (almost white)
+              Color(0xFFCAD7E1), // Soft pastel blue
+              Color(0xFFB3C5D3), // Slightly darker pastel blue-gray
+            ],
+
+
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
         ),
-        centerTitle: true,
-        iconTheme: IconThemeData(color: Colors.white),
-      ),
-      body: OrientationBuilder(
-        builder: (context, orientation) {
-          return SingleChildScrollView(
-            child: Center(
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 10,
-                          ),
-                          child: SizedBox(
-                            height: 50,
-                            child: TextFormField(
-                              controller: searchController,
-                              onChanged: (value) {
-                                setState(() {});
-                              },
-                              style: const TextStyle(fontSize: 16),
-                              decoration: const InputDecoration(
-                                prefixIcon: Icon(Icons.search_outlined),
-                                labelText: 'Search by Employee Name...',
-                                border: OutlineInputBorder(),
+        child: OrientationBuilder(
+          builder: (context, orientation) {
+            return SingleChildScrollView(
+              child: Center(
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 20,
+                            ),
+                            child: SizedBox(
+                              height: 50,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [Colors.blue.shade900, Colors.blue.shade900],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                padding: EdgeInsets.symmetric(horizontal: 12),
+                                child: TextFormField(
+                                  controller: searchController,
+                                  onChanged: (value) {
+                                    setState(() {});
+                                  },
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.white, // text color white
+                                  ),
+                                  decoration: const InputDecoration(
+                                    prefixIcon: Icon(
+                                      Icons.search_outlined,
+                                      color: Colors.white, // white icon
+                                    ),
+                                    labelText: 'Search by Employee Name...',
+                                    labelStyle: TextStyle(color: Colors.white,fontWeight: FontWeight.bold,
+                                    fontSize: 14),
+                                  // white label text
+                                    border: OutlineInputBorder(
+                                      borderSide: BorderSide.none, // no border, since container has bg
+                                      borderRadius: BorderRadius.all(Radius.circular(8)),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderSide: BorderSide.none,
+                                      borderRadius: BorderRadius.all(Radius.circular(8)),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderSide: BorderSide.none,
+                                      borderRadius: BorderRadius.all(Radius.circular(8)),
+                                    ),
+                                    fillColor: Colors.transparent,
+                                    filled: true,
+                                  ),
+                                ),
                               ),
+
                             ),
                           ),
                         ),
-                      ),
-                      Row(
-                        children: [
-                          const Text(
-                            "Filter: ",
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
+                        Row(
+                          children: [
+                             Text(
+                              "Filter: ",
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue.shade900, // Same as other label texts
+                              ),
                             ),
-                          ),
-                          const SizedBox(
-                            width: 12,
-                          ),
-                          SizedBox(
-                            child: DropdownButton<String>(
-                              value: selectedFilter,
-                              items: filters
-                                  .map(
-                                    (item) => DropdownMenuItem<String>(
-                                  value: item,
-                                  child: Text(
-                                    item,
+                            const SizedBox(width: 10),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFF1E5BB8), // Darker blue from 0xFF4A90E2
+                                    Color(0xFF005FCC), // Darker blue from 0xFF007AFF
+                                  ],
+
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<String>(
+                                  dropdownColor: Colors.blue.shade900, // Background color of dropdown list
+                                  value: selectedFilter,
+                                  icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                  items: filters.map((item) {
+                                    return DropdownMenuItem<String>(
+                                      value: item,
+                                      child: Text(item),
+                                    );
+                                  }).toList(),
+                                  onChanged: (item) => setState(() => selectedFilter = item),
+                                ),
+                              ),
+                            ),
+                          ],
+                        )
+
+                      ],
+                    ),
+                    SizedBox(height: 10,),
+                    Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 11),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [Colors.blue.shade900, Colors.blue.shade900],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(5.0),
+                                ),
+                                child: ElevatedButton(
+                                  onPressed: downloadLeaveExcel,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    shadowColor: Colors.transparent,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(5.0),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                  ),
+                                  child: isLoading
+                                      ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                  )
+                                      : const Text(
+                                    "Download",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
                                   ),
                                 ),
-                              )
-                                  .toList(),
-                              onChanged: (item) =>
-                                  setState(() => selectedFilter = item),
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 10,),
-                  Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 11),
-                            child: ElevatedButton(
-                              onPressed: downloadLeaveExcel,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.orangeAccent,
-                                shape: RoundedRectangleBorder(
+                            const Spacer(),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 11),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [Colors.blue.shade900, Colors.blue.shade900],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
                                   borderRadius: BorderRadius.circular(5.0),
                                 ),
-                              ),
-                              child: isLoading
-                                  ? CircularProgressIndicator(color: Colors.white,)
-                                  :Text(
-                                "Download",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontStyle: FontStyle.italic,
-                                  color: Colors.white,
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    _selectMonth(context);
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    shadowColor: Colors.transparent,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(5.0),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                  ),
+                                  child: const Text(
+                                    "Pick a Month",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                          Spacer(),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 11),
-                            child: ElevatedButton(
-                              onPressed: () {
-                                _selectMonth(context);
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.orangeAccent,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(5.0),
+                          ],
+                        )
+
+                      ],
+                    ),
+                    StreamBuilder(
+                      stream: FirebaseFirestore.instance
+                          .collection('Empleave')
+                          .orderBy('reportedDateTime', descending: false)
+                          .snapshots(),
+                      builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return _buildShimmerList();
+                        }
+
+                        if (snapshot.hasError) {
+                          return Center(child: Text('Error: ${snapshot.error}'));
+                        }
+                        if (snapshot.data!.docs.isEmpty) {
+                          return Center(child: Text('No data available'));
+                        }
+
+                        List<LeaveModel> leaveList = snapshot.data!.docs.map((doc) {
+                          return LeaveModel.fromSnapshot(doc);
+                        }).toList();
+
+                        leaveList = leaveList.where((leave) {
+                          bool matchesSearch = searchController.text.isEmpty ||
+                              leave.name.toLowerCase().contains(searchController.text.toLowerCase());
+                          bool matchesFilter = selectedFilter == null ||
+                              selectedFilter == 'All' ||
+                              leave.status == selectedFilter;
+                          return matchesSearch && matchesFilter;
+                        }).toList();
+
+                        if (leaveList.isEmpty) {
+                          return const Center(child: Text('No Data Found!',style: TextStyle(fontWeight: FontWeight.bold,),));
+                        }
+
+                        return ListView.builder(
+                          shrinkWrap: true,
+                          physics: NeverScrollableScrollPhysics(),
+                          itemCount: leaveList.length,
+                          itemBuilder: (BuildContext context, int index) {
+                            var leaveModel = leaveList[index];
+                            var showButtons = (leaveModel.status == "pending" || leaveModel.status == null) && isAdmin;
+                            var docId = leaveModel.documentId;
+
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [Colors.blue.shade900, Colors.blue.shade900],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(10), // same radius as Card
                                 ),
-                              ),
-                              child: Text(
-                                "Pick a Month",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontStyle: FontStyle.italic,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  StreamBuilder(
-                    stream: FirebaseFirestore.instance
-                        .collection('Empleave')
-                        .orderBy('reportedDateTime', descending: false)
-                        .snapshots(),
-                    builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return Center(child: CircularProgressIndicator());
-                      }
-                      if (snapshot.hasError) {
-                        return Center(child: Text('Error: ${snapshot.error}'));
-                      }
-                      if (snapshot.data!.docs.isEmpty) {
-                        return Center(child: Text('No data available'));
-                      }
-
-                      List<LeaveModel> leaveList = snapshot.data!.docs.map((doc) {
-                        return LeaveModel.fromSnapshot(doc);
-                      }).toList();
-
-                      leaveList = leaveList.where((leave) {
-                        bool matchesSearch = searchController.text.isEmpty ||
-                            leave.name.toLowerCase().contains(searchController.text.toLowerCase());
-                        bool matchesFilter = selectedFilter == null ||
-                            selectedFilter == 'All' ||
-                            leave.status == selectedFilter;
-                        return matchesSearch && matchesFilter;
-                      }).toList();
-
-                      if (leaveList.isEmpty) {
-                        return const Center(child: Text('No Data Found!',style: TextStyle(fontWeight: FontWeight.bold,),));
-                      }
-
-                      return ListView.builder(
-                        shrinkWrap: true,
-                        physics: NeverScrollableScrollPhysics(),
-                        itemCount: leaveList.length,
-                        itemBuilder: (BuildContext context, int index) {
-                          var leaveModel = leaveList[index];
-                          var showButtons = (leaveModel.status == "pending" || leaveModel.status == null) && isAdmin;
-                          var docId = leaveModel.documentId;
-
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
-                            child: Card(
-                              color: Colors.white60,
-                              margin: EdgeInsets.all(5.0),
-                              child: Padding(
-                                padding: const EdgeInsets.all(15.0),
+                                margin: EdgeInsets.all(5.0),
+                                padding: EdgeInsets.all(15.0),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -590,25 +797,30 @@ class _LeaveInfoState extends State<LeaveInfo> {
                                             children: [
                                               TextSpan(
                                                 text: 'Record: ',
-                                                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.cyanAccent,
+                                                ),
                                               ),
                                               TextSpan(
                                                 text: '${index + 1}',
-                                                style: TextStyle(fontStyle: FontStyle.italic, color: Colors.black),
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                ),
                                               ),
                                             ],
                                           ),
                                         ),
                                       ],
                                     ),
-                                    _buildRichText('EmpId: ', leaveModel.empid),
-                                    _buildRichText('EmpName: ', leaveModel.name),
-                                    _buildRichText('EmpEmailId: ', leaveModel.emailid),
-                                    _buildRichText('Leavetype: ', leaveModel.leavetype),
-                                    _buildRichText('StartDate: ', leaveModel.startdate),
-                                    _buildRichText('EndDate: ', leaveModel.enddate),
-                                    _buildRichText('Reason: ', leaveModel.reason),
-                                    _buildStatusRichText('Status: ', leaveModel.status ?? 'Unknown'),
+                                    _buildRichTextCustom('EmpId: ', leaveModel.empid),
+                                    _buildRichTextCustom('EmpName: ', leaveModel.name),
+                                    _buildRichTextCustom('EmpEmailId: ', leaveModel.emailid),
+                                    _buildRichTextCustom('Leavetype: ', leaveModel.leavetype),
+                                    _buildRichTextCustom('StartDate: ', leaveModel.startdate),
+                                    _buildRichTextCustom('EndDate: ', leaveModel.enddate),
+                                    _buildRichTextCustom('Reason: ', leaveModel.reason),
+                                    _buildStatusRichTextCustom('Status: ', leaveModel.status ?? 'Unknown'),
                                     if (leaveModel.status == "pending") ...[
                                       SizedBox(height: 10),
                                       Row(
@@ -620,12 +832,12 @@ class _LeaveInfoState extends State<LeaveInfo> {
                                             },
                                             style: ElevatedButton.styleFrom(
                                               backgroundColor: Colors.green,
-                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                              shape: RoundedRectangleBorder(
+                                                  borderRadius: BorderRadius.circular(10)),
                                             ),
                                             child: Text(
                                               'Approve',
                                               style: TextStyle(
-                                                fontStyle: FontStyle.italic,
                                                 fontWeight: FontWeight.bold,
                                                 color: Colors.white,
                                               ),
@@ -637,12 +849,12 @@ class _LeaveInfoState extends State<LeaveInfo> {
                                             },
                                             style: ElevatedButton.styleFrom(
                                               backgroundColor: Colors.red,
-                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                              shape: RoundedRectangleBorder(
+                                                  borderRadius: BorderRadius.circular(10)),
                                             ),
                                             child: Text(
                                               'Reject',
                                               style: TextStyle(
-                                                fontStyle: FontStyle.italic,
                                                 fontWeight: FontWeight.bold,
                                                 color: Colors.white,
                                               ),
@@ -656,85 +868,130 @@ class _LeaveInfoState extends State<LeaveInfo> {
                                       children: [
                                         Text(
                                           'Reported Date&Time: ',
-                                          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black,fontSize: 13),
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.cyanAccent,
+                                              fontSize: 13),
                                         ),
                                         Text(
                                           leaveModel.reportedDateTime != null
-                                              ? DateFormat('dd/MM/yyyy HH:mm:ss').format((leaveModel.reportedDateTime as Timestamp).toDate())
+                                              ? DateFormat('dd/MM/yyyy HH:mm:ss')
+                                              .format((leaveModel.reportedDateTime as Timestamp).toDate())
                                               : 'N/A',
-                                          style: TextStyle(color: Colors.black,fontSize: 13),
+                                          style: TextStyle(color: Colors.white, fontSize: 13),
                                         ),
                                       ],
                                     ),
                                   ],
                                 ),
                               ),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  ),
-                ],
+
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
 
-  Widget _buildRichText(String label, String value, {Color color = Colors.black}) {
-    return RichText(
-      text: TextSpan(
+  Widget _buildRichTextCustom(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2.0),
+      child: Row(
         children: [
-          TextSpan(
-            text: label,
-            style: TextStyle(fontWeight: FontWeight.bold, color: color),
+          Text(
+            label,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.cyanAccent,
+            ),
           ),
-          TextSpan(
-            text: value,
-            style: TextStyle(color: color),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildStatusRichText(String label, String status) {
-    Color statusColor = Colors.black;
+  Widget _buildShimmerList() {
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: 6, // Number of shimmer placeholders
+      itemBuilder: (context, index) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+          child: Shimmer.fromColors(
+            baseColor: Colors.blue.shade800.withOpacity(0.5),
+            highlightColor: Colors.white.withOpacity(0.6),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.blue.shade900,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              padding: const EdgeInsets.all(15.0),
+              height: 160,
+            ),
+          ),
+        );
+      },
+    );
+  }
 
-    switch (status) {
-      case 'Approved':
-        statusColor = Colors.green;
+
+  Widget _buildStatusRichTextCustom(String label, String value) {
+    Color statusColor;
+
+    switch (value.toLowerCase()) {
+      case 'approved':
+        statusColor = Colors.greenAccent;
         break;
-      case 'Rejected':
-        statusColor = Colors.red;
+      case 'rejected':
+        statusColor = Colors.redAccent;
         break;
       case 'pending':
-        statusColor = Colors.orange;
+        statusColor = Colors.yellowAccent;
         break;
+      default:
+        statusColor = Colors.white;
     }
 
-    return RichText(
-      text: TextSpan(
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2.0),
+      child: Row(
         children: [
-          TextSpan(
-            text: label,
-            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
-          ),
-          TextSpan(
-            text: status,
+          Text(
+            label,
             style: TextStyle(
-              fontWeight: FontWeight.normal,
-              color: statusColor,
+              fontWeight: FontWeight.bold,
+              color: Colors.cyanAccent,
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(color: statusColor),
             ),
           ),
         ],
       ),
     );
   }
+
 }
+
+
 
 
 int hexColor(String color) {
@@ -859,32 +1116,7 @@ class _MonthYearPickerState extends State<MonthYearPicker> {
             },
           ),
         ),
-        SizedBox(
-          width: double.infinity,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
-            child: ElevatedButton(
-              onPressed: () {
-                widget.onChanged(_selectedDate);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orangeAccent,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              child: Text(
-                'Select',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  fontStyle: FontStyle.italic,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
-        ),
+
       ],
     );
   }

@@ -1,18 +1,21 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
-
-class TeamMembersScreen extends StatefulWidget {
+import '../../Widgeets/custom_app_bar.dart';
+import '../../core/app_bar_provider.dart';
+class TeamMembersScreen extends ConsumerStatefulWidget {
   final List<String> userDepartments;
 
   const TeamMembersScreen({Key? key, required this.userDepartments}) : super(key: key);
 
   @override
-  _TeamMembersScreenState createState() => _TeamMembersScreenState();
+  ConsumerState<TeamMembersScreen> createState() => _TeamMembersScreenState();
 }
 
-class _TeamMembersScreenState extends State<TeamMembersScreen> {
+class _TeamMembersScreenState extends ConsumerState<TeamMembersScreen> {
+
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   List<Map<String, dynamic>> allMembers = [];
   List<Map<String, dynamic>> filteredMembers = [];
@@ -21,8 +24,18 @@ class _TeamMembersScreenState extends State<TeamMembersScreen> {
   @override
   void initState() {
     super.initState();
+
     _loadTeamMembers();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(appBarTitleProvider.notifier).state = "Team Members";
+      ref.read(appBarGradientColorsProvider.notifier).state = [
+        const Color(0xFF2F68AA),
+        const Color(0xFF025BB6),
+      ];
+    });
   }
+
 
   Future<void> _loadTeamMembers() async {
     final snapshot = await _firestore.collection('EmpProfile').get();
@@ -106,13 +119,17 @@ class _TeamMembersScreenState extends State<TeamMembersScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFFE0F0FF), Color(0xFFFFFFFF)],
+          colors: [Color(0xFF1976D2), Color(0xFF0D47A1)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
-          BoxShadow(color: Colors.grey.withOpacity(0.4), blurRadius: 4, offset: const Offset(2, 2)),
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.4),
+            blurRadius: 4,
+            offset: const Offset(2, 2),
+          ),
         ],
       ),
       child: Padding(
@@ -123,53 +140,155 @@ class _TeamMembersScreenState extends State<TeamMembersScreen> {
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: Colors.blueAccent,
+                  backgroundColor: Colors.indigo[900],
                   child: Text(
                     '${member['index']}',
-                    style: const TextStyle(color: Colors.white),
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     member['fullName'],
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Times New Roman', fontSize: 16),
+                    softWrap: true,
+                    overflow: TextOverflow.visible,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Times New Roman',
+                      fontSize: 16,
+                      color: Colors.cyanAccent,
+                    ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 8),
-            Text('Address: ${member['address']}', style: const TextStyle(fontFamily: 'Times New Roman')),
-            const SizedBox(height: 7),
-            Text('Department: ${member['categories']}', style: const TextStyle(fontFamily: 'Times New Roman')),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Address: ',
+                  style: TextStyle(
+                    fontFamily: 'Times New Roman',
+                    fontWeight: FontWeight.bold,
+                    color: Colors.cyanAccent,
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    member['address'],
+                    softWrap: true,
+                    style: const TextStyle(
+                      fontFamily: 'Times New Roman',
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 7),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Department: ',
+                  style: TextStyle(
+                    fontFamily: 'Times New Roman',
+                    fontWeight: FontWeight.bold,
+                    color: Colors.cyanAccent,
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    member['categories'],
+                    softWrap: true,
+                    style: const TextStyle(
+                      fontFamily: 'Times New Roman',
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 7),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   child: GestureDetector(
                     onTap: () => launchPhone(member['mobile']),
-                    child: Text(
-                      'Phone: ${member['mobile']}',
-                      style: const TextStyle(fontFamily: 'Times New Roman', color: Colors.black),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Phone: ',
+                          style: TextStyle(
+                            fontFamily: 'Times New Roman',
+                            fontWeight: FontWeight.bold,
+                            color: Colors.cyanAccent,
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            member['mobile'],
+                            softWrap: true,
+                            style: const TextStyle(
+                              fontFamily: 'Times New Roman',
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                const Text('Please tap them', style: TextStyle(color: Colors.red, fontSize: 12)),
+                const Text(
+                  'Please tap them',
+                  style: TextStyle(color: Colors.greenAccent, fontSize: 12, fontWeight: FontWeight.bold),
+                ),
               ],
             ),
             const SizedBox(height: 4),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   child: GestureDetector(
                     onTap: () => launchEmail(context, member['email']),
-                    child: Text(
-                      'Email: ${member['email']}',
-                      style: const TextStyle(fontFamily: 'Times New Roman', color: Colors.black),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Email: ',
+                          style: TextStyle(
+                            fontFamily: 'Times New Roman',
+                            fontWeight: FontWeight.bold,
+                            color: Colors.cyanAccent,
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            member['email'],
+                            softWrap: true,
+                            overflow: TextOverflow.visible,
+                            style: const TextStyle(
+                              fontFamily: 'Times New Roman',
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                const Text('Please tap them', style: TextStyle(color: Colors.red, fontSize: 12)),
+                const Text(
+                  'Please tap them',
+                  style: TextStyle(color: Colors.greenAccent, fontSize: 12, fontWeight: FontWeight.bold),
+                ),
               ],
             ),
           ],
@@ -181,16 +300,9 @@ class _TeamMembersScreenState extends State<TeamMembersScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9FB),
-      appBar: AppBar(
-        title: const Text(
-          'Team Members',
-          style: TextStyle(fontFamily: 'Times New Roman', fontWeight: FontWeight.bold, color: Colors.white),
-        ),
-        centerTitle: true,
-        backgroundColor: Colors.blueAccent,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
+        backgroundColor: Colors.grey[350],
+
+      appBar: CustomAppBar(),
       body: Column(
         children: [
           Padding(
@@ -200,8 +312,8 @@ class _TeamMembersScreenState extends State<TeamMembersScreen> {
               onChanged: _filterMembers,
               decoration: InputDecoration(
                 labelText: 'Search by name',
-                labelStyle: const TextStyle(color: Colors.grey),
-                prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                labelStyle:  TextStyle(color: Colors.blue.shade900,fontWeight: FontWeight.bold),
+                prefixIcon:  Icon(Icons.search, color: Colors.blue.shade900),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
               ),
             ),
@@ -209,13 +321,16 @@ class _TeamMembersScreenState extends State<TeamMembersScreen> {
           Expanded(
             child: filteredMembers.isEmpty
                 ? const Center(
-              child: Text(
-                'No data available for this department right now!',
-                style: TextStyle(
-                  fontFamily: 'Times New Roman',
-                  fontStyle: FontStyle.italic,
-                  fontSize: 16,
-                  color: Colors.grey,
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 10),
+                child: Text(
+                  'No data available for this department right now!',
+                  style: TextStyle(
+                    fontFamily: 'Times New Roman',
+                    fontStyle: FontStyle.italic,
+                    fontSize: 16,
+                    color: Colors.grey,
+                  ),
                 ),
               ),
             )

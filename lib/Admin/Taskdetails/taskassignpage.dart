@@ -2,32 +2,37 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dropdown_search/dropdown_search.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/physics.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:googleapis_auth/auth_io.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:open_file/open_file.dart';
 import 'package:file_picker/file_picker.dart';
-import 'Default/customwidget.dart';
+import '../../Default/customwidget.dart';
+import '../../main.dart';
 
 class TaskAssignPageDE extends StatefulWidget {
   const TaskAssignPageDE({super.key});
   @override
   State<TaskAssignPageDE> createState() => _TaskAssignPageDEState();
-
 }
 
 class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
-
   Map<String, bool> checkboxValues = {};
   String? matchedDocId;
   final FirebaseStorage _storage = FirebaseStorage.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   TextEditingController adminNameController = TextEditingController();
+  FocusNode checkbox1Focus = FocusNode();
   TextEditingController adminIdController = TextEditingController();
   TextEditingController employeeNameController = TextEditingController();
   TextEditingController employeeIdController = TextEditingController();
@@ -42,9 +47,12 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
   List<String> employeeNames = [];
   Map<String, String> employeeNameIdMap = {};
   List<String> selectedEmployeeNames = [];
+  List<Map<String, dynamic>> filteredDepartmentList = [];
+  Map<String, List<String>> employeeCategoryMap = {};
+
+
 
   final List<Map<String, dynamic>> departmentList = [
-    {'name': 'HR', 'icon': Icons.people},
     {'name': 'Finance', 'icon': Icons.account_balance},
     {'name': 'Development', 'icon': Icons.code},
     {'name': 'Digital Marketing', 'icon': Icons.campaign},
@@ -54,8 +62,7 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
     {'name': 'Management', 'icon': Icons.business},
     {'name': 'Sales', 'icon': Icons.shopping_cart},
     {'name': 'Installation', 'icon': Icons.build},
-    {'name': 'Services', 'icon': Icons.miscellaneous_services},
-    {'name': 'Social Media Marketing', 'icon': Icons.share},
+    {'name': 'Social Media', 'icon': Icons.share},
   ];
 
   String? selectedDepartment;
@@ -68,7 +75,8 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
 
   Future<void> _selectDeadlineDate(BuildContext context) async {
     DateTime currentDate = DateTime.now();
-    DateTime today = DateTime(currentDate.year, currentDate.month, currentDate.day);
+    DateTime today =
+    DateTime(currentDate.year, currentDate.month, currentDate.day);
 
     final DateTime? pickedDate = await showDatePicker(
       context: context,
@@ -86,8 +94,8 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
   }
 
   void pickFiles() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-        allowMultiple: true);
+    FilePickerResult? result =
+    await FilePicker.platform.pickFiles(allowMultiple: true);
 
     if (result != null) {
       for (var file in result.files) {
@@ -127,27 +135,43 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
     }
   }
 
-
   Future<void> _fetchEmployeeNames() async {
     try {
       QuerySnapshot snapshot =
       await FirebaseFirestore.instance.collection('EmpProfile').get();
 
       setState(() {
-        employeeNameIdMap = {
-          for (var doc in snapshot.docs)
-            if (doc['fullName'] != null && doc['empId'] != null)
-              doc['fullName']: doc['empId']
-        };
+        employeeNameIdMap = {};
+        employeeCategoryMap = {};
 
-        employeeNames = employeeNameIdMap.keys
-            .where((name) => name.isNotEmpty)
-            .toList();
+        for (var doc in snapshot.docs) {
+          final fullName = doc['fullName'];
+          final empId = doc['empId'];
+          final categories = doc['categories']; // ✅ LIST
+
+          if (fullName != null && empId != null && fullName.toString().isNotEmpty) {
+            employeeNameIdMap[fullName] = empId;
+
+            if (categories is List) {
+              employeeCategoryMap[fullName] = categories
+                  .map((e) => e.toString().trim())
+                  .where((e) => e.isNotEmpty)
+                  .toSet()
+                  .toList();
+            } else {
+              employeeCategoryMap[fullName] = [];
+            }
+          }
+        }
+
+        employeeNames = employeeNameIdMap.keys.where((name) => name.isNotEmpty).toList();
       });
     } catch (e) {
-      print("Error fetching employee names and IDs: $e");
+      print("❌ Error fetching employee names and IDs: $e");
     }
   }
+
+
 
   Future<void> uploadFiles() async {
     setState(() {
@@ -164,9 +188,11 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
 
         Reference storageRef = _storage.ref().child("TaskAssign/$fileName");
 
-        UploadTask uploadTask = storageRef.putData(fileBytes, SettableMetadata(
-          contentType: _getContentType(fileType),
-        ));
+        UploadTask uploadTask = storageRef.putData(
+            fileBytes,
+            SettableMetadata(
+              contentType: _getContentType(fileType),
+            ));
         TaskSnapshot snapshot = await uploadTask;
         String downloadUrl = await snapshot.ref.getDownloadURL();
 
@@ -214,7 +240,8 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
 
   Future<DateTime?> _selectDate(BuildContext context) async {
     DateTime currentDate = DateTime.now();
-    DateTime today = DateTime(currentDate.year, currentDate.month, currentDate.day);
+    DateTime today =
+    DateTime(currentDate.year, currentDate.month, currentDate.day);
 
     final DateTime? pickedDate = await showDatePicker(
       context: context,
@@ -224,7 +251,6 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
     );
     return pickedDate;
   }
-
 
   Future<TimeOfDay?> _selectTime(BuildContext context) async {
     TimeOfDay currentTime = TimeOfDay.now();
@@ -298,6 +324,7 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
     }
 
     if (errors.isNotEmpty) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           backgroundColor: Colors.red,
@@ -310,13 +337,13 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
       return;
     }
 
+    if (!mounted) return;
     setState(() {
       isLoading = true;
     });
 
     try {
-      QuerySnapshot employeeSnapshot =
-      await FirebaseFirestore.instance.collection('EmpProfile').get();
+      final employeeSnapshot = await FirebaseFirestore.instance.collection('EmpProfile').get();
 
       Map<String, String> employeeTokens = {};
       Map<String, List<String>> departmentTokens = {};
@@ -363,18 +390,20 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
       matchedTokens = matchedTokens.toSet().toList();
 
       if (matchedTokens.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: Colors.red,
-            content: const Text(
-              'Employee ID/Department not found! Task not assigned!',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: Colors.red,
+              content: const Text(
+                'Employee ID/Department not found! Task not assigned!',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
             ),
-          ),
-        );
-        setState(() {
-          isLoading = false;
-        });
+          );
+          setState(() {
+            isLoading = false;
+          });
+        }
         return;
       }
 
@@ -384,7 +413,8 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
         'adminName': adminName,
         'adminId': adminId,
         'employeeNames': selectedEmployeeNames,
-        'empIds': assignedEmpIds,
+        'empIds': assignedEmpIds.join(','),
+        "read": false,
         'department': selectedDepartment,
         'date': dateController.text.trim(),
         'time': timeController.text.trim(),
@@ -406,7 +436,6 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
 
         if (snapshot.docs.isNotEmpty) {
           final docId = snapshot.docs.first.id;
-
           await FirebaseFirestore.instance
               .collection('EmpProfile')
               .doc(docId)
@@ -415,36 +444,45 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
       }
 
       for (String token in matchedTokens) {
-        await sendNotification(token, taskData);
+        await sendNotification(
+          [token],
+          taskData,
+          taskData['empIds']?.toString() ?? '',
+          taskData['department']?.toString() ?? '',
+        );
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: Colors.green,
-          content: const Text(
-            'Task assigned and notifications sent!',
-            style: TextStyle(color: Colors.white),
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Colors.green,
+            content: const Text(
+              'Task assigned and notifications sent!',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
-        ),
-      );
-
-      _resetForm();
+        );
+        _resetForm();
+      }
     } catch (e) {
       print('🔥 Error: $e');
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: Colors.red,
-          content: Text(
-            'Error: $e',
-            style: const TextStyle(color: Colors.white),
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Colors.red,
+            content: Text(
+              'Error: $e',
+              style: const TextStyle(color: Colors.white),
+            ),
           ),
-        ),
-      );
+        );
+      }
     } finally {
-      setState(() {
-        isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
 
@@ -459,9 +497,11 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
 
         Uint8List fileBytes = await file.readAsBytes();
         Reference storageRef = _storage.ref().child("TaskAssign/$fileName");
-        UploadTask uploadTask = storageRef.putData(fileBytes, SettableMetadata(
-          contentType: _getContentType(fileType),
-        ));
+        UploadTask uploadTask = storageRef.putData(
+            fileBytes,
+            SettableMetadata(
+              contentType: _getContentType(fileType),
+            ));
 
         TaskSnapshot snapshot = await uploadTask;
         String downloadUrl = await snapshot.ref.getDownloadURL();
@@ -500,39 +540,142 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
     });
   }
 
-  Future<void> sendNotification(String fcmToken, Map<String, dynamic> taskData) async {
-    const String firebaseServerKey = 'YOUR_SERVER_KEY_HERE';
+  // void initializeFirebaseMessageListener() {
+  //   FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+  //
+  //     final user = FirebaseAuth.instance.currentUser;
+  //
+  //     final empSnapshot = await FirebaseFirestore.instance
+  //         .collection('EmpProfile')
+  //         .doc(user?.uid)
+  //         .get();
+  //     if (!empSnapshot.exists) {
+  //       print('❌ User not found in EmpProfile');
+  //       return;
+  //     }
+  //
+  //     final currentEmpId = empSnapshot['empId']?.toString().trim() ?? '';
+  //     final categoriesList = empSnapshot['categories'];
+  //     final currentDepartment = (categoriesList is List)
+  //         ? categoriesList.join(', ').trim()
+  //         : categoriesList?.toString().trim() ?? '';
+  //
+  //     if (currentEmpId.isEmpty && currentDepartment.isEmpty) {
+  //       print('⚠️ Missing empId and department');
+  //       return;
+  //     }
+  //
+  //     final data = message.data;
+  //     final taskId = data['taskId'];
+  //     final assignedEmpIdsRaw = data['empIds'] ?? '';
+  //     final selectedDepartment = data['department'] ?? '';
+  //
+  //     final assignedEmpIds = assignedEmpIdsRaw
+  //         .toString()
+  //         .split(',')
+  //         .map((e) => e.trim())
+  //         .where((e) => e.isNotEmpty)
+  //         .toList();
+  //
+  //     final isEmpMatched = assignedEmpIds.contains(currentEmpId);
+  //     final isDeptMatched = categoriesList is List
+  //         ? categoriesList.contains(selectedDepartment)
+  //         : currentDepartment == selectedDepartment;
+  //
+  //     if (!(isEmpMatched || isDeptMatched)) {
+  //       print('⛔ User not targeted – notification skipped');
+  //       return;
+  //     }
+  //
+  //     final title = message.notification?.title ?? 'New Task Assigned';
+  //     final body = message.notification?.body ?? 'Check your new task details.';
+  //
+  //     await flutterLocalNotificationsPlugin.show(
+  //       taskId.hashCode,
+  //       title,
+  //       body,
+  //       const NotificationDetails(
+  //         android: AndroidNotificationDetails(
+  //           'default_channel',
+  //           'Task Notifications',
+  //           channelDescription: 'For task alerts',
+  //           importance: Importance.max,
+  //           priority: Priority.high,
+  //           icon: '@mipmap/ic_launcher',
+  //         ),
+  //       ),
+  //       payload: taskId,
+  //     );
+  //
+  //     if (navigatorKey.currentContext != null) {
+  //       ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
+  //         SnackBar(
+  //           content: Text('$title\n$body'),
+  //           backgroundColor: Colors.green,
+  //           duration: const Duration(seconds: 4),
+  //         ),
+  //       );
+  //     }
+  //
+  //     print('✅ Notification shown to employee for task $taskId');
+  //   });
+  // }
 
-    final Uri url = Uri.parse('https://fcm.googleapis.com/fcm/send');
+  Future<void> sendNotification(
+      List<String> fcmTokens,
+      Map<String, dynamic> taskData,
+      String assignedEmpIds,
+      String department,
+      ) async {
+    final jsonStr = await rootBundle.loadString('assets/service-account.json');
+    final serviceAccount = ServiceAccountCredentials.fromJson(jsonStr);
+    final scopes = ['https://www.googleapis.com/auth/firebase.messaging'];
+    final authClient = await clientViaServiceAccount(serviceAccount, scopes);
+    final accessToken = authClient.credentials.accessToken.data;
+    const String projectId = 'techlead-57814';
+    final url = Uri.parse(
+        'https://fcm.googleapis.com/v1/projects/$projectId/messages:send');
 
-    final Map<String, dynamic> notificationData = {
-      'to': fcmToken,
-      'notification': {
-        'title': "New Task Assigned",
-        'body': "You have been assigned a new task: ${taskData['taskDescription']}",
-        'click_action': 'FLUTTER_NOTIFICATION_CLICK',
-      },
-      'data': {
-        'taskId': taskData['taskId'],
-        'taskDescription': taskData['taskDescription'],
-        'deadlineDate': taskData['deadlineDate'],
-      },
-    };
+    for (final token in fcmTokens) {
+      final messagePayload = {
+        "message": {
+          "token": token,
+          "notification": {
+            "title": "${taskData['projectName'] ?? 'Unnamed Project'}",
+            "body":
+            " New Task: ${taskData['taskDescription'] ?? 'Check your task'}",
+          },
+          "android": {"priority": "high"},
+          "data": {
+            "click_action": "FLUTTER_NOTIFICATION_CLICK",
+            "screen": "CategoryScreen",
+            "empIds": assignedEmpIds,
+            "department": department,
+            "taskId": taskData['taskId'],
+            "projectName": taskData['projectName'],
+            "taskDescription": taskData['taskDescription'] ?? '',
+            "deadlineDate": taskData['deadlineDate'] ?? '',
+          }
+        }
+      };
 
-    final response = await http.post(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'key=$firebaseServerKey',
-      },
-      body: jsonEncode(notificationData),
-    );
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+        body: jsonEncode(messagePayload),
+      );
 
-    if (response.statusCode == 200) {
-      print("✅ Notification sent successfully!");
-    } else {
-      print("❌ Failed to send notification: ${response.body}");
+      if (response.statusCode == 200) {
+        print('✅ Notification sent to $token');
+      } else {
+        print(
+            '❌ Error sending to $token: ${response.statusCode} ${response.body}');
+      }
     }
+    authClient.close();
   }
 
   Future<void> replaceFile(int index) async {
@@ -572,59 +715,82 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
     });
   }
 
-  Future<void> sendMulticastNotification(List<String> fcmTokens, Map<String, dynamic> taskData) async {
-    const String firebaseServerKey = 'YOUR_SERVER_KEY_HERE';
+  Future<String?> getAdminFcmToken() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return null;
 
-    final Uri url = Uri.parse('https://fcm.googleapis.com/fcm/send');
+    final snapshot = await FirebaseFirestore.instance
+        .collection('EmpProfile')
+        .doc(user.uid)
+        .get();
 
-    final Map<String, dynamic> notificationData = {
-      'registration_ids': fcmTokens,
-      'notification': {
-        'title': "New Task Assigned",
-        'body': "You have been assigned a new task: ${taskData['taskDescription']}",
-        'click_action': 'FLUTTER_NOTIFICATION_CLICK',
-      },
-      'data': {
-        'taskId': taskData['taskId'],
-        'taskDescription': taskData['taskDescription'],
-        'deadlineDate': taskData['deadlineDate'],
-      },
-    };
-
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
-      print('Received message: ${message.notification?.title}');
-      print('Task ID: ${message.data['taskId']}');
-
-      String taskId = message.data['taskId'];
-
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-
-      bool isNotificationShown = prefs.getBool('task_$taskId') ?? false;
-
-      if (!isNotificationShown) {
-        print('Displaying notification for task: $taskId');
-
-        prefs.setBool('task_$taskId', true);
-      } else {
-        print('Notification for task $taskId has already been shown.');
-      }
-    });
-
-    final response = await http.post(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'key=$firebaseServerKey',
-      },
-      body: jsonEncode(notificationData),
-    );
-
-    if (response.statusCode == 200) {
-      print("✅ Notifications sent to all users successfully!");
-    } else {
-      print("❌ Failed to send notifications: ${response.body}");
-    }
+    return snapshot['fcmToken'];
   }
+
+  Future<void> sendMulticastNotificationV1(
+      List<String> fcmTokens,
+      Map<String, dynamic> taskData,
+      String assignedEmpIds,
+      String department,
+      ) async {
+    final jsonStr = await rootBundle.loadString('assets/service-account.json');
+    final serviceAccount = ServiceAccountCredentials.fromJson(jsonStr);
+    final scopes = ['https://www.googleapis.com/auth/firebase.messaging'];
+    final authClient = await clientViaServiceAccount(serviceAccount, scopes);
+    final accessToken = authClient.credentials.accessToken.data;
+    const String projectId = 'techlead-57814';
+    final Uri url = Uri.parse(
+        'https://fcm.googleapis.com/v1/projects/$projectId/messages:send');
+
+    final adminToken = await getAdminFcmToken();
+
+    for (String token in fcmTokens) {
+      if (token == adminToken) {
+        print('🚫 Skipping admin token $token');
+        continue;
+      }
+
+      final messagePayload = {
+        "message": {
+          "token": token,
+          "notification": {
+            "title": "${taskData['projectName'] ?? 'Unnamed Project'}",
+            "body":
+            " New Task: ${taskData['taskDescription'] ?? 'Check your task'}",
+          },
+          "android": {"priority": "high"},
+          "data": {
+            "click_action": "FLUTTER_NOTIFICATION_CLICK",
+            "screen": "CategoryScreen",
+            "empIds": assignedEmpIds,
+            "department": department,
+            "taskId": taskData['taskId'],
+            "projectName": taskData['projectName'],
+            "taskDescription": taskData['taskDescription'] ?? '',
+            "deadlineDate": taskData['deadlineDate'] ?? '',
+          }
+        }
+      };
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+        body: jsonEncode(messagePayload),
+      );
+
+      if (response.statusCode == 200) {
+        print('✅ Notification sent to $token');
+      } else {
+        print('❌ Failed to send notification to $token: ${response.body}');
+      }
+    }
+
+    authClient.close();
+  }
+
   Future<void> _loadAdminData() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -633,476 +799,542 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
     });
   }
 
+
   @override
   void initState() {
     super.initState();
     _fetchEmployeeNames();
+    initializeFirebaseMessageListener();
+    filteredDepartmentList = departmentList;
     _loadAdminData();
+    getAdminFcmToken();
   }
+
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              FontAwesomeIcons.tasks,
-              color: Colors.white,
-            ),
-            SizedBox(width: 10),
-            Text(
-              "Admin Task Assign",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
-                letterSpacing: 1.5,
+        backgroundColor: Color(0xFF9CB5F1),
+        appBar: AppBar(
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                FontAwesomeIcons.tasks,
                 color: Colors.white,
-                fontFamily: 'Roboto',
+              ),
+              SizedBox(width: 10),
+              Text(
+                "Admin Task Assign",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                  letterSpacing: 1.5,
+                  color: Colors.white,
+                  fontFamily: 'Roboto',
+                ),
+              ),
+            ],
+          ),
+          centerTitle: true,
+          iconTheme: IconThemeData(color: Colors.white),
+          elevation: 8,
+          flexibleSpace: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Colors.blue.shade900, Colors.indigo.shade700],
               ),
             ),
-          ],
-        ),
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        iconTheme: IconThemeData(color: Colors.white),
-        elevation: 8,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Colors.blue.shade900, Colors.indigo.shade700],
-            ),
           ),
         ),
-      ),
-      body: SingleChildScrollView(
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.blue.shade200, Colors.blue.shade400],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Card(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15.0),
-                  ),
-                  elevation: 8,
-                  shadowColor: Colors.deepPurpleAccent,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
+        body: SingleChildScrollView(
+            child: Container(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        SizedBox(height: 16),
-                        buildMultiSelectDropdownField(
-                          labelText: 'Select Employees',
-                          icon: Icons.person_outline,
-                          items: employeeNames,
-                          selectedItems: selectedEmployeeNames,
-                          onChanged: (List<String> selected) {
-                            setState(() {
-                              selectedEmployeeNames = selected;
-                              List<String> selectedIds = selected
-                                  .map((name) => employeeNameIdMap[name] ?? '')
-                                  .where((id) => id.isNotEmpty)
-                                  .toList();
-                              empIdController.text = selectedIds.join(', ');
-                            });
-                          },
-                        ),
-
-                        SizedBox(height: 16),
-                        buildTextField(
-                          controller: empIdController,
-                          labelText: 'Employee IDs',
-                          icon: Icons.badge_outlined,
-                          keyboardType: TextInputType.text,
-                          hintText: 'Auto-filled based on selected names',
-                          readOnly: true,
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Please select at least one employee';
-                            }
-                            return null;
-                          },
-                        ),
-
-                        SizedBox(height: 16),
-
-                        Column(
-                          children: checkboxValues.entries.map((entry) {
-                            final field = entry.key;
-                            final value = entry.value;
-
-                            return buildCustomCheckboxTile(
-                              title: field,
-                              value: value,
-                              onChanged: (val) {
-                                setState(() {
-                                  checkboxValues[field] = val ?? false;
-                                });
-                                updateCheckboxValue(field, val);
-                              },
-                              icon: Icons.check_circle_outline,
-                              color: Colors.blue,
-                            );
-                          }).toList(),
-                        ),
-
-                        SizedBox(height: 16),
-
-                        buildDropdownField(
-                          labelText: 'Department',
-                          icon: Icons.business,
-                          value: selectedDepartment,
-                          items: departmentList.map((department) {
-                            return {'text': department['name'], 'icon': department['icon']};
-                          }).toList(),
-                          onChanged: (String? value) {
-                            setState(() {
-                              selectedDepartment = value;
-                            });
-                          },
-                        ),
-
-                        SizedBox(height: 16),
-
-                        GestureDetector(
-                          onTap: () async {
-                            DateTime? selectedDate = await _selectDate(context);
-                            if (selectedDate != null) {
-                              setState(() {
-                                String formattedDate = DateFormat('dd MMMM yyyy').format(selectedDate);
-                                dateController.text = formattedDate;
-                              });
-                            }
-                          },
-                          child: AbsorbPointer(
-                            child: buildTextField(
-                              controller: dateController,
-                              labelText: 'Select Date',
-                              icon: Icons.calendar_today,
-                            ),
+                        Card(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15.0),
                           ),
-                        ),
-                        SizedBox(height: 16),
-
-                        GestureDetector(
-                          onTap: () async {
-                            TimeOfDay? selectedTime = await _selectTime(context);
-                            if (selectedTime != null) {
-                              setState(() {
-                                String formattedTime = selectedTime.format(context);
-                                timeController.text = formattedTime;
-                              });
-                            }
-                          },
-                          child: AbsorbPointer(
-                            child: buildTextField(
-                              controller: timeController,
-                              labelText: 'Select Time',
-                              icon: Icons.access_time,
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 16),
-
-                        buildTextField(
-                          controller: projectNameController,
-                          labelText: 'Project Name',
-                          icon: Icons.work_outline,
-                        ),
-
-                        SizedBox(height: 16,),
-
-                        if (selectedDepartment == 'Installation' ||
-                            selectedDepartment == 'Sales' ||
-                            selectedDepartment == 'Services' ||
-                            selectedDepartment == 'Social Media Marketing')
-                          buildTextField(
-                            controller: siteLocationController,
-                            labelText: 'Site Location',
-                            icon: Icons.location_on,
-                          ),
-
-                        SizedBox(height: 16,),
-
-                        ElevatedButton(
-                          onPressed: pickFiles,
-                          style: ElevatedButton.styleFrom(
-                            minimumSize: Size(200, 60),
-                            backgroundColor: Colors.blue.shade900,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            elevation: 5,
-                            shadowColor: Colors.grey.withOpacity(0.5),
-                            padding: EdgeInsets.symmetric(vertical: 15, horizontal: 30),
-                          ),
-                          child: MouseRegion(
-                            onEnter: (_) {
-                              setState(() {});
-                            },
-                            onExit: (_) {
-                              setState(() {});
-                            },
-                            child: Text(
-                              "Choose Files",
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 20),
-
-                        selectedFiles.isNotEmpty
-                            ? Container(
-                          padding: EdgeInsets.all(16),
-                          margin: EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[200],
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.blue, width: 2),
-                          ),
-                          child: SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Row(
-                              children:
-                              List.generate(selectedFiles.length, (index) {
-                                return Container(
-                                  margin: EdgeInsets.all(10),
-                                  padding: EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey[100],
-                                    borderRadius: BorderRadius.circular(8),
-                                    border:
-                                    Border.all(color: Colors.blue, width: 1),
+                          elevation: 8,
+                          shadowColor: Colors.deepPurpleAccent,
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Card(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(15.0),
                                   ),
-                                  width:
-                                  120,
-                                  child: Stack(
-                                    children: [
-                                      Column(
-                                        children: [
-                                          if (fileTypes[index] == 'jpg' ||
-                                              fileTypes[index] == 'png' ||
-                                              fileTypes[index] == 'jpeg')
-                                            Image.file(
-                                              selectedFiles[index],
-                                              width: 100,
-                                              height: 80,
-                                              fit: BoxFit.cover,
-                                            )
-                                          else if (fileTypes[index] == 'mp4' ||
-                                              fileTypes[index] == 'mov' ||
-                                              fileTypes[index] == 'avi' ||
-                                              fileTypes[index] == 'mkv')
-                                            Icon(
-                                              Icons.video_file,
-                                              size: 50,
+                                  elevation: 8,
+                                  shadowColor: Colors.deepPurpleAccent,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: Column(
+                                      children: [
+                                        SizedBox(height: 16),
+                                        buildMultiSelectDropdownField(
+                                          labelText: 'Select Employees',
+                                          icon: Icons.person_outline,
+                                          context: context,
+                                          items: employeeNames,
+                                          selectedItems: selectedEmployeeNames,
+                                          onChanged: (List<String> selected) {
+                                            setState(() {
+                                              selectedEmployeeNames = selected;
+
+                                              List<String> selectedIds = selected
+                                                  .map((name) => employeeNameIdMap[name] ?? '')
+                                                  .where((id) => id.isNotEmpty)
+                                                  .toList();
+
+                                              empIdController.text = selectedIds.join(', ');
+
+                                              final selectedCategories = <String>{};
+                                              for (final name in selected) {
+                                                final cats = employeeCategoryMap[name] ?? [];
+                                                selectedCategories.addAll(cats);
+                                              }
+
+                                              filteredDepartmentList = departmentList
+                                                  .where((dep) => selectedCategories.contains(dep['name']))
+                                                  .toList();
+
+                                              if (selectedDepartment != null &&
+                                                  !filteredDepartmentList.any((d) => d['name'] == selectedDepartment)) {
+                                                selectedDepartment = null;
+                                              }
+                                            });
+                                          },
+                                        ),
+
+
+                                        SizedBox(height: 16),
+                                        buildTextField(
+                                          context: context,
+                                          controller: empIdController,
+                                          labelText: 'Employee IDs',
+                                          icon: Icons.badge_outlined,
+                                          keyboardType: TextInputType.text,
+                                          hintText: 'Auto-filled based on selected names',
+                                          readOnly: true,
+                                          validator: (value) {
+                                            if (value == null || value.trim().isEmpty) {
+                                              return 'Please select at least one employee';
+                                            }
+                                            return null;
+                                          },
+                                        ),
+
+                                        SizedBox(height: 16),
+
+                                        Column(
+                                          children: checkboxValues.entries.map((entry) {
+                                            final field = entry.key;
+                                            final value = entry.value;
+
+                                            return buildCustomCheckboxTile(
+                                              title: field,
+                                              value: value,
+                                              onChanged: (val) {
+                                                setState(() {
+                                                  checkboxValues[field] = val ?? false;
+                                                });
+                                                updateCheckboxValue(field, val);
+                                              },
+                                              icon: Icons.check_circle_outline,
+                                              focusNode: checkbox1Focus,
                                               color: Colors.blue,
-                                            )
-                                          else if (fileTypes[index] == 'gif')
-                                              Image.file(
-                                                selectedFiles[index],
-                                                width: 100,
-                                                height: 80,
-                                                fit: BoxFit.cover,
-                                              )
-                                            else
-                                              Icon(
-                                                Icons.insert_drive_file,
-                                                size: 50,
-                                                color: Colors.blue,
-                                              ),
-                                          SizedBox(height: 10),
+                                            );
+                                          }).toList(),
+                                        ),
 
-                                          Text(
-                                            fileNames[index],
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.bold,
+
+                                        SizedBox(height: 16),
+
+                                        buildDropdownField(
+                                          labelText: 'Department',
+                                          icon: Icons.business,
+                                          context: context,
+                                          value: selectedDepartment,
+                                          items: filteredDepartmentList.map((department) {
+                                            return {
+                                              'text': department['name'],
+                                              'icon': department['icon']
+                                            };
+                                          }).toList(),
+                                          onChanged: (String? value) {
+                                            setState(() {
+                                              selectedDepartment = value;
+                                            });
+                                          },
+                                        ),
+
+                                        SizedBox(height: 16),
+
+                                        GestureDetector(
+                                          onTap: () async {
+                                            DateTime? selectedDate = await _selectDate(context);
+                                            if (selectedDate != null) {
+                                              setState(() {
+                                                String formattedDate = DateFormat('dd MMMM yyyy').format(selectedDate);
+                                                dateController.text = formattedDate;
+                                              });
+                                            }
+                                          },
+                                          child: AbsorbPointer(
+                                            child: buildTextField(
+                                              context: context,
+                                              controller: dateController,
+                                              labelText: 'Select Date',
+                                              icon: Icons.calendar_today,
                                             ),
                                           ),
-                                          SizedBox(height: 5),
+                                        ),
+                                        SizedBox(height: 16),
 
-                                          SizedBox(
-                                            width: 100,
-                                            child: TextField(
-                                              controller:
-                                              fileNameControllers[index],
-                                              decoration: InputDecoration(
-                                                labelText: 'Rename',
-                                                border: OutlineInputBorder(
-                                                  borderRadius:
-                                                  BorderRadius.circular(10),
-                                                ),
-                                                filled: true,
-                                                fillColor: Colors.blue.shade50,
-                                              ),
-                                              style: TextStyle(fontSize: 12),
+                                        GestureDetector(
+                                          onTap: () async {
+                                            TimeOfDay? selectedTime = await _selectTime(context);
+                                            if (selectedTime != null) {
+                                              setState(() {
+                                                String formattedTime = selectedTime.format(context);
+                                                timeController.text = formattedTime;
+                                              });
+                                            }
+                                          },
+                                          child: AbsorbPointer(
+                                            child: buildTextField(
+                                              context: context,
+                                              controller: timeController,
+                                              labelText: 'Select Time',
+                                              icon: Icons.access_time,
                                             ),
                                           ),
-                                          SizedBox(height: 5),
+                                        ),
+                                        SizedBox(height: 16),
 
-                                          // Rename button
-                                          ElevatedButton(
-                                            onPressed: () => renameFile(index),
-                                            style: ElevatedButton.styleFrom(
-                                              minimumSize: Size(100, 30),
-                                              backgroundColor:
-                                              Colors.blue.shade900,
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                BorderRadius.circular(8),
-                                              ),
+                                        buildTextField(
+                                          context: context,
+                                          controller: projectNameController,
+                                          labelText: 'Project Name',
+                                          icon: Icons.work_outline,
+                                        ),
+
+                                        SizedBox(height: 16,),
+
+                                        if (selectedDepartment == 'Installation' ||
+                                            selectedDepartment == 'Sales' ||
+                                            selectedDepartment == 'Reception' ||
+                                            selectedDepartment == 'Social Media')
+                                          buildTextField(
+                                            context: context,
+                                            controller: siteLocationController,
+                                            labelText: 'Site Location',
+                                            icon: Icons.location_on,
+                                          ),
+
+                                        SizedBox(height: 16,),
+
+                                        ElevatedButton(
+                                          onPressed: pickFiles,
+                                          style: ElevatedButton.styleFrom(
+                                            minimumSize: Size(200, 60),
+                                            backgroundColor: Colors.blue.shade900,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(8),
                                             ),
+                                            elevation: 5,
+                                            shadowColor: Colors.grey.withOpacity(0.5),
+                                            padding: EdgeInsets.symmetric(vertical: 15, horizontal: 30),
+                                          ),
+                                          child: MouseRegion(
+                                            onEnter: (_) {
+                                              setState(() {});
+                                            },
+                                            onExit: (_) {
+                                              setState(() {});
+                                            },
                                             child: Text(
-                                              "Rename",
+                                              "Choose Files",
                                               style: TextStyle(
-                                                fontSize: 12,
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold,
                                                 color: Colors.white,
                                               ),
                                             ),
                                           ),
-                                          ElevatedButton(
-                                            onPressed: () => replaceFile(index),
-                                            style: ElevatedButton.styleFrom(
-                                              minimumSize: Size(100, 30),
-                                              backgroundColor: Colors.blue.shade900,
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                BorderRadius.circular(8),
-                                              ),
-                                            ),
-                                            child: Text(
-                                              "Replace",
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          ),
-                                          // Open file button
-                                          ElevatedButton(
-                                            onPressed: () =>
-                                                openFile(selectedFiles[index]),
-                                            style: ElevatedButton.styleFrom(
-                                              minimumSize: Size(100, 30),
-                                              backgroundColor:
-                                              Colors.blue.shade900,
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                BorderRadius.circular(8),
-                                              ),
-                                            ),
-                                            child: Text(
-                                              "Open",
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
+                                        ),
+                                        SizedBox(height: 20),
 
-                                      Positioned(
-                                        top: -8,
-                                        right: -5,
-                                        child: CircleAvatar(
-                                          radius:
-                                          16,
-                                          backgroundColor: Colors
-                                              .white,
-                                          child: IconButton(
-                                            icon: const Icon(Icons.close,
-                                                color: Colors.red, size: 19),
-                                            onPressed: () => closeFile(index),
+                                        selectedFiles.isNotEmpty
+                                            ? Container(
+                                          padding: EdgeInsets.all(16),
+                                          margin: EdgeInsets.all(16),
+                                          decoration: BoxDecoration(
+                                            color: Colors.grey[200],
+                                            borderRadius: BorderRadius.circular(10),
+                                            border: Border.all(color: Colors.blue, width: 2),
+                                          ),
+                                          child: SingleChildScrollView(
+                                            scrollDirection: Axis.horizontal,
+                                            child: Row(
+                                              children:
+                                              List.generate(selectedFiles.length, (index) {
+                                                return Container(
+                                                  margin: EdgeInsets.all(10),
+                                                  padding: EdgeInsets.all(8),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.grey[100],
+                                                    borderRadius: BorderRadius.circular(8),
+                                                    border:
+                                                    Border.all(color: Colors.blue, width: 1),
+                                                  ),
+                                                  width:
+                                                  120,
+                                                  child: Stack(
+                                                    children: [
+                                                      Column(
+                                                        children: [
+                                                          if (fileTypes[index] == 'jpg' ||
+                                                              fileTypes[index] == 'png' ||
+                                                              fileTypes[index] == 'jpeg')
+                                                            Image.file(
+                                                              selectedFiles[index],
+                                                              width: 100,
+                                                              height: 80,
+                                                              fit: BoxFit.cover,
+                                                            )
+                                                          else if (fileTypes[index] == 'mp4' ||
+                                                              fileTypes[index] == 'mov' ||
+                                                              fileTypes[index] == 'avi' ||
+                                                              fileTypes[index] == 'mkv')
+                                                            Icon(
+                                                              Icons.video_file,
+                                                              size: 50,
+                                                              color: Colors.blue,
+                                                            )
+                                                          else if (fileTypes[index] == 'gif')
+                                                              Image.file(
+                                                                selectedFiles[index],
+                                                                width: 100,
+                                                                height: 80,
+                                                                fit: BoxFit.cover,
+                                                              )
+                                                            else
+                                                              Icon(
+                                                                Icons.insert_drive_file,
+                                                                size: 50,
+                                                                color: Colors.blue,
+                                                              ),
+                                                          SizedBox(height: 10),
+
+                                                          Text(
+                                                            fileNames[index],
+                                                            style: TextStyle(
+                                                              fontSize: 12,
+                                                              fontWeight: FontWeight.bold,
+                                                            ),
+                                                          ),
+                                                          SizedBox(height: 5),
+
+                                                          SizedBox(
+                                                            width: 100,
+                                                            child: TextField(
+                                                              controller:
+                                                              fileNameControllers[index],
+                                                              decoration: InputDecoration(
+                                                                labelText: 'Rename',
+                                                                border: OutlineInputBorder(
+                                                                  borderRadius:
+                                                                  BorderRadius.circular(10),
+                                                                ),
+                                                                filled: true,
+                                                                fillColor: Colors.blue.shade50,
+                                                              ),
+                                                              style: TextStyle(fontSize: 12),
+                                                            ),
+                                                          ),
+                                                          SizedBox(height: 5),
+
+                                                          // Rename button
+                                                          ElevatedButton(
+                                                            onPressed: () => renameFile(index),
+                                                            style: ElevatedButton.styleFrom(
+                                                              minimumSize: Size(100, 30),
+                                                              backgroundColor:
+                                                              Colors.blue.shade900,
+                                                              shape: RoundedRectangleBorder(
+                                                                borderRadius:
+                                                                BorderRadius.circular(8),
+                                                              ),
+                                                            ),
+                                                            child: Text(
+                                                              "Rename",
+                                                              style: TextStyle(
+                                                                fontSize: 12,
+                                                                color: Colors.white,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                          ElevatedButton(
+                                                            onPressed: () => replaceFile(index),
+                                                            style: ElevatedButton.styleFrom(
+                                                              minimumSize: Size(100, 30),
+                                                              backgroundColor: Colors.blue.shade900,
+                                                              shape: RoundedRectangleBorder(
+                                                                borderRadius:
+                                                                BorderRadius.circular(8),
+                                                              ),
+                                                            ),
+                                                            child: Text(
+                                                              "Replace",
+                                                              style: TextStyle(
+                                                                fontSize: 12,
+                                                                color: Colors.white,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                          // Open file button
+                                                          ElevatedButton(
+                                                            onPressed: () =>
+                                                                openFile(selectedFiles[index]),
+                                                            style: ElevatedButton.styleFrom(
+                                                              minimumSize: Size(100, 30),
+                                                              backgroundColor:
+                                                              Colors.blue.shade900,
+                                                              shape: RoundedRectangleBorder(
+                                                                borderRadius:
+                                                                BorderRadius.circular(8),
+                                                              ),
+                                                            ),
+                                                            child: Text(
+                                                              "Open",
+                                                              style: TextStyle(
+                                                                fontSize: 12,
+                                                                color: Colors.white,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+
+                                                      Positioned(
+                                                        top: -8,
+                                                        right: -5,
+                                                        child: CircleAvatar(
+                                                          radius:
+                                                          16,
+                                                          backgroundColor: Colors
+                                                              .white,
+                                                          child: IconButton(
+                                                            icon: const Icon(Icons.close,
+                                                                color: Colors.red, size: 19),
+                                                            onPressed: () => closeFile(index),
+                                                          ),
+                                                        ),
+                                                      ),
+
+                                                      // Replace file button
+
+                                                    ],
+                                                  ),
+                                                );
+                                              }),
+                                            ),
+                                          ),
+                                        )
+                                            : Text("No files selected yet."),
+
+                                        SizedBox(height: 16),
+
+                                        buildTextField(
+                                          context: context,
+                                          controller: taskDescriptionController,
+                                          labelText: 'Task Description',
+                                          icon: Icons.description,
+                                          maxLines: 4,
+                                        ),
+                                        SizedBox(height: 16,),
+                                        // Deadline Date Picker
+                                        GestureDetector(
+                                          onTap: () async {
+                                            await _selectDeadlineDate(context);
+                                          },
+                                          child: AbsorbPointer(
+                                            child: buildTextField(
+                                              context: context,
+                                              controller: deadlineDateController,
+                                              labelText: 'Select Deadline Date',
+                                              icon: Icons.calendar_today,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+                                Center(
+                                  child: SizedBox(
+                                    width: double.infinity,
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(12),
+                                          gradient: const LinearGradient(
+                                            colors: [
+                                              Color(0xFF0A2A5A), // Deep navy blue
+                                              Color(0xFF15489C), // Strong steel blue
+                                              Color(0xFF1E64D8), // Vivid rich blue
+                                            ],
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                          ),
+                                        ),
+                                        child: ElevatedButton(
+                                          onPressed: isLoading
+                                              ? null
+                                              : () async {
+                                            FocusScope.of(context).unfocus();
+                                            if (!mounted) return;
+                                            await _submitData();
+                                          },
+
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.transparent, // Make button background transparent to show gradient
+                                            shadowColor: Colors.transparent,
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                                          ),
+                                          child: isLoading
+                                              ? const CircularProgressIndicator(color: Colors.white)
+                                              : const Text(
+                                            'Submit',
+                                            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                                           ),
                                         ),
                                       ),
-
-                                      // Replace file button
-
-                                    ],
+                                    ),
                                   ),
-                                );
-                              }),
-                            ),
-                          ),
-                        )
-                            : Text("No files selected yet."),
+                                ),
 
-                        SizedBox(height: 16),
-
-                        buildTextField(
-                          controller: taskDescriptionController,
-                          labelText: 'Task Description',
-                          icon: Icons.description,
-                          maxLines: 4,
-                        ),
-                        SizedBox(height: 16,),
-                        // Deadline Date Picker
-                        GestureDetector(
-                          onTap: () async {
-                            await _selectDeadlineDate(context);
-                          },
-                          child: AbsorbPointer(
-                            child: buildTextField(
-                              controller: deadlineDateController,
-                              labelText: 'Select Deadline Date',
-                              icon: Icons.calendar_today,
+                              ],
                             ),
                           ),
                         ),
-                      ],
-                    ),
+                      ]
                   ),
-                ),
-                const SizedBox(height: 20),
-                Center(
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20,vertical: 10),
-                      child: ElevatedButton(
-                        onPressed: isLoading ? null : () async {
-                          FocusScope.of(context).unfocus();
-                          await _submitData();
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue.shade900,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-                        ),
-                        child: isLoading
-                            ? CircularProgressIndicator(color: Colors.white)
-                            : const Text(
-                          'Submit',
-                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+                )
+            )
+        )
     );
   }
 }

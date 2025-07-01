@@ -1,15 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:techlead/Widgeets/custom_app_bar.dart';
 
-class AdminFetchDataPiePage extends StatefulWidget {
+import '../../core/app_bar_provider.dart';
+
+class AdminFetchDataPiePage extends ConsumerStatefulWidget {
   const AdminFetchDataPiePage({super.key});
 
   @override
-  State<AdminFetchDataPiePage> createState() => _AdminFetchDataPiePageState();
+  ConsumerState<AdminFetchDataPiePage> createState() => _AdminFetchDataPiePageState();
 }
 
-class _AdminFetchDataPiePageState extends State<AdminFetchDataPiePage> {
+class _AdminFetchDataPiePageState extends ConsumerState<AdminFetchDataPiePage> {
+  @override
+  void initState() {
+    super.initState();
+    // Set the app bar title and gradient colors for this screen
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(appBarTitleProvider.notifier).state = "Add Data for Piechart";
+      ref.read(appBarGradientColorsProvider.notifier).state = [
+        Color(0xFF0D3B66),
+        Color(0xFF115293),
+        Color(0xFF3B7CA8),
+      ]
+      ;
+    });
+  }
   String? selectedCategoryName;
   String? selectedProjectStatus;
   final TextEditingController projectNameController = TextEditingController();
@@ -77,30 +96,7 @@ class _AdminFetchDataPiePageState extends State<AdminFetchDataPiePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          "Admin Fetch Data",
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 24,
-            letterSpacing: 1.5,
-            color: Colors.white, // White text
-          ),
-        ),
-        centerTitle: true,
-        iconTheme: IconThemeData(color: Colors.white),
-        elevation: 10, // Increased elevation for more depth
-        backgroundColor: Colors.deepPurpleAccent, // Modern purple background color
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.purple, Colors.deepPurpleAccent], // Gradient for AppBar
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-      ),
+      appBar: CustomAppBar(),
       body: SingleChildScrollView(
         child: Center(
           child: Padding(
@@ -128,7 +124,7 @@ class _AdminFetchDataPiePageState extends State<AdminFetchDataPiePage> {
       style: TextStyle(
         fontSize: 24,
         fontWeight: FontWeight.bold,
-        color: Colors.deepPurpleAccent, // Modern color for section title
+        color: Colors.blue.shade900, // Modern color for section title
         letterSpacing: 1.5,
         shadows: [
           BoxShadow(
@@ -158,7 +154,7 @@ class _AdminFetchDataPiePageState extends State<AdminFetchDataPiePage> {
               });
             }),
             const SizedBox(height: 16.0),
-            _buildTextField(projectNameController, 'Project Name'),
+            _buildTextField(projectNameController, 'Project Name',),
             const SizedBox(height: 16.0),
             _buildDropdownField('Project Status', selectedProjectStatus, ['Not Started', 'In Progress', 'Completed'], (newValue) {
               setState(() {
@@ -176,31 +172,71 @@ class _AdminFetchDataPiePageState extends State<AdminFetchDataPiePage> {
   }
 
   // Helper function to create dropdown form fields with animations
-  Widget _buildDropdownField(String label, String? value, List<String> items, ValueChanged<String?> onChanged) {
+  Widget _buildDropdownField(
+      String label,
+      String? value,
+      List<String> items,
+      ValueChanged<String?> onChanged,
+      ) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
       child: DropdownButtonFormField<String>(
         value: value,
-        hint: Text(label),
-        items: items.map((item) => DropdownMenuItem<String>(
-          value: item,
-          child: Row(
-            children: [
-              Icon(_getDepartmentIcon(item), color: Colors.deepPurpleAccent), // Deep Purple icons
-              const SizedBox(width: 10),
-              Text(item),
-            ],
+        hint: Text(
+          label,
+          style: TextStyle(color: Colors.white),
+        ),
+        items: items
+            .map(
+              (item) => DropdownMenuItem<String>(
+            value: item,
+            child: Row(
+              children: [
+                Icon(_getDepartmentIcon(item), color: Colors.white),
+                const SizedBox(width: 10),
+                Text(
+                  item,
+                  style: TextStyle(color: Colors.white),
+                ),
+              ],
+            ),
           ),
-        )).toList(),
+        )
+            .toList(),
         onChanged: onChanged,
-        decoration: _inputDecoration(),
+        dropdownColor: Colors.blue.shade900,
+        iconEnabledColor: Colors.white,   // <-- white arrow
+        iconDisabledColor: Colors.white,  // <-- white arrow when disabled
+        decoration: InputDecoration(
+          contentPadding:
+          const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          filled: true,
+          fillColor: Colors.blue.shade900,
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.blue.shade900),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.blue.shade700),
+          ),
+        ),
+        style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold),
       ),
     );
   }
 
-  // Helper function to create text form fields with more elegant design
-  Widget _buildTextField(TextEditingController controller, String label, {bool isNumber = false}) {
+
+// Helper function to create text form fields with blue background and white text
+  Widget _buildTextField(
+      TextEditingController controller,
+      String label, {
+        bool isNumber = false,
+      }) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
@@ -208,15 +244,26 @@ class _AdminFetchDataPiePageState extends State<AdminFetchDataPiePage> {
         controller: controller,
         decoration: InputDecoration(
           labelText: label,
-          contentPadding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
+          contentPadding:
+          const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           filled: true,
-          fillColor: Colors.deepPurpleAccent.withOpacity(0.1), // Light purple background
+          fillColor: Colors.blue.shade900,
+          labelStyle: TextStyle(color: Colors.white,fontWeight: FontWeight.bold),
         ),
+        style: TextStyle(color: Colors.white),
         keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+        inputFormatters: isNumber
+            ? [
+          FilteringTextInputFormatter.digitsOnly,
+          _NumberRangeFormatter(0, 100),
+        ]
+            : null,
       ),
     );
   }
+
+
 
   // Helper function to create submit button with smooth transitions
   Widget _buildSubmitButton() {
@@ -227,7 +274,7 @@ class _AdminFetchDataPiePageState extends State<AdminFetchDataPiePage> {
       child: ElevatedButton(
         onPressed: isLoading ? null : submitData,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.deepPurpleAccent, // Purple background for the button
+          backgroundColor: Colors.blue.shade900, // Purple background for the button
           padding: const EdgeInsets.symmetric(vertical: 16.0),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           elevation: isLoading ? 0 : 6,
@@ -274,5 +321,31 @@ class _AdminFetchDataPiePageState extends State<AdminFetchDataPiePage> {
       'HR', 'Finance', 'Development', 'Digital Marketing', 'Reception', 'Account',
       'Human Resources', 'Management', 'Sales', 'Installation', 'Services', 'Social Media Marketing'
     ];
+  }
+}
+class _NumberRangeFormatter extends TextInputFormatter {
+  final int min;
+  final int max;
+
+  _NumberRangeFormatter(this.min, this.max);
+
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue,
+      TextEditingValue newValue,
+      ) {
+    if (newValue.text.isEmpty) {
+      return newValue;
+    }
+
+    try {
+      final intValue = int.parse(newValue.text);
+      if (intValue < min || intValue > max) {
+        return oldValue; // Reject changes outside range
+      }
+      return newValue;
+    } catch (e) {
+      return oldValue; // Reject invalid input
+    }
   }
 }

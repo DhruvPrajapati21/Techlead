@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'Editrecepationdailytaskreport.dart';
-import 'FileViwerscreen.dart';
+import '../Common_Code_For_All_Dep/Dep_All_Ui.dart';
+import '../Editdailytaskreport.dart';
+import '../FileViwerscreen.dart';
 
 class DailyReportRecordOfSales extends StatefulWidget {
   const DailyReportRecordOfSales({super.key});
@@ -40,8 +41,16 @@ class _DailyReportRecordOfSalesState extends State<DailyReportRecordOfSales> {
                   flex: 3,
                   child: Container(
                     decoration: BoxDecoration(
-                      color: Colors.blue.shade700,
-                      borderRadius: BorderRadius.circular(10),
+                      gradient: LinearGradient(
+                        colors: [
+                          Color(0xFF000F89), // Royal Blue
+                          Color(0xFF0F52BA), // Cobalt Blue (replacing Indigo)
+                          Color(0xFF002147), // Light Sky Blue
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: TextField(
@@ -63,8 +72,16 @@ class _DailyReportRecordOfSalesState extends State<DailyReportRecordOfSales> {
                 const SizedBox(width: 10),
                 Container(
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade700,
-                    borderRadius: BorderRadius.circular(10),
+                    gradient: LinearGradient(
+                      colors: [
+                        Color(0xFF000F89), // Royal Blue
+                        Color(0xFF0F52BA), // Cobalt Blue (replacing Indigo)
+                        Color(0xFF002147), // Light Sky Blue
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                   child: IconButton(
                     icon: const Icon(Icons.date_range, color: Colors.white),
@@ -74,7 +91,35 @@ class _DailyReportRecordOfSalesState extends State<DailyReportRecordOfSales> {
                         initialDate: DateTime.now(),
                         firstDate: DateTime(2023),
                         lastDate: DateTime(2100),
+                        builder: (context, child) {
+                          return Theme(
+                            data: ThemeData.light().copyWith(
+                              dialogBackgroundColor: Colors.white,
+                              // Optional: Dialog box color
+                              colorScheme: const ColorScheme.light(
+                                primary: Color(0xFF0F52BA),
+                                // Header & selected date background
+                                onPrimary: Colors.white,
+                                // Text in selected date
+                                surface: Color(0xFF000F89),
+                                // Calendar background (solid only)
+                                onSurface: Colors.white, // Calendar text
+                              ),
+                              textButtonTheme: TextButtonThemeData(
+                                style: TextButton.styleFrom(
+                                  foregroundColor: Colors.white,
+                                  // <- White text for buttons
+                                  textStyle: const TextStyle(
+                                    fontWeight: FontWeight.bold, // <- Bold text
+                                  ),
+                                ),
+                              ),
+                            ),
+                            child: child!,
+                          );
+                        },
                       );
+
                       if (picked != null) {
                         setState(() {
                           selectedDate = picked;
@@ -137,7 +182,9 @@ class _DailyReportRecordOfSalesState extends State<DailyReportRecordOfSales> {
               final doc = filteredReports[index];
               final report = doc.data() as Map<String, dynamic>;
               final docId = doc.id;
-              return _buildReportCard(report, docId);
+
+              // Use the shared reusable widget:
+              return ReportCardWidget.buildReportCard(context, report, docId);
             },
           );
         },
@@ -145,200 +192,5 @@ class _DailyReportRecordOfSalesState extends State<DailyReportRecordOfSales> {
     );
   }
 
-  Widget _buildReportCard(Map<String, dynamic> task, String docId) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
-      child: Card(
-        elevation: 6,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            gradient: LinearGradient(
-              colors: [Colors.blue.shade900, Colors.blue.shade700],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildTaskDetail('Employee ID', task['employeeId']),
-              _buildTaskDetail('Employee Name', task['employeeName']),
-              _buildTaskDetail('Task Title', task['taskTitle']),
-              _buildTaskDetail('Department', task['Service_department']),
-              _buildTaskDetail('Service Status', task['service_status']),
-              _buildTaskDetail('Location', task['location']),
-              _buildTaskDetail(
-                'SubmittedDate',
-                task['date'] != null
-                    ? DateFormat('dd MMM yyyy').format((task['date'] as Timestamp).toDate())
-                    : '',
-              ),
-              _buildTaskDetail('Challenges', task['challenges']),
-              _buildTaskDetail('Actions Taken', task['actionsTaken']),
-              _buildTaskDetail('Next Steps', task['nextSteps']),
-              const SizedBox(height: 10),
-              const Text(
-                'Work Log:',
-                style: TextStyle(
-                  color: Colors.tealAccent,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 5),
-              if (task['workLog'] != null)
-                ...List<Widget>.from((task['workLog'] as List)
-                    .map((log) => _buildTaskDetail(
-                  log['timeSlot'],
-                  log['description'],
-                ))),
-              if (task['uploadedFiles'] != null &&
-                  task['uploadedFiles'] is List &&
-                  task['uploadedFiles'].isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "Attached Files:",
-                        style: TextStyle(
-                          color: Colors.tealAccent,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      SizedBox(
-                        height: 120,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: task['uploadedFiles'].length,
-                          itemBuilder: (context, fileIndex) {
-                            var file = task['uploadedFiles'][fileIndex];
-                            final String url = file['downloadUrl'] ?? '';
-                            final String fileType =
-                            (file['fileType'] ?? '').toLowerCase();
-                            final String fileName =
-                                file['fileName'] ?? 'Unnamed';
 
-                            bool isImage = [
-                              'jpg',
-                              'jpeg',
-                              'png',
-                              'gif',
-                              'bmp',
-                              'webp'
-                            ].contains(fileType);
-
-                            return GestureDetector(
-                              onTap: () async {
-                                if (await canLaunchUrl(Uri.parse(url))) {
-                                  await launchUrl(Uri.parse(url));
-                                }
-                              },
-                              child: Container(
-                                width: 120,
-                                margin: const EdgeInsets.only(right: 10),
-                                padding: const EdgeInsets.all(6),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.1),
-                                  border:
-                                  Border.all(color: Colors.tealAccent),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Column(
-                                  children: [
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(6),
-                                      child: isImage
-                                          ? Image.network(
-                                        url,
-                                        width: 100,
-                                        height: 70,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (context, error,
-                                            stackTrace) =>
-                                        const Icon(
-                                          Icons.broken_image,
-                                          color: Colors.white,
-                                        ),
-                                      )
-                                          : Icon(
-                                        fileType == 'pdf'
-                                            ? Icons.picture_as_pdf
-                                            : Icons.insert_drive_file,
-                                        color: Colors.white,
-                                        size: 50,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 5),
-                                    Text(
-                                      fileName,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                          color: Colors.white, fontSize: 12),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              const SizedBox(height: 10),
-              Align(
-                alignment: Alignment.centerRight,
-                child: IconButton(
-                  icon: const Icon(Icons.edit, color: Colors.white),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => EditReceptionReportScreen(
-                          docId: docId,
-                          reportData: task,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTaskDetail(String title, dynamic value) {
-    if (value == null || value.toString().trim().isEmpty) return const SizedBox();
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: RichText(
-        text: TextSpan(
-          children: [
-            TextSpan(
-              text: "$title: ",
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                  fontSize: 14),
-            ),
-            TextSpan(
-              text: value.toString(),
-              style: const TextStyle(color: Colors.white, fontSize: 14),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }

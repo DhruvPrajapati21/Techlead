@@ -1,32 +1,33 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:open_file/open_file.dart';
 import 'package:pdfx/pdfx.dart' as pdfx;
 import 'package:excel/excel.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:techlead/Widgeets/custom_app_bar.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../core/app_bar_provider.dart';
 
-class FetchedProductPage extends StatefulWidget {
+class FetchedProductPage extends ConsumerStatefulWidget {
   @override
-  _FetchedProductPageState createState() => _FetchedProductPageState();
+  ConsumerState<FetchedProductPage> createState() => _FetchedProductPageState();
 }
 
-class _FetchedProductPageState extends State<FetchedProductPage> {
+class _FetchedProductPageState extends ConsumerState<FetchedProductPage> {
   late Future<Map<String, dynamic>> _fetchDataFuture;
   bool isSharing = false;
 
   void _deleteReport(Map<String, dynamic> report) {
-    // Show the Snackbar with an Undo button
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text("Deleted report: ${report['id']}"),
         action: SnackBarAction(
           label: 'Undo',
           onPressed: () {
-            // Logic to restore the deleted report
             print("Undo delete: ${report['id']}");
-            // Add your logic to restore the report if necessary
           },
         ),
       ),
@@ -43,16 +44,13 @@ class _FetchedProductPageState extends State<FetchedProductPage> {
       String description = report['description'];
       String siteLocation = report['site_location'];
 
-      // Generate shareable text
-      String shareText =
-          "Product Name: $productName\n"
+      String shareText = "Product Name: $productName\n"
           "Description: $description\n"
           "Site Location: $siteLocation\n"
           "Shared via Flutter App";
 
       await Share.share(shareText);
 
-      // Only show the snackbar if sharing was successful
       if (isSharing) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Shared successfully")),
@@ -62,16 +60,16 @@ class _FetchedProductPageState extends State<FetchedProductPage> {
       print("Error sharing report: $e");
     } finally {
       setState(() {
-        isSharing = false;  // Reset sharing status after the process
+        isSharing = false;
       });
     }
   }
+
   Widget _buildDismissibleReport(Map<String, dynamic> report) {
     return Dismissible(
       key: Key(report['id'].toString()),
       direction: DismissDirection.endToStart,
       onDismissed: (direction) {
-        // Handle the dismissal action (delete/share)
         if (direction == DismissDirection.startToEnd) {
           _deleteReport(report);
         } else if (direction == DismissDirection.endToStart) {
@@ -86,12 +84,28 @@ class _FetchedProductPageState extends State<FetchedProductPage> {
     );
   }
 
-
-
   @override
   void initState() {
     super.initState();
     _fetchDataFuture = _fetchShortageReports();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+
+      ref.read(customTitleWidgetProvider.notifier).state = Row(
+        mainAxisSize: MainAxisSize.min,
+        children: const [
+          Icon(Icons.integration_instructions_sharp, color: Colors.white),
+          SizedBox(width: 8),
+          Text(
+            "Installation Shortage Report",
+            style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontFamily: "Times New Roman",
+                fontSize: 16),
+          ),
+        ],
+      );
+    });
   }
 
   Future<Map<String, dynamic>> _fetchShortageReports() async {
@@ -115,9 +129,8 @@ class _FetchedProductPageState extends State<FetchedProductPage> {
     }
   }
 
-
-
-  Widget _buildFilePreview(BuildContext context, Map<String, dynamic> fileData) {
+  Widget _buildFilePreview(
+      BuildContext context, Map<String, dynamic> fileData) {
     String fileName = fileData['file_name'];
     String fileType = fileData['file_type'];
     String fileUrl = fileData['file_url'];
@@ -125,8 +138,6 @@ class _FetchedProductPageState extends State<FetchedProductPage> {
 
     IconData statusIcon;
     Color iconColor;
-
-
 
     return GestureDetector(
       onTap: () => _openFile(fileUrl, context),
@@ -189,17 +200,23 @@ class _FetchedProductPageState extends State<FetchedProductPage> {
   }
 
   Future<void> _openFile(String fileUrl, BuildContext context) async {
-    final file = await firebase_storage.FirebaseStorage.instance.refFromURL(fileUrl).getDownloadURL();
+    final file = await firebase_storage.FirebaseStorage.instance
+        .refFromURL(fileUrl)
+        .getDownloadURL();
     OpenFile.open(file);
   }
 
   Future<pdfx.PdfDocument> _loadPdf(String fileUrl) async {
-    final data = await firebase_storage.FirebaseStorage.instance.refFromURL(fileUrl).getData();
+    final data = await firebase_storage.FirebaseStorage.instance
+        .refFromURL(fileUrl)
+        .getData();
     return pdfx.PdfDocument.openData(data!);
   }
 
   Future<Excel> _loadExcel(String fileUrl) async {
-    final bytes = await firebase_storage.FirebaseStorage.instance.refFromURL(fileUrl).getData();
+    final bytes = await firebase_storage.FirebaseStorage.instance
+        .refFromURL(fileUrl)
+        .getData();
     return Excel.decodeBytes(bytes!);
   }
 
@@ -221,29 +238,70 @@ class _FetchedProductPageState extends State<FetchedProductPage> {
   }
 
   Widget _buildFieldRow(String fieldName, dynamic fieldValue) {
+    final isLocation = fieldName.trim().toLowerCase() == 'site location:';
+    final locationValue = fieldValue?.toString() ?? '';
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            fieldName,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-              fontSize: 16,
-            ),
+          Row(
+            children: [
+              Text(
+                fieldName,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: isLocation
+                    ? GestureDetector(
+                  onTap: () async {
+                    final encodedLocation = Uri.encodeComponent(locationValue);
+                    final googleMapsUrl = 'https://www.google.com/maps/search/?api=1&query=$encodedLocation';
+                    if (await canLaunch(googleMapsUrl)) {
+                      await launch(googleMapsUrl);
+                    } else {
+                      debugPrint("Could not launch Maps");
+                    }
+                  },
+                  child: Text(
+                    locationValue,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.cyanAccent,
+                      fontSize: 16,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                )
+                    : Text(
+                  locationValue,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.cyanAccent,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              fieldValue?.toString() ?? '',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.cyanAccent,
-                fontSize: 16,
+          if (isLocation && locationValue.isNotEmpty)
+            const Padding(
+              padding: EdgeInsets.only(top: 4.0, left: 8.0),
+              child: Text(
+                'Note: Tap to open location in Maps',
+                style: TextStyle(
+                  color: Colors.redAccent,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -252,11 +310,8 @@ class _FetchedProductPageState extends State<FetchedProductPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('File Preview'),
-        backgroundColor: Colors.blueAccent,
-      ),
-      backgroundColor: Colors.cyanAccent,
+      appBar: CustomAppBar(),
+      backgroundColor: Colors.grey[200],
       body: SingleChildScrollView(
         child: FutureBuilder<Map<String, dynamic>>(
           future: _fetchDataFuture,
@@ -269,7 +324,9 @@ class _FetchedProductPageState extends State<FetchedProductPage> {
               var reports = snapshot.data!['reports'] as List<dynamic>;
 
               if (reports.isEmpty) {
-                return Center(child: Text('No reports found', style: TextStyle(color: Colors.white)));
+                return Center(
+                    child: Text('No reports found',
+                        style: TextStyle(color: Colors.white)));
               }
 
               return ListView.builder(
@@ -293,20 +350,25 @@ class _FetchedProductPageState extends State<FetchedProductPage> {
                       ),
                       alignment: Alignment.centerLeft,
                       padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: const Icon(Icons.delete, color: Colors.white, size: 30),
+                      child: const Icon(Icons.delete,
+                          color: Colors.white, size: 30),
                     ),
                     secondaryBackground: Container(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(10),
                         gradient: LinearGradient(
-                          colors: [Colors.green.shade400, Colors.green.shade900],
+                          colors: [
+                            Colors.green.shade400,
+                            Colors.green.shade900
+                          ],
                           begin: Alignment.centerRight,
                           end: Alignment.centerLeft,
                         ),
                       ),
                       alignment: Alignment.centerRight,
                       padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: const Icon(Icons.share, color: Colors.white, size: 30),
+                      child: const Icon(Icons.share,
+                          color: Colors.white, size: 30),
                     ),
                     onDismissed: (direction) {
                       if (direction == DismissDirection.startToEnd) {
@@ -326,7 +388,10 @@ class _FetchedProductPageState extends State<FetchedProductPage> {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(10),
                             gradient: LinearGradient(
-                              colors: [Colors.blue.shade700, Colors.blue.shade900],
+                              colors: [
+                                Colors.blue.shade700,
+                                Colors.blue.shade900
+                              ],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
@@ -338,7 +403,8 @@ class _FetchedProductPageState extends State<FetchedProductPage> {
                                 _buildReportFields(report),
                                 const SizedBox(height: 10),
                                 GridView.builder(
-                                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                  gridDelegate:
+                                      const SliverGridDelegateWithFixedCrossAxisCount(
                                     crossAxisCount: 3,
                                     crossAxisSpacing: 10,
                                     mainAxisSpacing: 10,
@@ -352,12 +418,16 @@ class _FetchedProductPageState extends State<FetchedProductPage> {
                                       decoration: BoxDecoration(
                                         borderRadius: BorderRadius.circular(10),
                                         gradient: LinearGradient(
-                                          colors: [Colors.blue.shade600, Colors.blue.shade800],
+                                          colors: [
+                                            Colors.blue.shade600,
+                                            Colors.blue.shade800
+                                          ],
                                           begin: Alignment.topLeft,
                                           end: Alignment.bottomRight,
                                         ),
                                       ),
-                                      child: _buildFilePreview(context, files[fileIndex]),
+                                      child: _buildFilePreview(
+                                          context, files[fileIndex]),
                                     );
                                   },
                                 ),
@@ -371,7 +441,14 @@ class _FetchedProductPageState extends State<FetchedProductPage> {
                 },
               );
             } else {
-              return Center(child: Text('No data available', style: TextStyle(color: Colors.black,fontFamily: "Times New Roman"),));
+              return Center(
+                  child: Text(
+                'No data available!',
+                style: TextStyle(
+                    color: Colors.black,
+                    fontFamily: "Times New Roman",
+                    fontWeight: FontWeight.bold),
+              ));
             }
           },
         ),

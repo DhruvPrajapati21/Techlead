@@ -2,10 +2,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
-import 'package:techlead/welcomescreen.dart';
-import '../EmpHomescreen.dart';
-import '../Enteredscreen.dart';
-import '../newpie.dart';
+import '../Homescreen/EmpHomescreen.dart';
+import 'Enteredscreen.dart';
+import '../../Admin/Adminhomescreen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({Key? key}) : super(key: key);

@@ -10,7 +10,9 @@ import 'package:intl/intl.dart';
 import 'package:open_file/open_file.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'customwidget.dart';
+import 'package:table_calendar/table_calendar.dart';
+import '../../Default/customwidget.dart';
+import 'Date_Code/Customize_Date_001.dart';
 
 class DailyTaskReport2 extends StatefulWidget {
   const DailyTaskReport2({super.key});
@@ -58,34 +60,47 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
 
   List<String> serviceStatuses = ["Pending", "In Progress", "Completed"];
   List<String> serviceDepartment = [
-    // "Digital Marketing",
-    // "Sales",
-    // "Installation",
-    // "Human Resource",
-    // "Reception",
-    // "Account",
-    // "Finance",
-    // "Management",
-    // "Social Media"
+    "Digital Marketing",
+    "Sales",
+    "Installation",
+    "Human Resource",
+    "Reception",
+    "Account",
+    "Finance",
+    "Management",
+    "Social Media"
   ];
-
   Future<void> _selectDate(BuildContext context) async {
-    final DateTime today = DateTime.now();
-    final DateTime onlyDate = DateTime(today.year, today.month, today.day);
-
-    final DateTime? picked = await showDatePicker(
+    await showDialog(
       context: context,
-      initialDate: _selectedDate.isBefore(onlyDate) ? onlyDate : _selectedDate,
-      firstDate: onlyDate,
-      lastDate: DateTime(2101),
+      barrierDismissible: true,
+      builder: (context) {
+        return Center( // Ensures dialog is vertically centered
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: 350,  // Controls width
+              maxHeight: 420, // Controls height to remove bottom expansion
+            ),
+            child: Material(
+              borderRadius: BorderRadius.circular(16),
+              color: Colors.transparent,
+              child: buildGradientCalendar(
+                context,
+                _selectedDate,
+                    (pickedDate) {
+                  setState(() {
+                    _selectedDate = pickedDate;
+                    _dateController.text =
+                        DateFormat('dd MMMM yy').format(pickedDate);
+                  });
+                  Navigator.of(context).pop();
+                },
+              ),
+            ),
+          ),
+        );
+      },
     );
-
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-        _dateController.text = DateFormat('dd MMMM yy').format(picked);
-      });
-    }
   }
 
   Future<void> replaceFile(int index) async {
@@ -533,7 +548,11 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [Colors.indigo, Colors.blue],
+              colors: [
+                Color(0xFF000F89), // Royal Blue
+                Color(0xFF0F52BA), // Cobalt Blue
+                Color(0xFF002147), // Midnight Blue
+              ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -561,102 +580,179 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Employee Name Field
                 Padding(
                   padding: const EdgeInsets.all(8.0),
-                  child: TextFormField(
-                    controller: _employeeNameController,
-                    readOnly: true,
-                    decoration: InputDecoration(
-                      labelText: "Employee Name",
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                      filled: true,
-                      fillColor: const Color(0xFFFFE4C4),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [
+                          Color(0xFF000F89),
+                          Color(0xFF0F52BA),
+                          Color(0xFF002147),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    validator: (value) => value == null || value.isEmpty
-                        ? 'Employee name is required'
-                        : null,
+                    child: TextFormField(
+                      controller: _employeeNameController,
+                      readOnly: true,
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      decoration: InputDecoration(
+
+                        filled: true,
+                        fillColor: Colors.transparent,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      ),
+                      validator: (value) =>
+                      value == null || value.isEmpty ? 'Employee name is required' : null,
+                    ),
                   ),
                 ),
+
+// Employee ID Field
                 Padding(
                   padding: const EdgeInsets.all(8.0),
-                  child: TextFormField(
-                    controller: _employeeIdController,
-                    readOnly: true,
-                    decoration: InputDecoration(
-                      labelText: "Employee ID",
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                      filled: true,
-                      fillColor: const Color(0xFFFFE4C4),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [
+                          Color(0xFF000F89),
+                          Color(0xFF0F52BA),
+                          Color(0xFF002147),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    validator: (value) => value == null || value.isEmpty
-                        ? 'Employee ID is required'
-                        : null,
-                  ),
-                ),
-                const SizedBox(height: 15),
-                TextFormField(
-                  controller: _dateController,
-                  decoration: InputDecoration(
-                    labelText: "Select Date",
-                    prefixIcon: const Icon(Icons.date_range, color: Colors.blueAccent),
-                    filled: true,
-                    fillColor: Colors.blue.shade50,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
+                    child: TextFormField(
+                      controller: _employeeIdController,
+                      readOnly: true,
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      decoration: InputDecoration(
+
+                        filled: true,
+                        fillColor: Colors.transparent,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      ),
+                      validator: (value) =>
+                      value == null || value.isEmpty ? 'Employee ID is required' : null,
                     ),
                   ),
-                  readOnly: true,
-                  onTap: () => _selectDate(context),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please select a date';
-                    }
-                    return null;
-                  },
                 ),
 
                 const SizedBox(height: 15),
-                _buildDecoratedField(
+
+// Date Picker Field
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Container(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [
+                            Color(0xFF000F89),
+                            Color(0xFF0F52BA),
+                            Color(0xFF002147),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: TextFormField(
+                        controller: _dateController,
+                        readOnly: true,
+                        onTap: () => _selectDate(context),
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        decoration: InputDecoration(
+                          label: const Text(
+                            "Select Date",
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          ),
+                          prefixIcon: const Icon(Icons.date_range, color: Colors.white),
+                          filled: true,
+                          fillColor: Colors.transparent,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please select a date';
+                          }
+                          return null;
+                        },
+                      )
+
+                  ),
+                ),
+
+
+                const SizedBox(height: 15),
+                _buildTextField(
                   controller: _taskTitleController,
                   label: "Task Title",
                   icon: Icons.task,
-                  backgroundColor: Colors.blue.shade50,
+
                   validator: validateTaskTitle,
                 ),
                 SizedBox(height: 16),
 
-                ElevatedButton(
-                  onPressed: pickFiles,
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: Size(200, 60),
-                    backgroundColor: Colors.blue.shade900,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: ElevatedButton(
+                    onPressed: pickFiles,
+                    style: ElevatedButton.styleFrom(
+                      elevation: 5,
+                      padding: EdgeInsets.zero, // Remove internal padding to allow full gradient
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      backgroundColor: Colors.transparent, // Needed for gradient effect
+                      shadowColor: Colors.grey.withOpacity(0.5),
                     ),
-                    elevation: 5,
-                    shadowColor: Colors.grey.withOpacity(0.5),
-                    padding: EdgeInsets.symmetric(vertical: 15, horizontal: 30),
-                  ),
-                  child: MouseRegion(
-                    onEnter: (_) {
-                      setState(() {});
-                    },
-                    onExit: (_) {
-                      setState(() {});
-                    },
-                    child: Text(
-                      "Choose Files",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                    child: Ink(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Color(0xFF000F89),
+                            Color(0xFF0F52BA),
+                            Color(0xFF002147),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.all(Radius.circular(16)),
+                      ),
+                      child: Container(
+                        constraints: const BoxConstraints(minWidth: 200, minHeight: 60),
+                        alignment: Alignment.center,
+                        child: const Text(
+                          "Choose Files",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 ),
+
                 SizedBox(height: 20),
 
                 selectedFiles.isNotEmpty
@@ -841,27 +937,28 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
                     ),
                   ),
                 const SizedBox(height: 20),
-                _buildDecoratedField(
+                _buildTextField(
                   controller: _actionsTakenController,
                   label: "Actions Taken",
                   icon: Icons.check_circle,
                   maxLines: 4,
-                  backgroundColor: Colors.green.shade50,
+
                   validator: validateActionsTaken,
                 ),
                 const SizedBox(height: 20),
 
-                _buildDecoratedField(
+                _buildTextField(
                   controller: _nextStepsController,
                   label: "Next Steps",
                   icon: Icons.arrow_forward,
                   maxLines: 4,
-                  backgroundColor: Colors.purple.shade50,
+
                   validator: validateNextSteps,
                 ),
 
                 const SizedBox(height: 20),
                 buildDropdownField(
+                  context: context,
                   labelText: "Select Department",
                   icon: Icons.assignment,
                   value: selectedDepartment,
@@ -878,6 +975,7 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
 
                 const SizedBox(height: 20),
                 buildDropdownField(
+                  context: context,
                   labelText: "Service Status",
                   icon: Icons.assignment,
                   value: selectedServiceStatus,
@@ -897,11 +995,19 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
+                    gradient: const LinearGradient(
+                      colors: [
+                        Color(0xFF000F89), // Royal Blue
+                        Color(0xFF0F52BA), // Cobalt Blue
+                        Color(0xFF002147), // Midnight Blue
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
                     borderRadius: BorderRadius.circular(10),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.grey.withOpacity(0.3),
+                        color: Colors.black.withOpacity(0.3),
                         spreadRadius: 1,
                         blurRadius: 5,
                         offset: Offset(0, 3),
@@ -913,14 +1019,15 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
                     children: [
                       Text(
                         "Work Log - ${DateFormat('dd MMM yyyy').format(DateTime.now())}",
-                        style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.indigo),
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white, // White and bold
+                        ),
                       ),
                       const SizedBox(height: 10),
                       Table(
-                        border: TableBorder.all(color: Colors.black54),
+                        border: TableBorder.all(color: Colors.white70), // lighter border for contrast
                         columnWidths: const {
                           0: FlexColumnWidth(1.5),
                           1: FlexColumnWidth(3),
@@ -938,37 +1045,65 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
 
                 const SizedBox(height: 20),
 
-                _buildDecoratedField(
+                _buildTextField(
                   controller: _locationController,
                   label: "Location",
                   icon: Icons.location_on,
-                  backgroundColor: Colors.indigo.shade50,
                   validator: validateLocation,
                 ),
                 const SizedBox(height: 20),
-                const SizedBox(height: 25),
+
                 Center(
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12,vertical: 12),
-                      child: ElevatedButton(
-                        onPressed: _submitReport,
-                        child: _isLoading
-                            ? const CircularProgressIndicator(color: Colors.white)
-                            : const Text("Submit Report",
-                            style: TextStyle(color: Colors.white)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blueAccent,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
-                          textStyle: const TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.w600),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [
+                              Color(0xFF000F89), // Royal Blue
+                              Color(0xFF0F52BA), // Cobalt Blue
+                              Color(0xFF002147), // Midnight Blue
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _submitReport,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            textStyle: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                              : const Text(
+                            "Submit Report",
+                            style: TextStyle(color: Colors.white),
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
+
               ],
             ),
           ),
@@ -991,83 +1126,87 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
           padding: const EdgeInsets.all(8.0),
           child: Text(
             timeSlot,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14,color: Colors.white),
           ),
         ),
         Padding(
           padding: const EdgeInsets.all(8.0),
-          child: TextFormField(
-            controller: controller,
-            decoration: InputDecoration(
-              hintText: "Enter work description",
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              filled: true,
-              fillColor: Colors.white,
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
             ),
-            maxLines: 2,
+            child: TextFormField(
+              controller: controller,
+              decoration: InputDecoration(
+                hintText: "Enter work description",
+                hintStyle: TextStyle(color: Colors.white,fontWeight: FontWeight.bold),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.all(12),
+              ),
+              style: const TextStyle(color: Colors.white),
+              maxLines: 2,
+              cursorColor: Colors.white,
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildDecoratedField({
+  Widget _buildTextField({
     required TextEditingController controller,
     required String label,
     required IconData icon,
     int maxLines = 1,
     TextInputType keyboardType = TextInputType.text,
-    Color backgroundColor = Colors.white,
     String? Function(String?)? validator,
-    TextInputAction textInputAction =
-        TextInputAction.done, // Default text input action
+    TextInputAction textInputAction = TextInputAction.done,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: TextFormField(
-        controller: controller,
-        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-        maxLines: maxLines,
-        keyboardType: keyboardType,
-        validator: validator,
-        textInputAction:
-        textInputAction, // Pass the textInputAction to TextFormField
-        decoration: InputDecoration(
-          labelText: label,
-          prefixIcon: Icon(icon, color: Colors.blueAccent),
-          filled: true,
-          fillColor: backgroundColor,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
+      padding: const EdgeInsets.all(8.0),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [
+              Color(0xFF000F89), // Royal Blue
+              Color(0xFF0F52BA), // Cobalt Blue
+              Color(0xFF002147), // Midnight Blue
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: TextFormField(
+          controller: controller,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+          maxLines: maxLines,
+          keyboardType: keyboardType,
+          validator: validator,
+          textInputAction: textInputAction,
+          decoration: InputDecoration(
+            hintText: label, // label is used as hint now
+            hintStyle: const TextStyle(
+              color: Colors.cyanAccent,
+              fontWeight: FontWeight.bold,
+            ),
+            prefixIcon: Icon(icon, color: Colors.white),
+            filled: true,
+            fillColor: Colors.transparent,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          ),
+          cursorColor: Colors.white,
         ),
       ),
     );
   }
 
-  Widget _buildDatePicker() {
-    return GestureDetector(
-      onTap: () => _selectDate(context),
-      child: AbsorbPointer(
-        child: TextFormField(
-          decoration: InputDecoration(
-            labelText: "Select Date",
-            prefixIcon: const Icon(Icons.date_range, color: Colors.blueAccent),
-            filled: true,
-            fillColor: Colors.blue.shade50,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-          ),
-          controller: TextEditingController(
-            text: DateFormat('dd MMMM yy').format(_selectedDate),
-          ),
-        ),
-      ),
-    );
-  }
 }

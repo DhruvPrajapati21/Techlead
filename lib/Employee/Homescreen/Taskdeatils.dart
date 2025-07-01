@@ -1,15 +1,16 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-import 'Employee/Categoryscreen/HR/Hrdailytaskreport.dart';
-import 'Employee/Categoryscreen/Finance/Financedailytaskreport.dart';
-import 'Employee/Categoryscreen/Installation/Installationdailytaskreport.dart';
-import 'Employee/Categoryscreen/Management/Managementdailytaskreport.dart';
-import 'Employee/Categoryscreen/Account/Accountdailytaskreport.dart';
-import 'Employee/Categoryscreen/Reception/Receptionlistdailytaskreport.dart';
-import 'Employee/Categoryscreen/Sales/Salesdailytaskreport.dart';
-import 'Employee/Categoryscreen/Social Media/Smdailytaskreport.dart';
-import 'Employee/Categoryscreen/Digital Marketing/Digitalmarketingdailytaskreport.dart';
+import '../Categoryscreen/HR/Hrdailytaskreport.dart';
+import '../Categoryscreen/Finance/Financedailytaskreport.dart';
+import '../Categoryscreen/Installation/Installationdailytaskreport.dart';
+import '../Categoryscreen/Management/Managementdailytaskreport.dart';
+import '../Categoryscreen/Account/Accountdailytaskreport.dart';
+import '../Categoryscreen/Reception/Receptionlistdailytaskreport.dart';
+import '../Categoryscreen/Sales/Salesdailytaskreport.dart';
+import '../Categoryscreen/Social Media/Smdailytaskreport.dart';
+import '../Categoryscreen/Digital Marketing/Digitalmarketingdailytaskreport.dart';
 
 class TaskDetailsScreen extends StatefulWidget {
   final String label;
@@ -37,52 +38,120 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
   @override
   void initState() {
     super.initState();
+    selectedDate = DateTime.now();
     _loadTasksByStatus();
   }
 
+  Future<void> _selectMonth() async {
+    final DateTime initialDate = selectedDate ?? DateTime.now();
+
+    final DateTime? pickedDate = await showDialog<DateTime>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          content: MonthYearPicker(
+            selectedDate: initialDate,
+            onChanged: (date) {
+              Navigator.of(context).pop(date);
+            },
+          ),
+        );
+      },
+    );
+
+    if (pickedDate != null) {
+      setState(() {
+        selectedDate = pickedDate;
+        _filterList(searchController.text);
+      });
+    }
+  }
+
+  final String currentUserId = FirebaseAuth.instance.currentUser?.uid ?? "";
+
   Future<void> _loadTasksByStatus() async {
-    final status = widget.label == "Pending Tasks"
+    final String status = widget.label == "Pending Tasks"
         ? "Pending"
         : widget.label == "InProgress Tasks"
         ? "In Progress"
         : "Completed";
 
-    List<Map<String, dynamic>> collected = [];
+    try {
+      final userDoc = await FirebaseFirestore.instance
+          .collection('EmpProfile')
+          .doc(currentUserId).get();
 
-    for (int i = 0; i < widget.userDepartments.length; i += 10) {
-      final chunk = widget.userDepartments.sublist(
-        i,
-        (i + 10 > widget.userDepartments.length)
-            ? widget.userDepartments.length
-            : i + 10,
-      );
+      if (!userDoc.exists || userDoc.data() == null) {
+        print("❌ User profile not found.");
+        setState(() {
+          taskList = [];
+          filteredList = [];
+          isLoading = false;
+        });
+        return;
+      }
 
-      QuerySnapshot snapshot = await _firestore
-          .collection('DailyTaskReport')
-          .where('service_status', isEqualTo: status)
-          .where('category', whereIn: chunk)
-          .get();
+      final String empId = userDoc.get('empId') ?? '';
+      if (empId.isEmpty) {
+        print("❌ empId is empty.");
+        return;
+      }
 
-      if (snapshot.docs.isEmpty) {
-        snapshot = await _firestore
+      List<Map<String, dynamic>> collected = [];
+
+      for (int i = 0; i < widget.userDepartments.length; i += 10) {
+        final chunk = widget.userDepartments.sublist(
+          i,
+          (i + 10 > widget.userDepartments.length)
+              ? widget.userDepartments.length
+              : i + 10,
+        );
+
+        QuerySnapshot snapshot = await _firestore
             .collection('DailyTaskReport')
+            .where('employeeId', isEqualTo: empId)
             .where('service_status', isEqualTo: status)
-            .where('Service_department', whereIn: chunk)
+            .where('category', whereIn: chunk)
             .get();
+
+        if (snapshot.docs.isEmpty) {
+          snapshot = await _firestore
+              .collection('DailyTaskReport')
+              .where('employeeId', isEqualTo: empId)
+              .where('service_status', isEqualTo: status)
+              .where('Service_department', whereIn: chunk)
+              .get();
+        }
+
+        for (var doc in snapshot.docs) {
+          final data = doc.data() as Map<String, dynamic>;
+          data['parsedDate'] = _parseDate(data['date']);
+          data['rawDate'] = _convertToDateTime(data['date']);
+          collected.add(data);
+        }
       }
 
-      for (var doc in snapshot.docs) {
-        var data = doc.data() as Map<String, dynamic>;
-        data['parsedDate'] = _parseDate(data['date']);
-        collected.add(data);
-      }
+      setState(() {
+        taskList = collected;
+        isLoading = false;
+        _filterList(searchController.text);
+      });
+    } catch (e) {
+      print("❌ Error loading user-specific tasks: $e");
+      setState(() {
+        isLoading = false;
+      });
     }
+  }
 
-    setState(() {
-      taskList = collected;
-      isLoading = false;
-      _filterList('');
-    });
+  DateTime? _convertToDateTime(dynamic raw) {
+    if (raw is Timestamp) return raw.toDate();
+    if (raw is String) {
+      try {
+        return DateFormat('dd/MM/yyyy').parse(raw);
+      } catch (_) {}
+    }
+    return null;
   }
 
   String _parseDate(dynamic raw) {
@@ -97,12 +166,20 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
 
   void _filterList(String query) {
     final lowerQuery = query.toLowerCase();
+    final selectedMonth = selectedDate?.month;
+    final selectedYear = selectedDate?.year;
+
     List<Map<String, dynamic>> result = taskList.where((task) {
       final title = task['taskTitle']?.toString().toLowerCase() ?? '';
+      final date = task['rawDate'] as DateTime?;
+
       final matchesTitle = title.contains(lowerQuery);
-      final matchesDate = selectedDate == null
+      final matchesDate = (selectedMonth == null || selectedYear == null)
           ? true
-          : task['parsedDate'] == DateFormat('dd/MM/yyyy').format(selectedDate!);
+          : (date != null &&
+          date.month == selectedMonth &&
+          date.year == selectedYear);
+
       return matchesTitle && matchesDate;
     }).toList();
 
@@ -113,22 +190,6 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
     setState(() {
       filteredList = result;
     });
-  }
-
-  void _pickDate() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: selectedDate ?? DateTime.now(),
-      firstDate: DateTime(2022),
-      lastDate: DateTime(2101),
-    );
-
-    if (picked != null) {
-      setState(() {
-        selectedDate = picked;
-        _filterList(searchController.text);
-      });
-    }
   }
 
   void _handleCardTap(String category) {
@@ -179,19 +240,54 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
     final actionsTaken = data['actionsTaken'] ?? 'N/A';
     final date = data['parsedDate'] ?? 'N/A';
 
+    TextStyle labelStyle = const TextStyle(
+      fontWeight: FontWeight.bold,
+      color: Colors.cyanAccent,
+    );
+
+    TextStyle valueStyle = const TextStyle(
+      fontWeight: FontWeight.bold,
+      color: Colors.white,
+    );
+
+    Widget buildLabeledText(String label, String value) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 5),
+        child: RichText(
+          text: TextSpan(
+            style: const TextStyle(height: 1.4),
+            children: [
+              TextSpan(text: '$label: ', style: labelStyle),
+              TextSpan(text: value, style: valueStyle),
+            ],
+          ),
+          maxLines: null, // allow multiline
+          overflow: TextOverflow.visible,
+        ),
+      );
+    }
+
     return GestureDetector(
       onTap: () => _handleCardTap(category),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [Color(0xFFE0F0FF), Color(0xFFFFFFFF)],
+            colors: [
+              Color(0xFF000F89),
+              Color(0xFF0F52BA),
+              Color(0xFF002147),
+            ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
-            BoxShadow(color: Colors.grey.withOpacity(0.4), blurRadius: 4, offset: const Offset(2, 2)),
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.4),
+              blurRadius: 4,
+              offset: const Offset(2, 2),
+            ),
           ],
         ),
         child: Padding(
@@ -200,10 +296,14 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   CircleAvatar(
-                    backgroundColor: Colors.blueAccent,
-                    child: Text('${data['index']}', style: const TextStyle(color: Colors.white)),
+                    backgroundColor: Colors.blue.shade900,
+                    child: Text(
+                      '${data['index']}',
+                      style: const TextStyle(color: Colors.white),
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -213,30 +313,27 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                         fontWeight: FontWeight.bold,
                         fontFamily: 'Times New Roman',
                         fontSize: 16,
+                        color: Colors.cyanAccent,
                       ),
+                      softWrap: true,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Text('Category: $category', style: const TextStyle(fontFamily: 'Times New Roman')),
-              const SizedBox(height: 7),
-              Text('Submitted Name: $employee', style: const TextStyle(fontFamily: 'Times New Roman')),
-              const SizedBox(height: 7),
-              Text('Location: $location', style: const TextStyle(fontFamily: 'Times New Roman')),
-              const SizedBox(height: 7),
-              Text('Submitted Date: $date', style: const TextStyle(fontFamily: 'Times New Roman')),
-              const SizedBox(height: 7),
-              Text('Action Taken: $actionsTaken', style: const TextStyle(fontFamily: 'Times New Roman')),
-              const SizedBox(height: 7),
-              Text('Next Step: $nextSteps', style: const TextStyle(fontFamily: 'Times New Roman')),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
+              buildLabeledText('Category', category),
+              buildLabeledText('Submitted Name', employee),
+              buildLabeledText('Location', location),
+              buildLabeledText('Submitted Date', date),
+              buildLabeledText('Action Taken', actionsTaken),
+              buildLabeledText('Next Step', nextSteps),
+              const SizedBox(height: 10),
               const Text(
                 'Note:- Tap to see detailed report.',
                 style: TextStyle(
-                  fontFamily: 'Times New Roman',
-                  color: Colors.red,
+                  color: Color(0xFFFF0038),
                   fontSize: 14,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ],
@@ -253,10 +350,13 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
       appBar: AppBar(
         title: Text(
           widget.label,
-          style: const TextStyle(fontFamily: 'Times New Roman', fontWeight: FontWeight.bold, color: Colors.white),
+          style: const TextStyle(
+              fontFamily: 'Times New Roman',
+              fontWeight: FontWeight.bold,
+              color: Colors.white),
         ),
         centerTitle: true,
-        backgroundColor: Colors.blueAccent,
+        backgroundColor: Colors.blue.shade900,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Column(
@@ -269,23 +369,51 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
                   child: TextField(
                     controller: searchController,
                     onChanged: _filterList,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                     decoration: InputDecoration(
+                      filled: true,
+                      fillColor: const Color(0xFF000F89),
                       hintText: 'Search by Project...',
-                      prefixIcon: const Icon(Icons.search),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      hintStyle: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      prefixIcon: const Icon(
+                        Icons.search,
+                        color: Colors.white,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none, // remove border outline
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none, // no border when enabled
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                          color: Colors.white, // white border when focused
+                          width: 1.5,
+                        ),
+                      ),
                     ),
                   ),
+
                 ),
                 const SizedBox(width: 10),
                 GestureDetector(
-                  onTap: _pickDate,
+                  onTap: _selectMonth,
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.blueAccent,
+                      color: Colors.blue.shade900,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.date_range, color: Colors.white),
+                    child: const Icon(Icons.calendar_month_outlined, color: Colors.white),
                   ),
                 ),
               ],
@@ -296,13 +424,20 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
             child: isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : filteredList.isEmpty
-                ? const Center(
-              child: Text(
-                'No data available for this department right now!',
-                style: TextStyle(
-                  fontFamily: 'Times New Roman',
-                  fontSize: 16,
-                  color: Colors.black,
+                ? Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Text(
+                  searchController.text.isNotEmpty
+                      ? 'In ${widget.label} search data not available right now!'
+                      : 'In current month no ${widget.label} available right now!',
+                  style: const TextStyle(
+                    fontFamily: 'Times New Roman',
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
               ),
             )
@@ -311,6 +446,162 @@ class _TaskDetailsScreenState extends State<TaskDetailsScreen> {
               itemBuilder: (context, index) {
                 return _buildTaskCard(filteredList[index]);
               },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class MonthYearPicker extends StatefulWidget {
+  final DateTime selectedDate;
+  final ValueChanged<DateTime> onChanged;
+
+  const MonthYearPicker({
+    Key? key,
+    required this.selectedDate,
+    required this.onChanged,
+  }) : super(key: key);
+
+  @override
+  _MonthYearPickerState createState() => _MonthYearPickerState();
+}
+
+class _MonthYearPickerState extends State<MonthYearPicker> {
+  late DateTime _selectedDate;
+  late List<int> _years;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedDate = widget.selectedDate;
+    _years = List.generate(101, (index) => DateTime.now().year - 50 + index);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF000F89), Color(0xFF0F52BA), Color(0xFF002147)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.all(Radius.circular(12)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            'Select Month and Year',
+            style: TextStyle(
+              fontSize: 20,
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Month Dropdown
+          DropdownButtonFormField<int>(
+            dropdownColor: const Color(0xFF001f4d), // Bluish dropdown background
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: const Color(0xFF001f4d),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: Colors.white70),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(width: 1, color: Colors.white),
+              ),
+            ),
+            iconEnabledColor: Colors.white,
+            value: _selectedDate.month,
+            style: const TextStyle(color: Colors.white, fontSize: 16),
+            items: List.generate(12, (index) => index + 1)
+                .map((month) => DropdownMenuItem<int>(
+              value: month,
+              child: Text(
+                DateFormat('MMMM').format(DateTime(0, month)),
+                style: const TextStyle(color: Colors.white),
+              ),
+            ))
+                .toList(),
+            onChanged: (value) {
+              setState(() {
+                _selectedDate = DateTime(
+                  _selectedDate.year,
+                  value ?? _selectedDate.month,
+                );
+              });
+            },
+          ),
+
+          const SizedBox(height: 16),
+
+          // Year Dropdown
+          DropdownButtonFormField<int>(
+            dropdownColor: const Color(0xFF001f4d),
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: const Color(0xFF001f4d),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: Colors.white70),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(width: 1, color: Colors.white),
+              ),
+            ),
+            iconEnabledColor: Colors.white,
+            value: _selectedDate.year,
+            style: const TextStyle(color: Colors.white, fontSize: 16),
+            items: _years
+                .map((year) => DropdownMenuItem<int>(
+              value: year,
+              child: Text(
+                year.toString(),
+                style: const TextStyle(color: Colors.white),
+              ),
+            ))
+                .toList(),
+            onChanged: (value) {
+              setState(() {
+                _selectedDate = DateTime(
+                    value ?? _selectedDate.year, _selectedDate.month);
+              });
+            },
+          ),
+
+          const SizedBox(height: 24),
+
+          // Select Button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                widget.onChanged(_selectedDate);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF002147),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: const Text(
+                'Select',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
             ),
           ),
         ],

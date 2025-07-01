@@ -4,9 +4,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:techlead/Admin/Adminhomescreen.dart';
 
-import '../../../cusmedezeui/beizercontainer.dart';
-import '../../../cusmedezeui/beizercontainerbottom.dart';
-import '../../../cusmedezeui/beizercontainerleft.dart';
+import '../../Loginui/beizercontainer.dart';
+import '../../Loginui/beizercontainerbottom.dart';
+import '../../Loginui/beizercontainerleft.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
   const ForgotPasswordPage({Key? key}) : super(key: key);
@@ -49,9 +49,11 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
       if (snapshot.docs.isNotEmpty) {
         setState(() => _isVerified = true);
-        _showToast("Email verified! Please enter a new password.", Colors.green);
+        _showToast(
+            "Email verified! Please enter a new password.", Colors.green);
       } else {
-        _showToast("Email not found in Empauth collection. Please try again.", Colors.red);
+        _showToast("Email not found in Empauth collection. Please try again.",
+            Colors.red);
       }
     } catch (e) {
       _showToast("Error: ${e.toString()}", Colors.red);
@@ -87,7 +89,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       _newPasswordController.clear();
       _confirmPasswordController.clear();
 
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => NewPieShow()));
+      Navigator.pushReplacement(
+          context, MaterialPageRoute(builder: (_) => NewPieShow()));
     } catch (e) {
       _showToast("Error: ${e.toString()}", Colors.red);
     } finally {
@@ -126,20 +129,20 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           labelText: label,
           prefixIcon: Icon(
             label == 'Email' ? Icons.email : Icons.lock,
-            color: Colors.pink,
+            color: Colors.blue.shade900,
           ),
           suffixIcon: (label == 'New Password' || label == 'Confirm Password')
               ? IconButton(
-            icon: Icon(
-              obscureText ? Icons.visibility : Icons.visibility_off,
-              color: Colors.pink,
-            ),
-            onPressed: toggleVisibility,
-          )
+                  icon: Icon(
+                    obscureText ? Icons.visibility : Icons.visibility_off,
+                    color: Colors.pink,
+                  ),
+                  onPressed: toggleVisibility,
+                )
               : null,
           border: OutlineInputBorder(borderSide: BorderSide.none),
           filled: true,
-          fillColor: Colors.pink.withOpacity(0.1),
+          fillColor: Colors.blue.withOpacity(0.1),
         ),
       ),
     );
@@ -157,14 +160,14 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         alignment: Alignment.center,
         decoration: BoxDecoration(
           borderRadius: const BorderRadius.all(Radius.circular(5)),
-          gradient: const LinearGradient(
+          gradient: LinearGradient(
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
-            colors: [Colors.blueAccent, Colors.deepPurpleAccent],
+            colors: [Colors.blue.shade800, Colors.blue.shade900],
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.purple.shade200,
+              color: Colors.blue.shade200,
               blurRadius: 5,
               offset: const Offset(2, 4),
               spreadRadius: 2,
@@ -174,9 +177,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         child: _isLoading
             ? const CircularProgressIndicator(color: Colors.white)
             : Text(
-          label,
-          style: const TextStyle(fontSize: 20, color: Colors.white),
-        ),
+                label,
+                style: const TextStyle(fontSize: 20, color: Colors.white),
+              ),
       ),
     );
   }
@@ -193,7 +196,10 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
               child: Icon(Icons.keyboard_arrow_left, color: Colors.white),
             ),
             Text('Back',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.white))
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white))
           ],
         ),
       ),
@@ -203,84 +209,110 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
-          const Positioned(top: 0, left: 0, right: 0, child: BezierContainer()),
-          const Positioned(bottom: 0, left: 0, right: 0, child: BezierContainerBottom()),
-          const Positioned(left: 0, bottom: 0, child: BezierContainerLeft()),
-          Align(
-            alignment: Alignment.center,
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Card(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  elevation: 8,
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text(
-                            'Forgot Password',
-                            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black),
-                          ),
-                          const SizedBox(height: 20),
-                          _buildTextField(
-                            label: 'Email',
-                            controller: _emailController,
-                            validator: (value) {
-                              if (value == null || value.isEmpty) return 'Email is required';
-                              if (!RegExp(r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                                return 'Enter a valid email';
-                              }
-                              return null;
-                            },
-                            readOnly: _isVerified,
-                          ),
-                          if (_isVerified) ...[
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [
+              Color(0xFF0F2027), // Deep Blue-Grey
+              Color(0xFF203A43), // Dark Blue
+              Color(0xFF2C5364), // Rich Blue
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Stack(
+          children: [
+            Align(
+              alignment: Alignment.center,
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Card(
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
+                    elevation: 8,
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                             Text(
+                              'Forgot Password',
+                              style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue.shade900),
+                            ),
+                            const SizedBox(height: 20),
                             _buildTextField(
-                              label: 'New Password',
-                              controller: _newPasswordController,
+                              label: 'Email',
+                              controller: _emailController,
                               validator: (value) {
-                                if (value == null || value.isEmpty) return 'Password is required';
-                                if (!RegExp(r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$')
+                                if (value == null || value.isEmpty)
+                                  return 'Email is required';
+                                if (!RegExp(r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$')
                                     .hasMatch(value)) {
-                                  return 'Password must contain letters, numbers, and symbols';
+                                  return 'Enter a valid email';
                                 }
                                 return null;
                               },
-                              obscureText: !_showNewPassword,
-                              toggleVisibility: () => setState(() => _showNewPassword = !_showNewPassword),
+                              readOnly: _isVerified,
                             ),
-                            _buildTextField(
-                              label: 'Confirm Password',
-                              controller: _confirmPasswordController,
-                              validator: (value) {
-                                if (value != _newPasswordController.text) return 'Passwords do not match';
-                                return null;
-                              },
-                              obscureText: !_showConfirmPassword,
-                              toggleVisibility: () => setState(() => _showConfirmPassword = !_showConfirmPassword),
+                            if (_isVerified) ...[
+                              _buildTextField(
+                                label: 'New Password',
+                                controller: _newPasswordController,
+                                validator: (value) {
+                                  if (value == null || value.isEmpty)
+                                    return 'Password is required';
+                                  if (!RegExp(
+                                          r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$')
+                                      .hasMatch(value)) {
+                                    return 'Password must contain letters, numbers, and symbols';
+                                  }
+                                  return null;
+                                },
+                                obscureText: !_showNewPassword,
+                                toggleVisibility: () => setState(
+                                    () => _showNewPassword = !_showNewPassword),
+                              ),
+                              _buildTextField(
+                                label: 'Confirm Password',
+                                controller: _confirmPasswordController,
+                                validator: (value) {
+                                  if (value != _newPasswordController.text)
+                                    return 'Passwords do not match';
+                                  return null;
+                                },
+                                obscureText: !_showConfirmPassword,
+                                toggleVisibility: () => setState(() =>
+                                    _showConfirmPassword =
+                                        !_showConfirmPassword),
+                              ),
+                            ],
+                            const SizedBox(height: 30),
+                            _buildButton(
+                              label: _isVerified
+                                  ? 'Reset Password'
+                                  : 'Verify Email',
+                              onTap:
+                                  _isVerified ? _resetPassword : _verifyEmail,
                             ),
                           ],
-                          const SizedBox(height: 30),
-                          _buildButton(
-                            label: _isVerified ? 'Reset Password' : 'Verify Email',
-                            onTap: _isVerified ? _resetPassword : _verifyEmail,
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
-          Positioned(top: 40, left: 0, child: _backButton()),
-        ],
+            Positioned(top: 40, left: 0, child: _backButton()),
+          ],
+        ),
       ),
     );
   }

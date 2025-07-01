@@ -1,108 +1,172 @@
 import 'package:flutter/material.dart';
-import 'package:techlead/assignedtaskemppage.dart';
-import 'package:techlead/Employee/Categoryscreen/Installation/Installtionemployeedata.dart';
-import 'package:techlead/salespage.dart';
-import 'package:techlead/Employee/Categoryscreen/Installation/serviceinstallationpage.dart';
-import 'package:techlead/taskassignpage.dart';
-import '../Receivesaleshdata.dart';
-import '../Salesdailytaskreport.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:techlead/Employee/Categoryscreen/Sales/salespage.dart';
+import 'package:techlead/Employee/Categoryscreen/Sales/Receivesaleshdata.dart';
+import 'package:techlead/Employee/Categoryscreen/Sales/Salesdailytaskreport.dart';
+import 'package:techlead/Widgeets/custom_app_bar.dart';
+import '../../../core/app_bar_provider.dart';
+import '../All_Home_Screen_Card_Ui/All_Home_Screen_Card_Ui.dart';
+import '../A_Shining_Cooper_Animation/shining_cooper.dart';
 
-class Saleshomescreen extends StatefulWidget {
+class Saleshomescreen extends ConsumerStatefulWidget {
   const Saleshomescreen({super.key});
 
   @override
-  State<Saleshomescreen> createState() => _SaleshomescreenState();
+  ConsumerState<Saleshomescreen> createState() => _SaleshomescreenState();
 }
 
-class _SaleshomescreenState extends State<Saleshomescreen> {
+class _SaleshomescreenState extends ConsumerState<Saleshomescreen> {
+  @override
+  void initState() {
+    super.initState();
+
+    Future.microtask(() {
+      ref.read(appBarTitleProvider.notifier).state = "Sales Task Section";
+      ref.read(appBarGradientColorsProvider.notifier).state = [
+        const Color(0xFF1E3C72),
+        const Color(0xFF2A5298),
+      ];
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.blue,
-        title: const Text(
-          "Sales Page",
-          style: TextStyle(
-            fontFamily: "Times New Roman",
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Center(
-          child: Wrap(
-            spacing: 20,
-            runSpacing: 20,
-            alignment: WrapAlignment.center,
+      appBar: CustomAppBar(),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
             children: [
-              _buildMenuCard(
-                color: Colors.blue,
-                icon: Icons.assignment,
-                label: "Sales Lead",
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => SalesPage()),
+              // Welcome Banner
+              Card(
+                elevation: 3,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [
+                        Color(0xFF004FF9),
+                        Color(0xFF000000),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    children: const [
+                      Icon(Icons.info_outline, color: Colors.white),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          "Welcome back! Stay organized and productive today.",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              _buildMenuCard(
-                color: Colors.green,
-                icon: Icons.report,
-                label: "Sales Report",
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => Receivesalesdata()),
+
+              const SizedBox(height: 20),
+
+              // Sales Lead
+              ShiningCardWrapper(
+                child: MenuCard(
+                  icon: Icons.assignment,
+                  label: "Sales Lead",
+                  height: 160,
+                  width: 400,
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(40),
+                    topRight: Radius.circular(40),
+                    bottomRight: Radius.circular(10),
+                    topLeft: Radius.circular(10),
+                  ),
+                  gradient: const LinearGradient(
+                    colors: [
+                      Color(0xFF004FF9),
+                      Color(0xFF000000),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => SalesPage()),
+                  ),
                 ),
               ),
-              _buildMenuCard(
-                color: Colors.deepOrange,
-                icon: Icons.task,
-                label: "Sales Daily-Task",
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => DailyReportRecordOfSales()),
+
+              const SizedBox(height: 20),
+
+              // Sales Report
+              ShiningCardWrapper(
+                child: MenuCard(
+                  icon: Icons.report,
+                  label: "Sales Report",
+                  height: 160,
+                  width: 400,
+                  borderRadius: const BorderRadius.only(
+                    topRight: Radius.circular(10),
+                    topLeft: Radius.circular(40),
+                    bottomRight: Radius.circular(40),
+                    bottomLeft: Radius.circular(10),
+                  ),
+                  gradient: const LinearGradient(
+                    colors: [
+                      Color(0xFF004FF9),
+                      Color(0xFF000000),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => Receivesalesdata()),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // Daily Sales Task
+              ShiningCardWrapper(
+                child: MenuCard(
+                  icon: Icons.task,
+                  label: "Sales Daily-Task",
+                  height: 160,
+                  width: 400,
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(40),
+                    topRight: Radius.circular(40),
+                    bottomRight: Radius.circular(10),
+                    topLeft: Radius.circular(10),
+                  ),
+                  gradient: const LinearGradient(
+                    colors: [
+                      Color(0xFF004FF9),
+                      Color(0xFF000000),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => DailyReportRecordOfSales()),
+                  ),
                 ),
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMenuCard({
-    required Color color,
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 150,
-        height: 150,
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 50, color: Colors.white),
-            const SizedBox(height: 10),
-            Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
         ),
       ),
     );

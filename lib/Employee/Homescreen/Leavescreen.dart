@@ -6,7 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:mailer/mailer.dart';
 import 'package:mailer/smtp_server/gmail.dart';
 import 'package:http/http.dart' as http;
-import 'customwidget.dart';
+import '../../Default/customwidget.dart';
 
 final RegExp emailRegExp = RegExp(
   r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$",
@@ -376,6 +376,7 @@ class _LeavescreenState extends State<Leavescreen> {
       child: Column(
         children: [
           buildLeaveField(
+            context: context,
             controller: empIdController,
             labelText: 'Enter Your EmpId',
             icon: Icons.perm_identity,
@@ -384,6 +385,7 @@ class _LeavescreenState extends State<Leavescreen> {
           ),
           buildLeaveField(
             controller: empNameController,
+            context: context,
             labelText: 'Enter Your EmpName',
             icon: Icons.person,
             readOnly: empNameController.text.isNotEmpty,
@@ -392,6 +394,7 @@ class _LeavescreenState extends State<Leavescreen> {
           buildLeaveField(
             controller: empemailidController,
             labelText: 'Enter Your EmailID',
+            context: context,
             icon: Icons.email,
             keyboardType: TextInputType.emailAddress,
             readOnly: empemailidController.text.isNotEmpty,
@@ -446,6 +449,7 @@ class _LeavescreenState extends State<Leavescreen> {
           buildLeaveField(
             controller: startdateController,
             labelText: "Start Date",
+            context: context,
             icon: Icons.calendar_today,
             readOnly: true,
             onTap: () => _selectDate(context, isStart: true),
@@ -453,6 +457,7 @@ class _LeavescreenState extends State<Leavescreen> {
           buildLeaveField(
             controller: enddateController,
             labelText: "End Date",
+            context: context,
             icon: Icons.calendar_today_outlined,
             readOnly: true,
             onTap: () => _selectDate(context, isStart: false),
@@ -461,6 +466,7 @@ class _LeavescreenState extends State<Leavescreen> {
             controller: reasonController,
             labelText: "Reason",
             icon: Icons.description,
+            context: context,
             maxLines: 6,
             hintText: "Explain the reason for leave...",
           ),

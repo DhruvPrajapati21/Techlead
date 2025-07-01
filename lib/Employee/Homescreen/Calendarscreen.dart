@@ -3,9 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart'; // Import for date formatting
 import 'package:provider/provider.dart';
-
-import 'Attendancemodel.dart';
-import 'Themeprovider.dart';
+import '../Attendacescreen/Attendancemodel.dart';
+import '../../Default/Themeprovider.dart';
 
 class Calendarscreen extends StatefulWidget {
   const Calendarscreen({Key? key}) : super(key: key);
@@ -61,18 +60,32 @@ class _CalendarscreenState extends State<Calendarscreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-          backgroundColor: Colors.blue,
-          title: Text(
-            'My Attendance',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontStyle: FontStyle.italic,
-              color: Colors.white,
+        automaticallyImplyLeading: true,
+        elevation: 0,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color(0xFF000F89), // Royal Blue
+                Color(0xFF0F52BA), // Cobalt Blue
+                Color(0xFF002147), // Dark Navy
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
           ),
-          centerTitle: true,
-          iconTheme: IconThemeData(color: Colors.white),
-         ),
+        ),
+        title: const Text(
+          'My Attendance',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+
       body: Padding(
         padding: const EdgeInsets.only(top: 15),
         child: Column(
@@ -81,14 +94,30 @@ class _CalendarscreenState extends State<Calendarscreen> {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 SizedBox(width: 15),
-                Text(
-                  currentMonth,
-                  style: TextStyle(
-                    fontStyle: FontStyle.italic,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [
+                        Color(0xFF000F89), // Royal Blue
+                        Color(0xFF0F52BA), // Cobalt Blue
+                        Color(0xFF002147), // Dark Navy
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    currentMonth,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      fontSize: 18,
+                    ),
                   ),
                 ),
+
                 Spacer(),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 15),
@@ -96,16 +125,43 @@ class _CalendarscreenState extends State<Calendarscreen> {
                     onTap: () {
                       _selectMonth(context);
                     },
-                    child: Text(
-                      "Pick a Month",
-                      style: TextStyle(
-                        fontStyle: FontStyle.italic,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
+                    child: Container(
+                      padding: const EdgeInsets.all(2), // border thickness
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [
+                            Color(0xFF000F89), // Royal Blue
+                            Color(0xFF0F52BA), // Cobalt Blue
+                            Color(0xFF002147), // Dark Navy
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [
+                              Color(0xFF000F89), // Royal Blue
+                              Color(0xFF0F52BA), // Cobalt Blue
+                              Color(0xFF002147), // Dark Navy
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          "Pick a Month",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            fontSize: 18,
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 ),
+
               ],
             ),
             SizedBox(height: 10),
@@ -156,31 +212,35 @@ class _CalendarscreenState extends State<Calendarscreen> {
                       return Padding(
                         padding: const EdgeInsets.only(top: 10),
                         child: Card(
-                          margin: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                          child: Container(
-                            width: double.infinity,
-                            height: 500,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
+                          margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                          child: IntrinsicHeight( // Automatically adapts height to content
                             child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
+                                // Left date panel
                                 Expanded(
                                   flex: 2,
                                   child: Container(
                                     decoration: BoxDecoration(
-                                      color: Color(hexColor('#FF6600')),
-                                      borderRadius: BorderRadius.only(
-                                        topLeft: Radius.circular(10),
-                                        bottomLeft: Radius.circular(10),
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          Color(0xFF000F89),
+                                          Color(0xFF0F52BA),
+                                          Color(0xFF002147),
+                                        ],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                      borderRadius: const BorderRadius.only(
+                                        topLeft: Radius.circular(16),
+                                        bottomLeft: Radius.circular(16),
                                       ),
                                     ),
                                     child: Center(
                                       child: Text(
                                         '$shortDayOfWeek\n$formattedDate',
                                         textAlign: TextAlign.center,
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                           color: Colors.white,
                                           fontWeight: FontWeight.bold,
                                           fontSize: 22.0,
@@ -189,46 +249,50 @@ class _CalendarscreenState extends State<Calendarscreen> {
                                     ),
                                   ),
                                 ),
+
+                                // Right info panel
                                 Expanded(
                                   flex: 7,
                                   child: Container(
-                                    decoration: BoxDecoration(
-                                      color: Colors.blue,
+                                    decoration: const BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          Color(0xFF000F89),
+                                          Color(0xFF0F52BA),
+                                          Color(0xFF002147),
+                                        ],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
                                       borderRadius: BorderRadius.only(
-                                        topRight: Radius.circular(10),
-                                        bottomRight: Radius.circular(10),
+                                        topRight: Radius.circular(16),
+                                        bottomRight: Radius.circular(16),
                                       ),
                                     ),
                                     padding: const EdgeInsets.all(16.0),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'EMPName: ${record.employeeName}',
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold, color: Colors.white),
-                                        ),
-                                        Text(
-                                          'Address: ${record.department}',
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold, color: Colors.white),
-                                        ),
-                                        SizedBox(height: 8.0),
-                                        Text('Check-In: ${record.checkIn ?? 'N/A'}',
-                                            style: TextStyle(color: Colors.white)),
-                                        Text('CheckInLocation: ${record.checkInLocation ?? 'N/A'}',
-                                            style: TextStyle(color: Colors.white)),
-                                        SizedBox(height: 10),
-                                        Text('Check-Out: ${record.checkOut ?? 'N/A'}',
-                                            style: TextStyle(color: Colors.white)),
-                                        Text('CheckOutLocation: ${record.checkOutLocation ?? 'N/A'}',
-                                            style: TextStyle(color: Colors.white)),
-                                        SizedBox(height: 10),
-                                        Text('Record: ${record.record ?? 'N/A'}',
-                                            style: TextStyle(color: Colors.white)),
-                                        Text('Status: ${record.status ?? 'N/A'}',
-                                            style: TextStyle(color: Colors.white)),
-                                      ],
+                                    child: SingleChildScrollView( // This prevents overflow
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          _buildLabelRow('Employee Name:', record.employeeName ?? 'N/A', icon: Icons.person),
+                                          _buildLabelRow('Address:', record.department ?? 'N/A', icon: Icons.location_city),
+
+                                          const SizedBox(height: 8.0),
+
+                                          _buildLabelRow('Check-In:', record.checkIn ?? 'N/A', icon: Icons.login),
+                                          _buildLabelRow('Check In Location:', record.checkInLocation ?? 'N/A', icon: Icons.place),
+
+                                          const SizedBox(height: 5),
+
+                                          _buildLabelRow('Check-Out:', record.checkOut ?? 'N/A', icon: Icons.logout),
+                                          _buildLabelRow('Check Out Location:', record.checkOutLocation ?? 'N/A', icon: Icons.place_outlined),
+
+                                          const SizedBox(height: 5),
+
+                                          _buildLabelRow('Record:', record.record ?? 'N/A', icon: Icons.calendar_today),
+                                          _buildLabelRow('Status:', record.status ?? 'N/A', icon: Icons.verified),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -237,6 +301,7 @@ class _CalendarscreenState extends State<Calendarscreen> {
                           ),
                         ),
                       );
+
                     },
                   );
                 },
@@ -247,6 +312,39 @@ class _CalendarscreenState extends State<Calendarscreen> {
       ),
     );
   }
+  Widget _buildLabelRow(String label, String value, {IconData? icon}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 18, color: Colors.cyanAccent),
+            const SizedBox(width: 6),
+          ],
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.cyanAccent,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
 
   Future<void> _selectMonth(BuildContext context) async {
     final DateTime initialDate = DateTime(selectedDate.year, selectedDate.month);
@@ -259,7 +357,6 @@ class _CalendarscreenState extends State<Calendarscreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Month and Year Picker
                 MonthYearPicker(
                   selectedDate: initialDate,
                   onChanged: (date) {
@@ -309,127 +406,138 @@ class _MonthYearPickerState extends State<MonthYearPicker> {
   void initState() {
     super.initState();
     _selectedDate = widget.selectedDate;
-    _years = List.generate(101, (index) =>
-    DateTime.now().year - 50 + index);
+    _years = List.generate(101, (index) => DateTime.now().year - 50 + index);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min, // Adjust to fit content
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-          child: DropdownButtonFormField<int>(
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF000F89), Color(0xFF0F52BA), Color(0xFF03448C)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.all(Radius.circular(12)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            'Select Month and Year',
+            style: TextStyle(
+              fontSize: 20,
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Month Dropdown
+          DropdownButtonFormField<int>(
+            dropdownColor: const Color(0xFF001f4d),
             decoration: InputDecoration(
+              filled: true,
+              fillColor: const Color(0xFF001f4d),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: Theme.of(context).colorScheme.onSurface),
+                borderSide: const BorderSide(color: Colors.white70),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  width: 1,
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white
-                      : Colors.black,
-                ),
+                borderSide: const BorderSide(width: 1, color: Colors.white),
               ),
             ),
+            iconEnabledColor: Colors.white,
             value: _selectedDate.month,
+            style: const TextStyle(color: Colors.white, fontSize: 16),
             items: List.generate(12, (index) => index + 1)
                 .map((month) => DropdownMenuItem<int>(
               value: month,
               child: Text(
                 DateFormat('MMMM').format(DateTime(0, month)),
-                style: TextStyle(fontSize: 18),
+                style: const TextStyle(color: Colors.white),
               ),
             ))
                 .toList(),
             onChanged: (value) {
               setState(() {
                 _selectedDate = DateTime(
-                    _selectedDate.year, value ?? _selectedDate.month);
+                  _selectedDate.year,
+                  value ?? _selectedDate.month,
+                );
               });
             },
-            validator: (value) {
-              if (value == null) {
-                return "Please select a month";
-              }
-              return null;
-            },
           ),
-        ),
-        SizedBox(height: 16), // Space between dropdowns
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-          child: DropdownButtonFormField<int>(
+
+          const SizedBox(height: 16),
+
+          // Year Dropdown
+          DropdownButtonFormField<int>(
+            dropdownColor: const Color(0xFF001f4d),
             decoration: InputDecoration(
+              filled: true,
+              fillColor: const Color(0xFF001f4d),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: Theme.of(context).colorScheme.onSurface),
+                borderSide: const BorderSide(color: Colors.white70),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  width: 1,
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white
-                      : Colors.black,
-                ),
+                borderSide: const BorderSide(width: 1, color: Colors.white),
               ),
             ),
+            iconEnabledColor: Colors.white,
             value: _selectedDate.year,
+            style: const TextStyle(color: Colors.white, fontSize: 16),
             items: _years
                 .map((year) => DropdownMenuItem<int>(
               value: year,
               child: Text(
                 year.toString(),
-                style: TextStyle(fontSize: 18),
+                style: const TextStyle(color: Colors.white),
               ),
             ))
                 .toList(),
             onChanged: (value) {
               setState(() {
                 _selectedDate = DateTime(
-                    value ?? _selectedDate.year, _selectedDate.month);
+                  value ?? _selectedDate.year,
+                  _selectedDate.month,
+                );
               });
             },
-            validator: (value) {
-              if (value == null) {
-                return "Please select a year";
-              }
-              return null;
-            },
           ),
-        ),
-        SizedBox(
-          width: double.infinity,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+
+          const SizedBox(height: 24),
+
+          // Select Button
+          SizedBox(
+            width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
                 widget.onChanged(_selectedDate);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
+                backgroundColor: const Color(0xFF002147),
+                padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              child: Text(
+              child: const Text(
                 'Select',
                 style: TextStyle(
-                  fontSize: 20,
+                  fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  fontStyle: FontStyle.italic,
                   color: Colors.white,
                 ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

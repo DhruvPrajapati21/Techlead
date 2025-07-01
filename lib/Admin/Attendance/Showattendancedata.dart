@@ -2,6 +2,7 @@ import 'package:excel/excel.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -11,17 +12,22 @@ import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 import 'package:mailer/mailer.dart';
 import 'package:mailer/smtp_server.dart';
+import 'package:shimmer/shimmer.dart';
+import 'package:techlead/Widgeets/custom_app_bar.dart';
 import 'dart:typed_data';
+import '../../Employee/Attendacescreen/Attendancemodel.dart';
+import '../../Employee/Attendacescreen/googlescreen.dart';
+import '../../core/app_bar_provider.dart';
 
-import 'Employee/Attendacescreen/Attendancemodel.dart';
-import 'Employee/Attendacescreen/googlescreen.dart';
+class Attendance extends ConsumerStatefulWidget {
+  const Attendance({super.key});
 
-class Attendance extends StatefulWidget {
   @override
-  _AttendanceState createState() => _AttendanceState();
+  ConsumerState<Attendance> createState() => _AttendanceState();
 }
 
-class _AttendanceState extends State<Attendance> {
+class _AttendanceState extends ConsumerState<Attendance> {
+
   Map<String, String?> imageCache = {};
   bool isLoading = false;
   bool isLoading2 = false;
@@ -39,6 +45,10 @@ class _AttendanceState extends State<Attendance> {
     fetchImageUrls();
     _getCurrentLocation();
     requestLocationPermission();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(appBarTitleProvider.notifier).state = "Employee Attendance Details";
+    }
+    );
   }
 
   Future<void> requestLocationPermission() async {
@@ -102,13 +112,42 @@ class _AttendanceState extends State<Attendance> {
       initialDate: DateTime.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime(2101),
+      builder: (BuildContext context, Widget? child) {
+        return Theme(
+          data: ThemeData(
+            dialogBackgroundColor: const Color(0xFF0D1B3E),
+            colorScheme: ColorScheme.dark(
+              primary: Colors.white,                  // Color of the selected date circle
+              onPrimary: Color(0xFF0D1B3E),           // Text/icon color inside the selected circle
+              surface: const Color(0xFF0D1B3E),       // Background of calendar
+              onSurface: Colors.white,                // Normal text color
+            ),
+            primaryTextTheme: const TextTheme(
+              titleLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              bodyLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              bodyMedium: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              labelLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.white,
+                textStyle: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
+
     if (picked != null) {
       setState(() {
         selectedDate = DateFormat('dd/MM/yyyy').format(picked);
       });
     }
   }
+
+
   Future<void> _downloadMonthlyExcel(DateTime startDate, DateTime endDate) async {
     if (!mounted) return;
 
@@ -242,17 +281,61 @@ class _AttendanceState extends State<Attendance> {
 
       if (isToastVisible) {
         Fluttertoast.showToast(
-          msg: "Monthly attendance data Excel file sent successfully!",
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.TOP,
-          backgroundColor: Colors.green,
+          backgroundColor: Colors.transparent, // Set transparent to show our custom widget fully
+          msg: "", // Required but unused since we use `child`
+          timeInSecForIosWeb: 2,
+          webBgColor: "linear-gradient(to right, #0D1B3E, #0D1B3E)", // fallback for web
           textColor: Colors.white,
+          fontSize: 16.0,
+        );
+
+        FToast fToast = FToast();
+        fToast.init(context);
+
+        fToast.showToast(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+            margin: const EdgeInsets.symmetric(horizontal: 24.0),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0D1B3E), // Dark blue background (same as Date Picker)
+              borderRadius: BorderRadius.circular(8.0),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 6,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                Icon(Icons.message, color: Colors.cyanAccent),
+                SizedBox(width: 12.0),
+                Expanded(
+                  child: Text(
+                    "Monthly attendance data Excel file sent successfully!",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          gravity: ToastGravity.TOP,
+          toastDuration: const Duration(seconds: 2),
         );
 
         setState(() {
           isToastVisible = false;
         });
       }
+
     }
   }
 
@@ -385,37 +468,59 @@ class _AttendanceState extends State<Attendance> {
       });
 
       if (isToastVisible) {
-        Fluttertoast.showToast(
-          msg: "Attendance Data Excel file sent successfully!",
-          toastLength: Toast.LENGTH_SHORT,
+        // Initialize FToast if not already done
+        FToast fToast = FToast();
+        fToast.init(context);
+
+        fToast.showToast(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+            margin: const EdgeInsets.symmetric(horizontal: 24.0),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0D1B3E), // Same deep blue as used elsewhere
+              borderRadius: BorderRadius.circular(8.0),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 6,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                Icon(Icons.download, color: Colors.cyanAccent),
+                SizedBox(width: 12.0),
+                Expanded(
+                  child: Text(
+                    "Attendance Data Excel file sent successfully!",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 3,
+                  ),
+                ),
+              ],
+            ),
+          ),
           gravity: ToastGravity.TOP,
-          backgroundColor: Colors.green,
-          textColor: Colors.white,
+          toastDuration: const Duration(seconds: 2),
         );
 
         setState(() {
           isToastVisible = false;
         });
       }
+
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.blue,
-        title: Text(
-          'EMPAttendanceData',
-          style: TextStyle(
-            fontStyle: FontStyle.italic,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        centerTitle: true,
-        iconTheme: IconThemeData(color: Colors.white),
-      ),
+      appBar: CustomAppBar(),
       body: Column(
         children: [
           Padding(
@@ -430,12 +535,37 @@ class _AttendanceState extends State<Attendance> {
                         searchQuery = value.toLowerCase();
                       });
                     },
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                     decoration: InputDecoration(
+                      filled: true,
+                      fillColor: const Color(0xFF0D1B3E), // Dark blue background
                       labelText: 'Search by Employee Name',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.search),
+                      labelStyle: const TextStyle(
+                        color: Colors.white70,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(4.0),
+                        borderSide: const BorderSide(color: Colors.white70),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(4.0),
+                        borderSide: const BorderSide(color: Colors.white54),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(4.0),
+                        borderSide: const BorderSide(color: Colors.cyanAccent, width: 2),
+                      ),
+                      prefixIcon: const Icon(
+                        Icons.search,
+                        color: Colors.white, // White search icon
+                      ),
                     ),
                   ),
+
                 ),
                 IconButton(
                   icon: Icon(Icons.date_range),
@@ -459,7 +589,7 @@ class _AttendanceState extends State<Attendance> {
                     child: ElevatedButton(
                       onPressed: _downloadExcel,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orangeAccent,
+                        backgroundColor: Colors.blue.shade900,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(5.0),
                         ),
@@ -470,7 +600,6 @@ class _AttendanceState extends State<Attendance> {
                         "Download",
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontStyle: FontStyle.italic,
                           color: Colors.white,
                         ),
                       ),
@@ -486,7 +615,7 @@ class _AttendanceState extends State<Attendance> {
                         _downloadMonthlyExcel(startOfMonth, endOfMonth);
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orangeAccent,
+                        backgroundColor: Colors.blue.shade900,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(5.0),
                         ),
@@ -497,7 +626,6 @@ class _AttendanceState extends State<Attendance> {
                         "Month Download",
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontStyle: FontStyle.italic,
                           color: Colors.white,
                         ),
                       ),
@@ -516,8 +644,9 @@ class _AttendanceState extends State<Attendance> {
                   .snapshots(),
               builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(child: CircularProgressIndicator());
+                  return _buildAttendanceShimmerList();
                 }
+
                 if (snapshot.hasError) {
                   print('Firestore Error: ${snapshot.error}');
                   return Center(child: Text('Error: ${snapshot.error}'));
@@ -559,275 +688,80 @@ class _AttendanceState extends State<Attendance> {
 
                     return Padding(
                       padding: const EdgeInsets.only(top: 10),
-                      child: Card(
-                        color: Colors.white60,
-                        margin: EdgeInsets.all(11.0),
-                        child: ListTile(
-                          subtitle: Column(
+                      child:Card(
+                        margin: const EdgeInsets.all(11.0),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        child: Container(
+                          decoration: const BoxDecoration(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                            gradient: LinearGradient(
+                              colors: [
+                                Color(0xFF0A2A5A),
+                                Color(0xFF15489C),
+                                Color(0xFF1E64D8),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  RichText(
-                                    text: TextSpan(
-                                      children: [
-                                        TextSpan(
-                                          text: 'Record: ',
-                                          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
-                                        ),
-                                        TextSpan(
-                                          text: '${index + 1}',
-                                          style: TextStyle(fontStyle: FontStyle.italic, color: Colors.black),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
+                              Align(
+                                alignment: Alignment.topRight,
+                                child: _buildStyledText("Record: ", "${index + 1}"),
                               ),
-                              Padding(
-                                padding: const EdgeInsets.only(top: 10),
-                                child: RichText(
-                                  text: TextSpan(
-                                    children: [
-                                      TextSpan(
-                                        text: 'EMPName: ',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.black,
-                                        ),
-                                      ),
-                                      TextSpan(
-                                        text:
-                                        record.employeeName ?? 'N/A',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.normal,
-                                          color: Colors.black,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              RichText(
-                                text: TextSpan(
-                                  children: [
-                                    TextSpan(
-                                      text: 'Department: ',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black,
-                                      ),
-                                    ),
-                                    TextSpan(
-                                      text: record.department ?? 'N/A',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.normal,
-                                        color: Colors.black,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              RichText(
-                                text: TextSpan(
-                                  children: [
-                                    TextSpan(
-                                      text: 'Date: ',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black,
-                                      ),
-                                    ),
-                                    TextSpan(
-                                      text: record.date ?? 'N/A',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.normal,
-                                        color: Colors.black,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              SizedBox(
-                                height: 10,
-                              ),
-                              RichText(
-                                text: TextSpan(
-                                  children: [
-                                    TextSpan(
-                                      text: 'CheckIn: ',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black,
-                                      ),
-                                    ),
-                                    TextSpan(
-                                      text: record.checkIn ?? 'N/A',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.normal,
-                                        color: Colors.black,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              RichText(
-                                text: TextSpan(
-                                  children: [
-                                    TextSpan(
-                                      text: 'CheckInLocation: ',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black,
-                                      ),
-                                    ),
-                                    TextSpan(
-                                      text:
-                                      record.checkInLocation ?? 'N/A',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.normal,
-                                        color: Colors.black,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              SizedBox(
-                                height: 10,
-                              ),
-                              RichText(
-                                text: TextSpan(
-                                  children: [
-                                    TextSpan(
-                                      text: 'CheckOut: ',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black,
-                                      ),
-                                    ),
-                                    TextSpan(
-                                      text: record.checkOut ?? 'N/A',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.normal,
-                                        color: Colors.black,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              RichText(
-                                text: TextSpan(
-                                  children: [
-                                    TextSpan(
-                                      text: 'CheckOutLocation: ',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black,
-                                      ),
-                                    ),
-                                    TextSpan(
-                                      text: record.checkOutLocation ??
-                                          'N/A',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.normal,
-                                        color: Colors.black,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              SizedBox(
-                                height: 10,
-                              ),
-                              RichText(
-                                text: TextSpan(
-                                  children: [
-                                    TextSpan(
-                                      text: 'Record: ',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black,
-                                      ),
-                                    ),
-                                    TextSpan(
-                                      text: record.record ?? 'N/A',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.normal,
-                                        color: Colors.black,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              RichText(
-                                text: TextSpan(
-                                  children: [
-                                    TextSpan(
-                                      text: 'Status: ',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black,
-                                      ),
-                                    ),
-                                    TextSpan(
-                                      text: record.status ?? 'N/A',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.normal,
-                                        color: Colors.black,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              SizedBox(
-                                height: 10,
-                              ),
+                              const SizedBox(height: 10),
+                              _buildStyledText("EMPName: ", record.employeeName),
+                              _buildStyledText("Department: ", record.department),
+                              _buildStyledText("Date: ", record.date),
+                              const SizedBox(height: 10),
+                              _buildStyledText("CheckIn: ", record.checkIn),
+                              _buildStyledText("CheckInLocation: ", record.checkInLocation),
+                              const SizedBox(height: 10),
+                              _buildStyledText("CheckOut: ", record.checkOut),
+                              _buildStyledText("CheckOutLocation: ", record.checkOutLocation),
+                              const SizedBox(height: 10),
+                              _buildStyledText("Record: ", record.record),
+                              _buildStyledText("Status: ", record.status),
+                              const SizedBox(height: 10),
                               Center(
                                 child: SizedBox(
                                   width: double.infinity,
                                   child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 12),
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                                     child: ElevatedButton(
                                       onPressed: () {
                                         if (_currentLocation != null) {
                                           Navigator.push(
                                             context,
                                             MaterialPageRoute(
-                                              builder: (context) =>
-                                                  MapScreen(
-                                                    initialPosition: LatLng(
-                                                      _currentLocation!
-                                                          .latitude,
-                                                      _currentLocation!
-                                                          .longitude,
-                                                    ),
-                                                  ),
+                                              builder: (context) => MapScreen(
+                                                initialPosition: LatLng(
+                                                  _currentLocation!.latitude,
+                                                  _currentLocation!.longitude,
+                                                ),
+                                              ),
                                             ),
                                           );
                                         } else {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                            SnackBar(
-                                                content: Text(
-                                                    'Unable to fetch current location.')),
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(content: Text('Unable to fetch current location.')),
                                           );
                                         }
                                       },
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor:
-                                        Colors.orangeAccent,
+                                        backgroundColor: const Color(0xFF0D1B3E),
+
                                         shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                          BorderRadius.circular(5.0),
+                                          borderRadius: BorderRadius.circular(5.0),
                                         ),
                                       ),
-                                      child: Text(
+                                      child: const Text(
                                         "Live Map",
                                         style: TextStyle(
                                           fontWeight: FontWeight.bold,
-                                          fontStyle: FontStyle.italic,
                                           color: Colors.white,
                                         ),
                                       ),
@@ -838,7 +772,8 @@ class _AttendanceState extends State<Attendance> {
                             ],
                           ),
                         ),
-                      ),
+                      )
+
                     );
                   },
                 );
@@ -849,4 +784,52 @@ class _AttendanceState extends State<Attendance> {
       ),
     );
   }
+}
+Widget _buildStyledText(String label, String? value) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 2),
+    child: RichText(
+      text: TextSpan(
+        children: [
+          TextSpan(
+            text: label,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.cyanAccent,
+              fontSize: 14,
+            ),
+          ),
+          TextSpan(
+            text: value ?? 'N/A',
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+Widget _buildAttendanceShimmerList() {
+  return ListView.builder(
+    itemCount: 6, // Number of shimmer placeholders
+    itemBuilder: (context, index) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+        child: Shimmer.fromColors(
+          baseColor: Colors.blue.shade900.withOpacity(0.4),
+          highlightColor: Colors.white.withOpacity(0.6),
+          child: Container(
+            height: 180,
+            decoration: BoxDecoration(
+              color: Colors.blue.shade800,
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+      );
+    },
+  );
 }

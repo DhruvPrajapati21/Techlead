@@ -73,8 +73,13 @@ class _SalesInfoPageState extends State<SalesInfoPage> {
               ),
               padding: EdgeInsets.symmetric(horizontal: 8),
               child: TextField(
+                style: TextStyle( // <-- sets the input text color to white
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                  fontFamily: "Times New Roman"
+                ),
                 decoration: InputDecoration(
-                  labelText: 'Search by name...',
+                  labelText: 'Search by full name...',
                   labelStyle: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
@@ -110,8 +115,8 @@ class _SalesInfoPageState extends State<SalesInfoPage> {
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                   return Center(
                     child: Text(
-                      'No sales info available',
-                      style: TextStyle(fontFamily: 'Times New Roman'),
+                      'No sales info available!',
+                      style: TextStyle(fontFamily: 'Times New Roman',fontWeight: FontWeight.bold),
                     ),
                   );
                 }
@@ -120,7 +125,19 @@ class _SalesInfoPageState extends State<SalesInfoPage> {
                   return fullName.contains(_searchQuery.toLowerCase());
                 }).toList();
 
-                return ListView.builder(
+                return filteredDocs.isEmpty
+                    ? Center(
+                  child: Text(
+                    'No results found as search',
+                    style: TextStyle(
+                      fontFamily: 'Times New Roman',
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: Colors.white,
+                    ),
+                  ),
+                )
+                    :  ListView.builder(
                   itemCount: filteredDocs.length,
                   itemBuilder: (context, index) {
                     final doc = filteredDocs[index];

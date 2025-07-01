@@ -3,9 +3,10 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../Employee/Authentication/EnLoginPage.dart';
-import '../../../cusmedezeui/beizercontainer.dart';
-import '../../../cusmedezeui/beizercontainerbottom.dart';
-import '../../../cusmedezeui/beizercontainerleft.dart';
+import '../../Loginui/beizercontainer.dart';
+import '../../Loginui/beizercontainerbottom.dart';
+import '../../Loginui/beizercontainerleft.dart';
+import '../Adminhomescreen.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({Key? key, this.title}) : super(key: key);
@@ -107,10 +108,10 @@ class _SignUpPageState extends State<SignUpPage> {
       _passwordController.clear();
       _confirmPasswordController.clear();
 
-      // Navigator.pushReplacement(
-      //   context,
-      //   MaterialPageRoute(builder: (context) => const LoginPage()),
-      // );
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const NewPieShow()),
+      );
     } on FirebaseAuthException catch (e) {
       _showToast(e.message ?? "Registration failed", Colors.red);
     } finally {
@@ -154,95 +155,119 @@ class _SignUpPageState extends State<SignUpPage> {
         children: <Widget>[
           Text(
             title,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15,color: Colors.white),
           ),
           const SizedBox(
             height: 10,
           ),
           TextFormField(
             controller: controller,
+            textInputAction: TextInputAction.next,
+            onEditingComplete: () => FocusScope.of(context).nextFocus(),
             obscureText: isPassword
                 ? (isConfirmPassword ? !_confirmPasswordVisible : !_passwordVisible)
                 : false,
             validator: validator,
-            style: const TextStyle(color: Colors.black),
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(30),
-                borderSide: BorderSide(color: Colors.grey.shade300),
+            style: const TextStyle(color: Colors.blueAccent),
+              decoration: InputDecoration(
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                  prefixIcon: prefixIcon,
+                  suffixIcon: isPassword
+                      ? IconButton(
+                    icon: Icon(
+                      isConfirmPassword
+                          ? (_confirmPasswordVisible ? Icons.visibility : Icons.visibility_off)
+                          : (_passwordVisible ? Icons.visibility : Icons.visibility_off),
+                      color: Colors.blueAccent,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        if (isConfirmPassword) {
+                          _confirmPasswordVisible = !_confirmPasswordVisible;
+                        } else {
+                          _passwordVisible = !_passwordVisible;
+                        }
+                      });
+                    },
+                  )
+                      : null,
+                  hintText: 'Enter $title',
+                  hintStyle: TextStyle(color: Colors.blue.shade900),
+                errorStyle: TextStyle(color: Colors.cyanAccent,fontWeight: FontWeight.bold,fontSize: 12),
+
               ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(30),
-                borderSide: BorderSide(color: Colors.grey.shade300),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(30),
-                borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-              prefixIcon: prefixIcon,
-              suffixIcon: isPassword
-                  ? IconButton(
-                icon: Icon(
-                  isConfirmPassword
-                      ? (_confirmPasswordVisible ? Icons.visibility : Icons.visibility_off)
-                      : (_passwordVisible ? Icons.visibility : Icons.visibility_off),
-                  color: Colors.blueAccent,
-                ),
-                onPressed: () {
-                  setState(() {
-                    if (isConfirmPassword) {
-                      _confirmPasswordVisible = !_confirmPasswordVisible;
-                    } else {
-                      _passwordVisible = !_passwordVisible;
-                    }
-                  });
-                },
-              )
-                  : null,
-              hintText: 'Enter $title',
-              hintStyle: const TextStyle(color: Colors.grey),
-            ),
-          ),
+
+    ),
         ],
       ),
     );
   }
 
   Widget _submitButton() {
-    return GestureDetector(
-      onTap: _handleSignUp,
-      child: Container(
-        width: MediaQuery.of(context).size.width,
-        padding: const EdgeInsets.symmetric(vertical: 15),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          borderRadius: const BorderRadius.all(Radius.circular(5)),
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: Colors.grey.shade200,
-              offset: const Offset(2, 4),
-              blurRadius: 5,
-              spreadRadius: 2,
-            )
+    return Container(
+      width: MediaQuery.of(context).size.width,
+      padding: const EdgeInsets.symmetric(vertical: 0),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(5),
+        gradient: const LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [
+            Colors.grey, // dark blue
+            Color(0xFF1976D2), // medium blue
           ],
-          gradient: const LinearGradient(
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-            colors: [Colors.deepPurpleAccent, Colors.blueAccent],
-          ),
         ),
-        child: _isLoading
-            ? const CircularProgressIndicator(color: Colors.white)
-            : const Text(
-          'Register Now',
-          style: TextStyle(fontSize: 20, color: Colors.white),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey,
+            offset:  Offset(2, 4),
+            blurRadius: 5,
+            spreadRadius: 2,
+          )
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent, // needed for gradient to show
+        child: InkWell(
+          borderRadius: BorderRadius.circular(5),
+          onTap: _handleSignUp,
+          splashColor: Colors.white.withOpacity(0.3),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 15),
+            alignment: Alignment.center,
+            child: _isLoading
+                ? const SizedBox(
+              height: 20,
+              width: 20,
+              child: CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 2,
+              ),
+            )
+                : const Text(
+              'Register Now',
+              style: TextStyle(fontSize: 20, color: Colors.white),
+            ),
+          ),
         ),
       ),
     );
   }
+
 
   Widget _emailPasswordWidget() {
     return Column(
@@ -308,10 +333,10 @@ class _SignUpPageState extends State<SignUpPage> {
       textAlign: TextAlign.center,
       text: const TextSpan(
         text: 'S',
-        style: TextStyle(fontSize: 30, fontWeight: FontWeight.w700, color: Colors.blue),
+        style: TextStyle(fontSize: 30, fontWeight: FontWeight.w700, color: Colors.white),
         children: [
-          TextSpan(text: 'ig', style: TextStyle(color: Colors.blue, fontSize: 30)),
-          TextSpan(text: 'n Up', style: TextStyle(color: Colors.blue, fontSize: 30)),
+          TextSpan(text: 'ig', style: TextStyle(color: Colors.white, fontSize: 30)),
+          TextSpan(text: 'n Up', style: TextStyle(color: Colors.white, fontSize: 30)),
         ],
       ),
     );
@@ -321,23 +346,10 @@ class _SignUpPageState extends State<SignUpPage> {
   Widget build(BuildContext context) {
     final height = MediaQuery.of(context).size.height;
     return Scaffold(
+      backgroundColor: Colors.blue.shade900,
       body: Stack(
         children: <Widget>[
-          Positioned(
-            top: -height * .15,
-            right: -MediaQuery.of(context).size.width * .25,
-            child: const BezierContainer(),
-          ),
-          Positioned(
-            top: -height * .05,
-            right: -MediaQuery.of(context).size.width * -.6,
-            child: const BezierContainerLeft(),
-          ),
-          Positioned(
-            top: height * 0.7,
-            right: -MediaQuery.of(context).size.width * -.4,
-            child: const BezierContainerBottom(),
-          ),
+
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(
@@ -353,7 +365,7 @@ class _SignUpPageState extends State<SignUpPage> {
                           key: _formKey,
                           child: _emailPasswordWidget(),
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 35),
                         _submitButton(),
                         // const SizedBox(height: 20),
                         // _loginAccountLabel(),

@@ -19,8 +19,8 @@ class ShortageOfProduct extends StatefulWidget {
 
 class _ShortageOfProductState extends State<ShortageOfProduct> with TickerProviderStateMixin {
 
-  bool _isSubmitting = false; // To track if form is being submitted
-  bool _isSuccess = false; // To track success state
+  bool _isSubmitting = false;
+  bool _isSuccess = false;
 
 
   final TextEditingController _productNameController = TextEditingController();
@@ -44,7 +44,7 @@ class _ShortageOfProductState extends State<ShortageOfProduct> with TickerProvid
   List<String> fileNames = [];
   List<String> fileTypes = [];
   List<TextEditingController> fileNameControllers = [];
-  List<File> files = []; // Store the list of selected files
+  List<File> files = [];
 
 
 
@@ -52,7 +52,6 @@ class _ShortageOfProductState extends State<ShortageOfProduct> with TickerProvid
   void initState() {
     super.initState();
 
-    // Existing animation for page animations (if needed)
     _animationController = AnimationController(
       duration: const Duration(seconds: 1),
       vsync: this,
@@ -63,7 +62,7 @@ class _ShortageOfProductState extends State<ShortageOfProduct> with TickerProvid
       curve: Curves.easeInOut,
     );
 
-    // Button animation
+
     _buttonAnimationController = AnimationController(
       duration: const Duration(milliseconds: 200),
       vsync: this,
@@ -76,7 +75,7 @@ class _ShortageOfProductState extends State<ShortageOfProduct> with TickerProvid
       curve: Curves.easeInOut,
     );
 
-    // New AnimationController for the app bar icon
+
     _iconAnimationController = AnimationController(
       duration: const Duration(seconds: 2),
       vsync: this,

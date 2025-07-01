@@ -1,9 +1,11 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:intl/intl.dart';
-import '../../../Default/customwidget.dart';
+import '../../Default/customwidget.dart';
 
 class ReceptionPage extends StatefulWidget {
   @override
@@ -53,12 +55,33 @@ class _ReceptionPageState extends State<ReceptionPage> {
     {'text': 'Low', 'icon': FontAwesomeIcons.circle},
   ];
 
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _fetchEmployeeNames();
+  }
+
   final _formKey = GlobalKey<FormState>();
   final _clientNameController = TextEditingController();
   final _phoneNumberController = TextEditingController();
   final _locationController = TextEditingController();
-
+  Map<String, List<String>> employeeCategoryMap = {};
+  Map<String, String> employeeNameIdMap = {};
+  List<String> employeeNames = [];
   bool _isSubmitting = false;
+
+  List<String> selectedEmployeeNames = []; // 🔧 Fixes error 1
+
+  TextEditingController empIdController = TextEditingController(); // 🔧 Fixes error 2
+
+  List<Map<String, dynamic>> departmentList = []; // 🔧 Fixes error 4 (you can load data into this later)
+  List<Map<String, dynamic>> filteredDepartmentList = []; // 🔧 Fixes error 3
+
+  String? selectedDepartment;
+  // Optional: used for tracking the selected department
+
+
 
   String? _validateNonEmpty(String? value, String fieldName) {
     if (value == null || value.trim().isEmpty) {
@@ -95,6 +118,46 @@ class _ReceptionPageState extends State<ReceptionPage> {
     }
   }
 
+  Future<void> _fetchEmployeeNames() async {
+    try {
+      QuerySnapshot snapshot =
+      await FirebaseFirestore.instance.collection('EmpProfile').get();
+
+      setState(() {
+        employeeNameIdMap = {};
+        employeeCategoryMap = {};
+        employeeNames = [];
+
+        for (var doc in snapshot.docs) {
+          final fullName = doc['fullName'];
+          final empId = doc['empId'];
+          final categories = doc['categories'];
+
+          if (fullName != null &&
+              empId != null &&
+              fullName.toString().isNotEmpty &&
+              categories is List &&
+              categories.contains('Reception')) {
+            // Add only if 'Reception' is in categories
+            employeeNameIdMap[fullName] = empId;
+
+            employeeCategoryMap[fullName] = categories
+                .map((e) => e.toString().trim())
+                .where((e) => e.isNotEmpty)
+                .toSet()
+                .toList();
+
+            employeeNames.add(fullName);
+          }
+        }
+      });
+    } catch (e) {
+      print("❌ Error fetching employee names and IDs: $e");
+    }
+  }
+
+
+
   void _selectTaskDueDate(BuildContext context) async {
     DateTime? pickedDate = await showDatePicker(
       context: context,
@@ -110,8 +173,23 @@ class _ReceptionPageState extends State<ReceptionPage> {
     }
   }
 
+  final user = FirebaseAuth.instance.currentUser;
+  String? userId;
+
   void _submitForm() async {
     final form = _formKey.currentState;
+
+    if (!_isTaskCompleted) {
+      Fluttertoast.showToast(
+        msg: "Please mark the task as completed",
+        toastLength: Toast.LENGTH_SHORT,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+        fontSize: 16.0,
+      );
+      return;
+    }
+
 
     if (form != null && form.validate() && _taskDueDate != null && _taskStatus != null) {
       setState(() {
@@ -119,6 +197,7 @@ class _ReceptionPageState extends State<ReceptionPage> {
       });
 
       Map<String, dynamic> formData = {
+        'emp_info': selectedEmployeeNames,
         'client_name': _clientNameController.text,
         'phone_number': _phoneNumberController.text,
         'location': _locationController.text,
@@ -178,6 +257,7 @@ class _ReceptionPageState extends State<ReceptionPage> {
       _appointmentDate = null;
       _appointmentTime = null;
       _meetingPurpose = null;
+      selectedEmployeeNames = [];
       _assignedStaff = null;
       _taskPriority = null;
       _taskDueDate = null;
@@ -238,8 +318,47 @@ class _ReceptionPageState extends State<ReceptionPage> {
             key: _formKey,
             child: ListView(
               children: [
+                buildSection("Employee Information", [
+                  buildMultiSelectDropdownField(
+                    labelText: 'Select Employees',
+                    icon: Icons.person_outline,
+                    context: context,
+                    items: employeeNames, // now only includes Reception category names
+                    selectedItems: selectedEmployeeNames,
+                    onChanged: (List<String> selected) {
+                      setState(() {
+                        selectedEmployeeNames = selected;
+
+                        List<String> selectedIds = selected
+                            .map((name) => employeeNameIdMap[name] ?? '')
+                            .where((id) => id.isNotEmpty)
+                            .toList();
+
+                        empIdController.text = selectedIds.join(', ');
+
+                        final selectedCategories = <String>{};
+                        for (final name in selected) {
+                          final cats = employeeCategoryMap[name] ?? [];
+                          selectedCategories.addAll(cats);
+                        }
+
+                        filteredDepartmentList = departmentList
+                            .where((dep) => selectedCategories.contains(dep['name']))
+                            .toList();
+
+                        if (selectedDepartment != null &&
+                            !filteredDepartmentList.any((d) => d['name'] == selectedDepartment)) {
+                          selectedDepartment = null;
+                        }
+                      });
+                    },
+                  ),
+
+                ]),
+                SizedBox(height: 24),
                 buildSection("Client Information", [
                   buildTextField(
+                    context: context,
                     controller: _clientNameController,
                     labelText: "Client's Full Name",
                     hintText: "Enter client's full name",
@@ -247,13 +366,28 @@ class _ReceptionPageState extends State<ReceptionPage> {
                     validator: (value) => _validateNonEmpty(value, "the client's full name"),
                   ),
                   SizedBox(height: 16),
+
                   buildTextField(
                     controller: _phoneNumberController,
+                    context: context,
                     labelText: "Client's Phone Number",
                     hintText: "Enter client's phone number",
                     icon: FontAwesomeIcons.phone,
                     keyboardType: TextInputType.phone,
-                    validator: (value) => _validateNonEmpty(value, "the client's phone number"),
+                    inputFormatters: [
+                      LengthLimitingTextInputFormatter(10),
+                      FilteringTextInputFormatter.digitsOnly,
+                    ],
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Mobile number is required.';
+                      } else if (value.length != 10) {
+                        return 'Mobile number must be 10 digits.';
+                      } else if (!RegExp(r'^\d{10}$').hasMatch(value)) {
+                        return 'Enter a valid 10-digit number.';
+                      }
+                      return null;
+                    },
                   ),
                 ]),
                 SizedBox(height: 24),
@@ -274,6 +408,7 @@ class _ReceptionPageState extends State<ReceptionPage> {
                   SizedBox(height: 16),
                   buildDropdownField(
                     labelText: "Select Meeting Purpose",
+                    context: context,
                     icon: FontAwesomeIcons.calendarCheck,
                     value: _meetingPurpose,
                     items: meetingPurposes,
@@ -288,6 +423,7 @@ class _ReceptionPageState extends State<ReceptionPage> {
                   buildTextField(
                     controller: _locationController,
                     labelText: "Meeting Location",
+                    context: context,
                     hintText: "Enter meeting location",
                     icon: FontAwesomeIcons.mapMarkerAlt,
                     validator: (value) => _validateNonEmpty(value, "the meeting location"),
@@ -295,6 +431,7 @@ class _ReceptionPageState extends State<ReceptionPage> {
                   SizedBox(height: 16),
                   buildDropdownField(
                     labelText: "Select Assigned Staff/CEO",
+                    context: context,
                     icon: FontAwesomeIcons.user,
                     value: _assignedStaff,
                     items: staffList,
@@ -310,6 +447,7 @@ class _ReceptionPageState extends State<ReceptionPage> {
                 buildSection("Task Management", [
                   buildDropdownField(
                     labelText: "Task Priority",
+                    context: context,
                     icon: FontAwesomeIcons.exclamationCircle,
                     value: _taskPriority,
                     items: taskPriorities,
@@ -330,6 +468,7 @@ class _ReceptionPageState extends State<ReceptionPage> {
                   SizedBox(height: 16),
                   buildDropdownField(
                     labelText: "Task Status",
+                    context: context,
                     icon: FontAwesomeIcons.cogs,
                     value: _taskStatus,
                     items: [
@@ -347,6 +486,7 @@ class _ReceptionPageState extends State<ReceptionPage> {
                   SizedBox(height: 16),
                   buildCheckboxField(
                     label: "Mark Task as Completed",
+                    context: context,
                     value: _isTaskCompleted,
                     onChanged: (value) {
                       setState(() {
@@ -357,6 +497,7 @@ class _ReceptionPageState extends State<ReceptionPage> {
                   SizedBox(height: 16),
                   buildDropdownField(
                     labelText: "Client Meeting Status",
+                    context: context,
                     icon: FontAwesomeIcons.users,
                     value: _clientMeetingStatus,
                     items: [
@@ -374,24 +515,30 @@ class _ReceptionPageState extends State<ReceptionPage> {
                 ]),
                 SizedBox(height: 24),
                 Center(
-                  child: ElevatedButton(
-                    onPressed: _isSubmitting ? null : _submitForm,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue.shade900,
-                      shadowColor: Colors.purpleAccent.shade100,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                    ),
-                    child: _isSubmitting
-                        ? CircularProgressIndicator(color: Colors.white)
-                        : Text(
-                      'Submit',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12,vertical: 12),
+                      child: ElevatedButton(
+                        onPressed: _isSubmitting ? null : _submitForm,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue.shade900,
+                          shadowColor: Colors.purpleAccent.shade100,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                        ),
+                        child: _isSubmitting
+                            ? CircularProgressIndicator(color: Colors.white)
+                            : Text(
+                          'Submit',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
                     ),
                   ),

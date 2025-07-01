@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:techlead/EmpHomescreen.dart';
-import '../cusmedezeui/beizercontainer.dart';
-import '../cusmedezeui/beizercontainerbottom.dart';
-import '../cusmedezeui/beizercontainerleft.dart';
+import 'package:techlead/Employee/Homescreen/EmpHomescreen.dart';
+
+import '../../Loginui/beizercontainer.dart';
+import '../../Loginui/beizercontainerbottom.dart';
+import '../../Loginui/beizercontainerleft.dart';
 
 
 class LoginPage extends StatefulWidget {
@@ -140,6 +141,8 @@ class _LoginPageState extends State<LoginPage> {
             ),
             child: TextFormField(
               controller: controller,
+              textInputAction: TextInputAction.next,
+              onEditingComplete: () => FocusScope.of(context).nextFocus(),
               obscureText: isPassword && !_isPasswordVisible,
               validator: validator,
               style: const TextStyle(color: Colors.white,fontWeight: FontWeight.bold),

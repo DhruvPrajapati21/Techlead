@@ -53,15 +53,14 @@ class _MapScreenState extends State<MapScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.cyan,
+        backgroundColor: Colors.blue.shade900,
         centerTitle: true,
         iconTheme: IconThemeData(color: Colors.white),
         title: Text(
           'Live Google Maps',
           style: TextStyle(
               fontWeight: FontWeight.bold,
-              color: Colors.white,
-              fontStyle: FontStyle.italic),
+              color: Colors.white,),
         ),
       ),
       body: GoogleMap(
