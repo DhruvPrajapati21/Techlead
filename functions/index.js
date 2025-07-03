@@ -37,7 +37,7 @@ exports.autoCheckOut = onSchedule(
           const data = doc.data();
           const docId = doc.id;
           const employeeName = data.employeeName;
-          const checkInLocation = data.checkInLocation;
+          data.checkInLocation;
           const userId = data.userId;
 
           const checkInStr = data.checkIn;
