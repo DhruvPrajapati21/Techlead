@@ -294,13 +294,13 @@ class _LeaveInfoState extends ConsumerState<LeaveInfo> {
         final tempFile = File('${tempDir.path}/monthly_leave_data.xlsx');
         await tempFile.writeAsBytes(fileBytes);
 
-        String username = "getkeyllpmain@gmail.com";
-        String appSpecificPassword = "ivboubpfeghogmjv";
+        String username = "manthanpatel26510@gmail.com";
+        String appSpecificPassword = "uqvcfqumgbynnpzq";
 
         final smtpServer = gmail(username, appSpecificPassword);
         final message = Message()
-          ..from = Address('faydabazarhr1@gmail.com', 'FBHR')
-          ..recipients.add('faydabazarhr1@gmail.com')
+          ..from = Address('Info@techleadsolution.in', 'Techlead The Engineering Solution')
+          ..recipients.add('Info@techleadsolution.in')
           ..subject = 'Monthly Leave Records Data'
           ..text = 'Please find the attached monthly leave records Excel sheet.\n'
           ..attachments.add(

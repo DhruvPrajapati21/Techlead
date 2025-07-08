@@ -27,7 +27,7 @@ class _SalesPageState extends State<SalesPage> {
   FocusNode checkbox11Focus = FocusNode();
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
+  final TextEditingController _executivenameController = TextEditingController();
   final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _contactNumberController =
       TextEditingController();
@@ -94,6 +94,19 @@ class _SalesPageState extends State<SalesPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    buildTextField(
+                      context: context,
+                      controller: _executivenameController,
+                      labelText: 'Executive Name',
+                      icon: Icons.person_3_rounded,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your executive name';
+                        }
+                        return null;
+                      },
+                    ),
+                    SizedBox(height: 15),
                     buildTextField(
                       context: context,
                       controller: _fullNameController,
@@ -574,6 +587,7 @@ class _SalesPageState extends State<SalesPage> {
       });
 
       Map<String, dynamic> formData = {
+        'executivename': _executivenameController.text.trim(),
         'fullName': _fullNameController.text.trim(),
         'contactNumber': _contactNumberController.text.trim(),
         'email': _emailController.text.trim(),
@@ -606,7 +620,7 @@ class _SalesPageState extends State<SalesPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text(
-              'Form submitted successfully!',
+              'Sales Form submitted successfully!',
               style: TextStyle(color: Colors.white),
             ),
             backgroundColor: Colors.green,
@@ -636,6 +650,7 @@ class _SalesPageState extends State<SalesPage> {
   }
 
   void _resetForm() {
+    _executivenameController.clear();
     _fullNameController.clear();
     _contactNumberController.clear();
     _emailController.clear();

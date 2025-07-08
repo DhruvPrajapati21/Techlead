@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:techlead/Widgeets/custom_app_bar.dart';
-
 import '../../core/app_bar_provider.dart';
 
 class AdminFetchDataPiePage extends ConsumerStatefulWidget {
@@ -18,7 +17,6 @@ class _AdminFetchDataPiePageState extends ConsumerState<AdminFetchDataPiePage> {
   @override
   void initState() {
     super.initState();
-    // Set the app bar title and gradient colors for this screen
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(appBarTitleProvider.notifier).state = "Add Data for Piechart";
       ref.read(appBarGradientColorsProvider.notifier).state = [
@@ -68,7 +66,7 @@ class _AdminFetchDataPiePageState extends ConsumerState<AdminFetchDataPiePage> {
       });
 
       Fluttertoast.showToast(
-        msg: "Data submitted successfully!",
+        msg: "Project Graph Data submitted successfully!",
         backgroundColor: Colors.green,
         textColor: Colors.white,
       );
@@ -107,7 +105,7 @@ class _AdminFetchDataPiePageState extends ConsumerState<AdminFetchDataPiePage> {
                 _buildSectionTitle('Project Information'),
                 const SizedBox(height: 20),
                 _buildFormCard(),
-                const SizedBox(height: 20),
+                const SizedBox(height: 25),
                 _buildSubmitButton(),
               ],
             ),
@@ -117,22 +115,23 @@ class _AdminFetchDataPiePageState extends ConsumerState<AdminFetchDataPiePage> {
     );
   }
 
-  // Helper function to build section title with creative styling
   Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: TextStyle(
-        fontSize: 24,
-        fontWeight: FontWeight.bold,
-        color: Colors.blue.shade900, // Modern color for section title
-        letterSpacing: 1.5,
-        shadows: [
-          BoxShadow(
-            color: Colors.deepPurpleAccent.withOpacity(0.5),
-            blurRadius: 5,
-            offset: Offset(0, 2),
-          ),
-        ],
+    return Center(
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+          color: Colors.blue.shade900,
+          letterSpacing: 1.5,
+          shadows: [
+            BoxShadow(
+              color: Colors.deepPurpleAccent.withOpacity(0.5),
+              blurRadius: 5,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -171,7 +170,6 @@ class _AdminFetchDataPiePageState extends ConsumerState<AdminFetchDataPiePage> {
     );
   }
 
-  // Helper function to create dropdown form fields with animations
   Widget _buildDropdownField(
       String label,
       String? value,
@@ -206,8 +204,8 @@ class _AdminFetchDataPiePageState extends ConsumerState<AdminFetchDataPiePage> {
             .toList(),
         onChanged: onChanged,
         dropdownColor: Colors.blue.shade900,
-        iconEnabledColor: Colors.white,   // <-- white arrow
-        iconDisabledColor: Colors.white,  // <-- white arrow when disabled
+        iconEnabledColor: Colors.white,
+        iconDisabledColor: Colors.white,
         decoration: InputDecoration(
           contentPadding:
           const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
@@ -262,6 +260,7 @@ class _AdminFetchDataPiePageState extends ConsumerState<AdminFetchDataPiePage> {
       ),
     );
   }
+
 
 
 

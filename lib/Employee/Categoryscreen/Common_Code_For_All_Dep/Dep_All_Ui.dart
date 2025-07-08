@@ -35,7 +35,6 @@ class ReportCardWidget {
               _buildTaskDetail('Department', task['Service_department']),
               _buildTaskDetail('Location', task['location']),
               const SizedBox(height: 10),
-
               _buildSectionTitle("Task Details"),
               const Divider(color: Colors.white),
               _buildTaskDetail('Task Title', task['taskTitle']),
@@ -46,7 +45,6 @@ class ReportCardWidget {
                     ? DateFormat('dd MMM yyyy').format((task['date'] as Timestamp).toDate())
                     : '',
               ),
-              _buildTaskDetail('Challenges', task['challenges']),
               _buildTaskDetail('Actions Taken', task['actionsTaken']),
               _buildTaskDetail('Next Steps', task['nextSteps']),
               const SizedBox(height: 10),
@@ -144,7 +142,7 @@ class ReportCardWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => EditReceptionReportScreen(
+                        builder: (_) => EditAllTaskOfReports(
                           docId: docId,
                           reportData: task,
                         ),
@@ -234,8 +232,6 @@ class ReportCardWidget {
       case 'submitteddate':
       case 'date':
         return Icons.calendar_today;
-      case 'challenges':
-        return Icons.warning_amber_rounded;
       case 'actions taken':
         return Icons.build_circle;
       case 'next steps':

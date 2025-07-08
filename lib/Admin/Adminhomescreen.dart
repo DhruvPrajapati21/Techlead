@@ -13,6 +13,7 @@ import 'package:techlead/Admin/Taskdetails/reportsendtoadminside.dart';
 
 import 'package:techlead/Admin/Meetingsection/showreceptiondata.dart';
 import 'package:techlead/Admin/Taskdetails/taskassignpage.dart';
+import '../Employee/Categoryscreen/Installation/serviceinstallationpage.dart';
 import '../Employee/Categoryscreen/Sales/salespage.dart';
 import 'Employeedetails/Empshowdata.dart';
 import 'Employeedetails/EnSignUpPage.dart';
@@ -64,7 +65,7 @@ class _NewPieShowState extends State<NewPieShow>
   }
 
   Future<void> fetchPieChartData() async {
-    setState(() => isLoading = true);  // Start loading
+    setState(() => isLoading = true);
 
     final snapshot = await FirebaseFirestore.instance.collection('projects').get();
     final pendingCategoryMap = <String, double>{};
@@ -89,7 +90,7 @@ class _NewPieShowState extends State<NewPieShow>
     setState(() {
       pendingDataMap = _prepareDataForPieChart(pendingCategoryMap);
       completedDataMap = _prepareDataForPieChart(completedCategoryMap);
-      isLoading = false;  // Done loading
+      isLoading = false;
     });
   }
 
@@ -361,7 +362,6 @@ class _NewPieShowState extends State<NewPieShow>
                             ),
                           ),
                         ),
-
                       ),
                       const SizedBox(height: 15),
                       Center(
@@ -477,8 +477,19 @@ class _NewPieShowState extends State<NewPieShow>
                             },
                           ),
                           _buildDrawerItem(
+                            icon: Icons.install_desktop,
+                            text: 'Site Installation',
+                            onTap: () {
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) =>
+                                          InstallationPage()));
+                            },
+                          ),
+                          _buildDrawerItem(
                             icon: Icons.settings_applications,
-                            text: 'Installation',
+                            text: 'Installation Reports',
                             onTap: () {
                               Navigator.push(
                                   context,
@@ -489,7 +500,7 @@ class _NewPieShowState extends State<NewPieShow>
                           ),
                           _buildDrawerItem(
                             icon: Icons.report_problem,
-                            text: 'Installation Shortage Report',
+                            text: 'Installation Shortage Reports',
                             onTap: () {
                               Navigator.push(
                                   context,
@@ -510,7 +521,7 @@ class _NewPieShowState extends State<NewPieShow>
                           ),
                           _buildDrawerItem(
                             icon: Icons.shopping_cart,
-                            text: 'Sales',
+                            text: 'Sales Reports',
                             onTap: () {
                               Navigator.push(
                                   context,
@@ -520,7 +531,7 @@ class _NewPieShowState extends State<NewPieShow>
                           ),
                           _buildDrawerItem(
                             icon: Icons.meeting_room,
-                            text: 'Meeting Management',
+                            text: 'Meeting Assign',
                             onTap: () {
                               Navigator.push(
                                   context,
@@ -530,7 +541,7 @@ class _NewPieShowState extends State<NewPieShow>
                           ),
                           _buildDrawerItem(
                             icon: Icons.meeting_room,
-                            text: 'Meeting Section',
+                            text: 'Meeting Reports',
                             onTap: () {
                               Navigator.push(
                                   context,
@@ -551,7 +562,7 @@ class _NewPieShowState extends State<NewPieShow>
                           ),
                           _buildDrawerItem(
                             icon: Icons.show_chart,
-                            text: 'Attendancedata',
+                            text: 'Attendance Reports',
                             onTap: () {
                               Navigator.push(
                                   context,
@@ -561,7 +572,7 @@ class _NewPieShowState extends State<NewPieShow>
                           ),
                           _buildDrawerItem(
                             icon: Icons.leave_bags_at_home,
-                            text: 'Leavedata',
+                            text: 'Leave Reports',
                             onTap: () {
                               Navigator.push(
                                   context,
@@ -594,8 +605,21 @@ class _NewPieShowState extends State<NewPieShow>
                             icon: Icons.sunny_snowing,
                             text: 'Theme',
                             onTap: () {
-                              Provider.of<ThemeProvider>(context, listen: false)
-                                  .toggleTheme();
+                              final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+                              themeProvider.toggleTheme();
+
+                              final isDarkMode = themeProvider.isDarkMode; // make sure ThemeProvider exposes this bool
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  backgroundColor: Colors.green,
+                                  content: Text(
+                                    isDarkMode ? 'Dark mode enabled!' : 'Light mode enabled!',
+                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold), // ✅ White text
+                                  ),
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
                             },
                           ),
                           _buildDrawerItem(

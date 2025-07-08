@@ -1,3 +1,4 @@
+// [Keep all your imports as-is]
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -27,40 +28,12 @@ class _ReportSendToAdminSideState extends State<ReportSendToAdminSide> {
       firstDate: previousMonth,
       lastDate: now,
       builder: (BuildContext context, Widget? child) {
-        return Theme(
-          data: ThemeData(
-            dialogBackgroundColor: const Color(0xFF0D1B3E),
-            colorScheme: const ColorScheme.dark(
-              primary: Colors.white,
-              onPrimary: Color(0xFF0D1B3E),
-              surface: Color(0xFF0D1B3E),
-              onSurface: Colors.white,
-            ),
-            primaryTextTheme: const TextTheme(
-              titleLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-              bodyLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-              bodyMedium: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-              labelLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-            ),
-            textButtonTheme: TextButtonThemeData(
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.white,
-                textStyle: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-          child: child!,
-        );
+        return _buildCustomDatePickerTheme(child!);
       },
     );
 
-    if (picked != null) {
-      setState(() {
-        _startDate = picked;
-      });
-    }
+    if (picked != null) setState(() => _startDate = picked);
   }
-
 
   Future<void> _selectEndDate(BuildContext context) async {
     final picked = await showDatePicker(
@@ -69,40 +42,33 @@ class _ReportSendToAdminSideState extends State<ReportSendToAdminSide> {
       firstDate: DateTime(2000),
       lastDate: DateTime(2101),
       builder: (BuildContext context, Widget? child) {
-        return Theme(
-          data: ThemeData(
-            dialogBackgroundColor: const Color(0xFF0D1B3E),
-            colorScheme: const ColorScheme.dark(
-              primary: Colors.white,
-              onPrimary: Color(0xFF0D1B3E),
-              surface: Color(0xFF0D1B3E),
-              onSurface: Colors.white,
-            ),
-            primaryTextTheme: const TextTheme(
-              titleLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-              bodyLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-              bodyMedium: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-              labelLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-            ),
-            textButtonTheme: TextButtonThemeData(
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.white,
-                textStyle: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-          child: child!,
-        );
+        return _buildCustomDatePickerTheme(child!);
       },
     );
 
-    if (picked != null) {
-      setState(() {
-        _endDate = picked;
-      });
-    }
+    if (picked != null) setState(() => _endDate = picked);
   }
 
+  Theme _buildCustomDatePickerTheme(Widget child) {
+    return Theme(
+      data: ThemeData(
+        dialogBackgroundColor: const Color(0xFF0D1B3E),
+        colorScheme: const ColorScheme.dark(
+          primary: Colors.white,
+          onPrimary: Color(0xFF0D1B3E),
+          surface: Color(0xFF0D1B3E),
+          onSurface: Colors.white,
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            foregroundColor: Colors.white,
+            textStyle: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
+      ),
+      child: child,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -112,7 +78,7 @@ class _ReportSendToAdminSideState extends State<ReportSendToAdminSide> {
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.white),
         flexibleSpace: Container(
-          decoration:  BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(colors: [Colors.indigo.shade900, Colors.indigo.shade900]),
           ),
         ),
@@ -122,31 +88,26 @@ class _ReportSendToAdminSideState extends State<ReportSendToAdminSide> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
             child: TextField(
-              style: const TextStyle(color: Colors.white), // White text
+              style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 hintText: "Search by Employee Name",
-                hintStyle: const TextStyle(color: Colors.white), // Hint text color
+                hintStyle: const TextStyle(color: Colors.white),
                 prefixIcon: const Icon(Icons.search, color: Colors.white),
                 filled: true,
-                fillColor: Colors.indigo.shade900, // Blue background
+                fillColor: Colors.indigo.shade900,
                 contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
                 ),
               ),
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value.toLowerCase();
-                });
-              },
+              onChanged: (value) => setState(() => _searchQuery = value.toLowerCase()),
             ),
           ),
-          SizedBox(height: 10,),
+          const SizedBox(height: 10),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
                   child: GestureDetector(
@@ -169,7 +130,6 @@ class _ReportSendToAdminSideState extends State<ReportSendToAdminSide> {
               stream: FirebaseFirestore.instance.collection("DailyTaskReport").snapshots(),
               builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  // Show shimmer placeholders (e.g., 3 shimmer cards)
                   return ListView.builder(
                     padding: const EdgeInsets.all(16),
                     itemCount: 3,
@@ -178,34 +138,30 @@ class _ReportSendToAdminSideState extends State<ReportSendToAdminSide> {
                 }
 
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(child: Text("No reports found", style: TextStyle(color: Colors.black)));
+                  return const Center(child: Text("No reports found", style: TextStyle(color: Colors.white)));
                 }
 
                 List<QueryDocumentSnapshot> filteredReports = snapshot.data!.docs.where((doc) {
                   final data = doc.data() as Map<String, dynamic>;
-                  final employeeName = data["employeeName"]?.toString().toLowerCase() ?? '';
-                  final timestamp = data["timestamp"] as Timestamp?;
-                  final reportDate = timestamp?.toDate() ?? DateTime.now();
+                  final name = data["employeeName"]?.toString().toLowerCase() ?? '';
+                  final reportDate = (data["timestamp"] as Timestamp?)?.toDate() ?? DateTime.now();
 
                   if (_startDate != null && reportDate.isBefore(_startDate!)) return false;
                   if (_endDate != null && reportDate.isAfter(_endDate!)) return false;
-                  if (_searchQuery.isNotEmpty && !employeeName.contains(_searchQuery)) return false;
-
+                  if (_searchQuery.isNotEmpty && !name.contains(_searchQuery)) return false;
                   return true;
                 }).toList();
 
                 if (filteredReports.isEmpty) {
                   return const Center(
-                      child: Text("No reports match your search/date range", style: TextStyle(color: Colors.white)));
+                    child: Text("No reports match your search/date range!", style: TextStyle(color: Colors.black,fontFamily: "Times New Roman")),
+                  );
                 }
 
                 return ListView.builder(
                   padding: const EdgeInsets.all(16),
                   itemCount: filteredReports.length,
-                  itemBuilder: (context, index) {
-                    var report = filteredReports[index];
-                    return _buildReportCard(report);
-                  },
+                  itemBuilder: (context, index) => _buildReportCard(filteredReports[index]),
                 );
               },
             ),
@@ -236,6 +192,25 @@ class _ReportSendToAdminSideState extends State<ReportSendToAdminSide> {
     );
   }
 
+  Widget _buildSectionTitle(String title) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.amberAccent),
+        ),
+        const SizedBox(height: 4),
+        Container(
+          height: 2,
+          width: 50,
+          color: Colors.cyanAccent,
+          margin: const EdgeInsets.only(bottom: 10),
+        ),
+      ],
+    );
+  }
+
   Widget _buildReportCard(QueryDocumentSnapshot report) {
     final data = report.data() as Map<String, dynamic>;
 
@@ -249,17 +224,25 @@ class _ReportSendToAdminSideState extends State<ReportSendToAdminSide> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            buildReportRow(Icons.person, "Employee Name:", data["employeeName"]),
-            buildReportRow(Icons.title, "Task Title:", data["taskTitle"]),
-            buildReportRow(Icons.build, "Actions Taken:", data["actionsTaken"]),
-            buildReportRow(Icons.next_plan, "Next Steps:", data["nextSteps"]),
+            _buildSectionTitle("Employee Info"),
+            buildReportRow(Icons.person, "Name:", data["employeeName"]),
             buildReportRow(Icons.category, "Department:", data["Service_department"]),
             buildReportRow(Icons.miscellaneous_services, "Service Status:", data["service_status"]),
             buildReportRow(Icons.location_on, "Location:", data["location"]),
             buildReportRow(Icons.date_range, "Date:", DateFormat('dd MMM yyyy').format(data["timestamp"].toDate())),
-            const SizedBox(height: 8),
+
+            const SizedBox(height: 12),
+            _buildSectionTitle("Task Info"),
+            buildReportRow(Icons.title, "Task Title:", data["taskTitle"]),
+            buildReportRow(Icons.build, "Actions Taken:", data["actionsTaken"]),
+            buildReportRow(Icons.next_plan, "Next Steps:", data["nextSteps"]),
+
+            const SizedBox(height: 12),
+            _buildSectionTitle("Work Log"),
             _buildWorkLog(data["workLog"]),
-            const SizedBox(height: 8),
+
+            const SizedBox(height: 12),
+            _buildSectionTitle("Uploaded Files"),
             _buildUploadedFiles(data["uploadedFiles"]),
           ],
         ),
@@ -284,7 +267,7 @@ class _ReportSendToAdminSideState extends State<ReportSendToAdminSide> {
                     style: const TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   TextSpan(
-                    text: value.toString(),
+                    text: value?.toString() ?? "N/A",
                     style: const TextStyle(color: Colors.white, fontSize: 16),
                   ),
                 ],
@@ -296,80 +279,6 @@ class _ReportSendToAdminSideState extends State<ReportSendToAdminSide> {
     );
   }
 
-  Widget _buildUploadedFiles(dynamic files) {
-    if (files == null || (files is List && files.isEmpty)) {
-      return const Text("No files uploaded", style: TextStyle(color: Colors.white));
-    }
-
-    List uploadedFiles = files as List;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text("Uploaded Files:", style: TextStyle(color: Colors.cyanAccent, fontSize: 16, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 5),
-        Column(
-          children: uploadedFiles.map((file) {
-            String fileName = file['fileName'];
-            String fileUrl = file['downloadUrl'];
-
-            bool isImage = fileName.toLowerCase().endsWith(".png") ||
-                fileName.toLowerCase().endsWith(".jpg") ||
-                fileName.toLowerCase().endsWith(".jpeg") ||
-                fileName.toLowerCase().endsWith(".gif");
-
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 5),
-              child: isImage
-                  ? GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => FullScreenImage(imageUrl: fileUrl, tag: fileName),
-                    ),
-                  );
-                },
-                child: Hero(
-                  tag: fileName,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: CachedNetworkImage(
-                      imageUrl: fileUrl,
-                      width: double.infinity,
-                      height: 150,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => Shimmer.fromColors(
-                        baseColor: Colors.indigo.shade700,
-                        highlightColor: Colors.indigo.shade400,
-                        child: Container(
-                          width: double.infinity,
-                          height: 150,
-                          color: Colors.indigo.shade900,
-                        ),
-                      ),
-                      errorWidget: (context, url, error) => const Text(
-                        "Image failed to load",
-                        style: TextStyle(color: Colors.red),
-                      ),
-                    ),
-                  ),
-                ),
-              )
-                  : InkWell(
-                onTap: () => _launchURL(fileUrl),
-                child: Text(
-                  fileName,
-                  style: const TextStyle(color: Colors.yellowAccent, decoration: TextDecoration.underline),
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-      ],
-    );
-  }
-
   Widget _buildWorkLog(dynamic workLog) {
     if (workLog == null || (workLog is List && workLog.isEmpty)) {
       return const Text("No work log available", style: TextStyle(color: Colors.white));
@@ -378,21 +287,75 @@ class _ReportSendToAdminSideState extends State<ReportSendToAdminSide> {
     List logs = workLog as List;
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text("Work Log:", style: TextStyle(color: Colors.cyanAccent, fontSize: 16, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 5),
-        Column(
-          children: logs.map((log) {
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: buildReportRow(Icons.access_time, "Time Slot:", "${log['timeSlot']} - ${log['description']}"),
-            );
-          }).toList(),
-        ),
-      ],
+      children: logs.map((log) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: buildReportRow(Icons.access_time, "Time Slot:", "${log['timeSlot']} - ${log['description']}"),
+        );
+      }).toList(),
     );
   }
+
+  Widget _buildUploadedFiles(dynamic files) {
+    if (files == null || (files is List && files.isEmpty)) {
+      return const Text("No files uploaded", style: TextStyle(color: Colors.white));
+    }
+
+    List uploadedFiles = files as List;
+
+    return Column(
+      children: uploadedFiles.map((file) {
+        String fileName = file['fileName'];
+        String fileUrl = file['downloadUrl'];
+        bool isImage = fileName.toLowerCase().endsWith(".png") ||
+            fileName.toLowerCase().endsWith(".jpg") ||
+            fileName.toLowerCase().endsWith(".jpeg") ||
+            fileName.toLowerCase().endsWith(".gif");
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 5),
+          child: isImage
+              ? GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => FullScreenImage(imageUrl: fileUrl, tag: fileName),
+                ),
+              );
+            },
+            child: Hero(
+              tag: fileName,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: CachedNetworkImage(
+                  imageUrl: fileUrl,
+                  width: double.infinity,
+                  height: 150,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => Shimmer.fromColors(
+                    baseColor: Colors.indigo.shade700,
+                    highlightColor: Colors.indigo.shade400,
+                    child: Container(
+                      width: double.infinity,
+                      height: 150,
+                      color: Colors.indigo.shade900,
+                    ),
+                  ),
+                  errorWidget: (context, url, error) => const Text("Image failed to load", style: TextStyle(color: Colors.red)),
+                ),
+              ),
+            ),
+          )
+              : InkWell(
+            onTap: () => _launchURL(fileUrl),
+            child: Text(fileName, style: const TextStyle(color: Colors.yellowAccent, decoration: TextDecoration.underline)),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
   Widget _buildShimmerReportCard() {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -405,7 +368,6 @@ class _ReportSendToAdminSideState extends State<ReportSendToAdminSide> {
           child: Container(
             height: 250,
             padding: const EdgeInsets.all(16),
-            // Simulate text and image blocks
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -424,12 +386,11 @@ class _ReportSendToAdminSideState extends State<ReportSendToAdminSide> {
     );
   }
 
-
   Future<void> _launchURL(String url) async {
     if (await canLaunch(url)) {
       await launch(url);
     } else {
-      print("Could not open $url");
+      debugPrint("Could not open $url");
     }
   }
 }
@@ -444,10 +405,7 @@ class FullScreenImage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
+      appBar: AppBar(backgroundColor: Colors.black, iconTheme: const IconThemeData(color: Colors.white)),
       body: Center(
         child: Hero(
           tag: tag,

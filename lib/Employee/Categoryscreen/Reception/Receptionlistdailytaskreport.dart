@@ -172,7 +172,6 @@ class _DailyReportRecordOfReceptionState
                 style: TextStyle(
                   fontFamily: 'Times New Roman',
                   fontSize: 18,
-                  fontWeight: FontWeight.bold,
                 ),
               ),
             );

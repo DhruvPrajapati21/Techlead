@@ -6,7 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../../Admin/Meetingsection/Edit_Rexeption_Data/edit_reception_data.dart';
+import '../../../Admin/Meetingsection/Edit_Reception_Data/edit_reception_data.dart';
 
 class Receptionreport extends StatefulWidget {
   @override
@@ -150,6 +150,7 @@ class _ReceptionreportState extends State<Receptionreport> {
               ),
             ],
           ),
+          SizedBox(height: 10,),
 
           Expanded(
             child: currentUserId == null
@@ -192,7 +193,7 @@ class _ReceptionreportState extends State<Receptionreport> {
                           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                             return const Center(
                               child: Text(
-                                'No Reception info available',
+                                'No Reception info available!',
                                 style: TextStyle(fontFamily: 'Times New Roman'),
                               ),
                             );
@@ -298,6 +299,15 @@ class _ReceptionreportState extends State<Receptionreport> {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
+                                        Text("Employee Information",
+                                            style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontFamily: "Times New Roman",
+                                                fontSize: 16,
+                                                color: Colors.white)),
+                                        SizedBox(
+                                          height: 10,
+                                        ),
                                         buildFormField(
                                           'Employee Name: ',
                                           (() {
@@ -350,7 +360,7 @@ class _ReceptionreportState extends State<Receptionreport> {
                                         buildFormField('Meeting Location: ',
                                             doc['location']),
                                         buildFormField('Assigned Staff/CEO: ',
-                                            doc['location']),
+                                            doc['assigned_staff']),
                                         SizedBox(
                                           height: 10,
                                         ),

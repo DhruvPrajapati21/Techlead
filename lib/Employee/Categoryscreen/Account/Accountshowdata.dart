@@ -144,6 +144,7 @@ class _AccountshowdataState extends State<Accountshowdata> {
                         return true;
                       }).toList();
 
+
                       if (assignedTasks.isEmpty) {
                         return Center(
                           child: Text(
@@ -151,7 +152,7 @@ class _AccountshowdataState extends State<Accountshowdata> {
                                 ? "You have unread tasks, but none match the filters."
                                 : "No tasks assigned.",
                             style: const TextStyle(
-                              color: Colors.white,
+                              color: Colors.black,
                               fontSize: 16,
                               fontFamily: "Times New Roman",
                             ),
@@ -164,7 +165,7 @@ class _AccountshowdataState extends State<Accountshowdata> {
                           child: Text(
                             "No tasks available between these dates.",
                             style: TextStyle(
-                                color: Colors.white,
+                                color: Colors.black,
                                 fontSize: 16,
                                 fontFamily: "Times New Roman"),
                           ),

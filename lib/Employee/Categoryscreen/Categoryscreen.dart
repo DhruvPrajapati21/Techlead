@@ -24,7 +24,6 @@ import 'Sales/Saleshomescreen.dart';
 import 'Services/Servicepage.dart';
 import 'Social Media/SmHomescreen.dart';
 import 'Social Media/Socialmediamarketingshowdata.dart';
-import 'categoryscreen.dart';
 
 class Categoryscreen extends StatefulWidget {
   const Categoryscreen({super.key});
@@ -48,9 +47,12 @@ class _CategoryscreenState extends State<Categoryscreen> {
   @override
   void initState() {
     super.initState();
-    _checkNotificationRedirect();
     _initCategories();
     _listenToUnreadNotifications();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkNotificationRedirect();
+    });
   }
 
   void _initCategories() {
@@ -108,7 +110,7 @@ class _CategoryscreenState extends State<Categoryscreen> {
         }
 
         if (!_mapEquals(_previousCounts, deptCounts)) {
-          _previousCounts = Map.from(deptCounts); // Save last counts
+          _previousCounts = Map.from(deptCounts);
           _debounceTimer?.cancel();
           _debounceTimer = Timer(const Duration(milliseconds: 1500), () {
             if (mounted && _initialRedirectHandled) {
@@ -149,11 +151,9 @@ class _CategoryscreenState extends State<Categoryscreen> {
       );
 
       _navigateToDept(context: context, department: targetDept, projectName: projectTitle);
+    }
 
-      setState(() {
-        _initialRedirectHandled = true;
-      });
-    } else {
+    if (mounted) {
       setState(() {
         _initialRedirectHandled = true;
       });

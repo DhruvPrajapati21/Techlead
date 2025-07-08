@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 
 import 'Edit_Installation_Page/edit_installation_page.dart';
@@ -14,6 +15,64 @@ class Showinstallationdata extends StatefulWidget {
 class _ShowinstallationdataState extends State<Showinstallationdata> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   String _searchQuery = '';
+
+  String _formatDate(String rawDate) {
+    try {
+      final DateTime parsedDate = DateTime.parse(rawDate);
+      return DateFormat('dd MMMM yyyy').format(parsedDate);
+    } catch (e) {
+      return rawDate; // Fallback to original if parsing fails
+    }
+  }
+
+  DateTime? _startDate;
+  DateTime? _endDate;
+
+  Future<void> _selectDate({required bool isStart}) async {
+    final DateTime now = DateTime.now();
+    final DateTime initialDate =
+    isStart ? (_startDate ?? now) : (_endDate ?? now);
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null) {
+      setState(() {
+        if (isStart) {
+          _startDate = picked;
+        } else {
+          _endDate = picked;
+        }
+      });
+    }
+  }
+
+  Future<void> _deleteRecord(String docId) async {
+    try {
+      await _firestore.collection('Installation').doc(docId).delete();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Installation Record deleted successfully',style: TextStyle(fontFamily: "Times New Roman", color: Colors.white),
+        ),
+        backgroundColor: Colors.green,
+      ),
+    );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error deleting record: $e',
+            style: TextStyle(fontFamily: "Times New Roman", color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -79,9 +138,12 @@ class _ShowinstallationdataState extends State<Showinstallationdata> {
                 ],
               ),
               padding: EdgeInsets.symmetric(horizontal: 8),
-              child: TextField(
+              child: TextField(  style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
                 decoration: InputDecoration(
-                  labelText: 'Search by Technician...',
+                  labelText: 'Search by Technician name..',
                   labelStyle: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
@@ -107,13 +169,55 @@ class _ShowinstallationdataState extends State<Showinstallationdata> {
               ),
             ),
           ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              ElevatedButton.icon(
+                onPressed: () => _selectDate(isStart: true),
+                icon: Icon(
+                  Icons.date_range,
+                  color: Colors.white,
+                ),
+                label: Text(
+                  _startDate != null
+                      ? 'From: ${DateFormat('dd MMM yyyy').format(_startDate!)}'
+                      : 'Start Date',
+                  style: TextStyle(
+                      fontFamily: "Times New Roman", color: Colors.white),
+                ),
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue.shade900,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(5))),
+              ),
+              ElevatedButton.icon(
+                onPressed: () => _selectDate(isStart: false),
+                icon: Icon(
+                  Icons.date_range,
+                  color: Colors.white,
+                ),
+                label: Text(
+                  _endDate != null
+                      ? 'To: ${DateFormat('dd MMM yyyy').format(_endDate!)}'
+                      : 'End Date',
+                  style: TextStyle(
+                      fontFamily: "Times New Roman", color: Colors.white),
+                ),
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue.shade900,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(5))),
+              ),
+            ],
+          ),
+          SizedBox(height: 10,),
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: _firestore.collection('Installation').snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return ListView.builder(
-                    itemCount: 5, // Number of shimmer items
+                    itemCount: 5,
                     padding: EdgeInsets.all(10),
                     itemBuilder: (context, index) {
                       return Padding(
@@ -137,16 +241,41 @@ class _ShowinstallationdataState extends State<Showinstallationdata> {
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                   return Center(
                     child: Text(
-                      'No Installation info available',
+                      'No Installation info available!',
                       style: TextStyle(fontFamily: 'Times New Roman'),
                     ),
                   );
                 }
+
                 final filteredDocs = snapshot.data!.docs.where((doc) {
                   final fullName =
                       doc['technician_name']?.toString()?.toLowerCase() ?? '';
-                  return fullName.contains(_searchQuery.toLowerCase());
+                  final dateString = doc['installation_date'] ?? '';
+                  DateTime? appointmentDate;
+
+                  try {
+                    appointmentDate = DateTime.parse(dateString);
+                  } catch (e) {
+                    return false;
+                  }
+
+                  final matchesSearch =
+                  fullName.contains(_searchQuery.toLowerCase());
+                  final matchesStartDate = _startDate == null ||
+                      appointmentDate
+                          .isAfter(_startDate!.subtract(Duration(days: 1)));
+                  final matchesEndDate = _endDate == null ||
+                      appointmentDate
+                          .isBefore(_endDate!.add(Duration(days: 1)));
+
+                  return matchesSearch && matchesStartDate && matchesEndDate;
                 }).toList();
+
+                if (filteredDocs.isEmpty) {
+                  return const Center(
+                    child: Text("No reports match your search/date range!", style: TextStyle(color: Colors.black,fontFamily: "Times New Roman")),
+                  );
+                }
 
                 return ListView.builder(
                   itemCount: filteredDocs.length,
@@ -158,8 +287,12 @@ class _ShowinstallationdataState extends State<Showinstallationdata> {
                         key: Key(doc.id),
                         direction: DismissDirection.endToStart,
                         confirmDismiss: (direction) async {
-                          final delete = await _showDeleteConfirmationDialog();
+                          final delete =
+                          await _showDeleteConfirmationDialog();
                           return delete == true;
+                        },
+                        onDismissed: (direction) async {
+                          await _deleteRecord(doc.id);
                         },
                         background: Container(
                           decoration: BoxDecoration(
@@ -202,11 +335,11 @@ class _ShowinstallationdataState extends State<Showinstallationdata> {
                                 height: 10,
                               ),
                               buildFormField(
-                                  'Technician Name: ', doc['technician_name']),
+                                  'Technician/Executive Name: ', doc['technician_name']),
                               buildFormField('Installation Site:',
                                   doc['installation_site']),
                               buildFormField('Installation Date:',
-                                  doc['installation_date']),
+                                _formatDate(doc['installation_date'])),
                               buildFormField(
                                   'Service Time: ', doc['service_time']),
                               buildFormField('Automation Product: ',
@@ -368,24 +501,6 @@ class _ShowinstallationdataState extends State<Showinstallationdata> {
       },
     );
   }
-
-  Future<void> _deleteRecord(String docId) async {
-    try {
-      await _firestore.collection('Installation').doc(docId).delete();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Installation Record deleted successfully'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error deleting record: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
 }
+
 

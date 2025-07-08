@@ -1,9 +1,10 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:excel/excel.dart';
+import 'package:excel/excel.dart' as excel;
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:open_file/open_file.dart';
@@ -45,7 +46,34 @@ class _ShortageOfProductState extends State<ShortageOfProduct> with TickerProvid
   List<String> fileTypes = [];
   List<TextEditingController> fileNameControllers = [];
   List<File> files = [];
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
+
+  String? _requiredValidator(String? value) {
+    if (value == null || value
+        .trim()
+        .isEmpty) {
+      return 'This field is required';
+    }
+    return null;
+  }
+
+  String? _numberValidator(String? value) {
+    if (value == null || value
+        .trim()
+        .isEmpty) return 'This field is required';
+    if (int.tryParse(value) == null) return 'Enter a valid number';
+    return null;
+  }
+
+  String? _phoneValidator(String? value) {
+    if (value == null || value
+        .trim()
+        .isEmpty) return 'Phone number is required';
+    if (!RegExp(r'^\d{10}$').hasMatch(value))
+      return 'Enter a valid 10-digit phone number';
+    return null;
+  }
 
 
   @override
@@ -55,7 +83,8 @@ class _ShortageOfProductState extends State<ShortageOfProduct> with TickerProvid
     _animationController = AnimationController(
       duration: const Duration(seconds: 1),
       vsync: this,
-    )..forward();
+    )
+      ..forward();
 
     _animation = CurvedAnimation(
       parent: _animationController,
@@ -68,7 +97,8 @@ class _ShortageOfProductState extends State<ShortageOfProduct> with TickerProvid
       vsync: this,
       lowerBound: 0.9,
       upperBound: 1.0,
-    )..forward();
+    )
+      ..forward();
 
     _buttonScaleAnimation = CurvedAnimation(
       parent: _buttonAnimationController,
@@ -79,18 +109,23 @@ class _ShortageOfProductState extends State<ShortageOfProduct> with TickerProvid
     _iconAnimationController = AnimationController(
       duration: const Duration(seconds: 2),
       vsync: this,
-    )..repeat(reverse: true); // Repeat animation
+    )
+      ..repeat(reverse: true); // Repeat animation
 
     // Size animation for the icon
     _iconSizeAnimation = Tween<double>(begin: 30, end: 35).animate(
-      CurvedAnimation(parent: _iconAnimationController, curve: Curves.easeInOut),
+      CurvedAnimation(
+          parent: _iconAnimationController, curve: Curves.easeInOut),
     );
 
     // Color animation for the icon
-    _iconColorAnimation = ColorTween(begin: Colors.white, end: Colors.yellowAccent).animate(
-      CurvedAnimation(parent: _iconAnimationController, curve: Curves.easeInOut),
-    );
+    _iconColorAnimation =
+        ColorTween(begin: Colors.white, end: Colors.yellowAccent).animate(
+          CurvedAnimation(
+              parent: _iconAnimationController, curve: Curves.easeInOut),
+        );
   }
+
   void showCustomSnackBar(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -98,7 +133,8 @@ class _ShortageOfProductState extends State<ShortageOfProduct> with TickerProvid
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [Colors.blue.shade400, Colors.blue.shade600], // Bluish gradient
+              colors: [Colors.blue.shade400, Colors.blue.shade600],
+              // Bluish gradient
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -120,42 +156,47 @@ class _ShortageOfProductState extends State<ShortageOfProduct> with TickerProvid
       ),
     );
   }
+
   Future<void> _submitForm() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
     try {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => AlertDialog(
-          backgroundColor: Colors.transparent,
-          title: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Center(
-                child: CircularProgressIndicator(
-                  strokeWidth: 6, // Thicker spinner line
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.cyan), // Custom spinner color
-                ),
+        builder: (context) =>
+            AlertDialog(
+              backgroundColor: Colors.transparent,
+              title: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Center(
+                    child: CircularProgressIndicator(
+                      strokeWidth: 6, // Thicker spinner line
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                          Colors.cyan), // Custom spinner color
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  Text(
+                    "Submitting...",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
-              SizedBox(height: 20),
-              Text(
-                "Submitting...",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          content: Container(),
-        ),
+              content: Container(),
+            ),
       );
 
       setState(() {
         _isSubmitting = true;
       });
 
-      // Collect form data
       String productName = _productNameController.text;
       String requiredQuantity = _requiredQuantityController.text;
       String availableQuantity = _availableQuantityController.text;
@@ -175,7 +216,9 @@ class _ShortageOfProductState extends State<ShortageOfProduct> with TickerProvid
         String fileType = fileTypes[i];
 
         // Upload file to Firebase Storage
-        String filePath = 'product_files/${DateTime.now().millisecondsSinceEpoch}_${fileName}';
+        String filePath = 'product_files/${DateTime
+            .now()
+            .millisecondsSinceEpoch}_${fileName}';
         uploadTasks.add(FirebaseStorage.instance.ref(filePath).putFile(file));
       }
 
@@ -194,7 +237,9 @@ class _ShortageOfProductState extends State<ShortageOfProduct> with TickerProvid
       }
 
       // Save data to Firestore
-      await FirebaseFirestore.instance.collection('product_shortage_reports').add({
+      await FirebaseFirestore.instance
+          .collection('product_shortage_reports')
+          .add({
         'product_name': productName,
         'required_quantity': requiredQuantity,
         'available_quantity': availableQuantity,
@@ -213,7 +258,6 @@ class _ShortageOfProductState extends State<ShortageOfProduct> with TickerProvid
       });
 
 
-
       // Show success message
       // Inside your submit form success handler
 
@@ -227,16 +271,15 @@ class _ShortageOfProductState extends State<ShortageOfProduct> with TickerProvid
       Navigator.of(context).pop();
     } catch (e) {
       setState(() {
-        _isSubmitting = false; // Re-enable button if there's an error
+        _isSubmitting = false;
       });
       print('Error: $e');
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to submit report!')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to submit report!')));
 
-      // Close the loading spinner dialog if an error occurs
       Navigator.of(context).pop();
     }
   }
-
 
 
   void _clearForm() {
@@ -274,7 +317,8 @@ class _ShortageOfProductState extends State<ShortageOfProduct> with TickerProvid
   }
 
   void pickFiles() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(allowMultiple: true);
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+        allowMultiple: true);
     if (result != null) {
       for (var file in result.files) {
         selectedFiles.add(File(file.path!));
@@ -285,6 +329,7 @@ class _ShortageOfProductState extends State<ShortageOfProduct> with TickerProvid
       setState(() {});
     }
   }
+
   void openFile(File file) async {
     await OpenFile.open(file.path);
   }
@@ -298,7 +343,13 @@ class _ShortageOfProductState extends State<ShortageOfProduct> with TickerProvid
     });
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, {TextInputType? keyboardType}) {
+  Widget _buildTextField(String label,
+      TextEditingController controller, {
+        TextInputType? keyboardType,
+        IconData? icon,
+        String? Function(String?)? validator,
+        int? maxLength,
+      }) {
     return FadeTransition(
       opacity: _animation,
       child: SlideTransition(
@@ -307,39 +358,90 @@ class _ShortageOfProductState extends State<ShortageOfProduct> with TickerProvid
           end: Offset.zero,
         ).animate(_animation),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8.0),
-          child: TextField(
-            controller: controller,
-            keyboardType: keyboardType,
-            decoration: InputDecoration(
-              labelText: label,
-              labelStyle:  TextStyle(color: Colors.blue.shade900,fontWeight: FontWeight.bold ), // Blue color for the label
-              filled: true,
-              fillColor: Colors.white, // White background color
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Colors.blue), // Blue border color
+          padding: const EdgeInsets.symmetric(vertical: 6.0),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [
+                  Color(0xFF000F89),
+                  Color(0xFF0F52BA),
+                  Color(0xFF002147),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Colors.white,
+                width: 0.8,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.cyanAccent.withOpacity(0.5),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                  spreadRadius: 1,
+                ),
+              ],
+            ),
+            child: TextFormField(
+              controller: controller,
+              keyboardType: keyboardType,
+              validator: validator,
+              maxLength: maxLength,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+              cursorColor: Colors.cyanAccent,
+              textInputAction: TextInputAction.next,
+              onEditingComplete: () => FocusScope.of(context).nextFocus(),
+              inputFormatters: label.contains("Phone") ||
+                  label.contains("Contact")
+                  ? [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(10),
+              ]
+                  : null,
+              decoration: InputDecoration(
+                labelText: label,
+                labelStyle: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+                prefixIcon: icon != null
+                    ? Icon(icon, color: Colors.white)
+                    : null,
+                border: InputBorder.none,
+                counterText: "",
+                // hide counter for maxLength
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 12,
+                ),
               ),
             ),
-            style: const TextStyle(color: Colors.black), // Black text color for input
           ),
         ),
       ),
     );
   }
 
+
   Future<String> _loadExcelPreview(File file) async {
     try {
       var bytes = file.readAsBytesSync();
-      var excel = Excel.decodeBytes(bytes);
+      var workbook = excel.Excel.decodeBytes(bytes);
 
-      var sheet = excel.tables.keys.first;
-      var rows = excel.tables[sheet]?.rows;
+      var sheet = workbook.tables.keys.first;
+      var rows = workbook.tables[sheet]?.rows;
 
       // Generating a preview string
       String preview = "";
       for (int i = 0; i < (rows?.length ?? 0) && i < 5; i++) {
-        preview += rows![i].map((cell) => cell?.value.toString() ?? "").join(", ") + "\n";
+        preview +=
+            rows![i].map((cell) => cell?.value.toString() ?? "").join(", ") +
+                "\n";
       }
 
       return preview.isNotEmpty ? preview : "Empty Excel File";
@@ -348,9 +450,20 @@ class _ShortageOfProductState extends State<ShortageOfProduct> with TickerProvid
     }
   }
 
+  void removeFile(int index) {
+    setState(() {
+      selectedFiles.removeAt(index);
+      fileTypes.removeAt(index);
+      fileNames.removeAt(index);
+      fileNameControllers.removeAt(index);
+    });
+  }
+
+
+
   Widget _buildFilePreview(File file, String fileType) {
     if (fileType == 'jpg' || fileType == 'jpeg' || fileType == 'png') {
-      // 🖼️ Image Preview
+      // 🖼 Image Preview
       return Image.file(
         file,
         width: 100,
@@ -448,7 +561,6 @@ class _ShortageOfProductState extends State<ShortageOfProduct> with TickerProvid
     }
   }
 
-
   Widget _buildFileList() {
     return selectedFiles.isNotEmpty
         ? SingleChildScrollView(
@@ -458,144 +570,190 @@ class _ShortageOfProductState extends State<ShortageOfProduct> with TickerProvid
           File file = selectedFiles[index];
           String fileType = fileTypes[index];
 
-          return Container(
-            width: 150, // Fixed width to avoid overflow
-            margin: const EdgeInsets.all(10),
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Display preview
-                SizedBox(
-                  width: 120,
-                  height: 100,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: _buildFilePreview(file, fileType),
+          return Stack(
+            children: [
+              Container(
+                width: 160,
+                margin: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [
+                      Color(0xFF0F52BA),
+                      Color(0xFF002147),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                ),
-                const SizedBox(height: 10),
-
-                // Display File Name
-                Flexible(
-                  child: Text(
-                    fileNames[index],
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.25),
+                      offset: const Offset(0, 4),
+                      blurRadius: 6,
+                      spreadRadius: 1,
                     ),
-                  ),
+                  ],
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                const SizedBox(height: 10),
-
-                // Rename TextField
-                SizedBox(
-                  width: 120,
-                  child: TextField(
-                    controller: fileNameControllers[index],
-                    decoration: InputDecoration(
-                      labelText: 'Rename',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(5),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 140,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.3),
+                            offset: const Offset(0, 3),
+                            blurRadius: 6,
+                          ),
+                        ],
                       ),
-                      filled: true,
-                      fillColor: Colors.blue.shade50,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: _buildFilePreview(file, fileType),
+                      ),
                     ),
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                ),
-                const SizedBox(height: 5),
-
-                // Rename Button
-                SizedBox(
-                  width: 120,
-                  child: ElevatedButton(
-                    onPressed: () => renameFile(index),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue.shade900,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        side: BorderSide(
-                          color: Colors.blue.shade900,
-                          width: 2,
+                    const SizedBox(height: 12),
+                    Text(
+                      fileNames[index],
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black45,
+                            offset: Offset(0, 1),
+                            blurRadius: 2,
+                          )
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: 140,
+                      child: TextField(
+                        controller: fileNameControllers[index],
+                        decoration: InputDecoration(
+                          labelText: 'Rename',
+                          labelStyle: TextStyle(color: Colors.white),
+                          filled: true,
+                          fillColor: Colors.white.withOpacity(0.15),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                              vertical: 10, horizontal: 12),
                         ),
+                        style: const TextStyle(color: Colors.white),
+                        cursorColor: Colors.cyanAccent,
                       ),
-                      foregroundColor: Colors.white,
                     ),
-                    child: const Text("Rename"),
-                  ),
-                ),
-                const SizedBox(height: 5),
-
-                // Replace Image Button
-                // Replace Image Button
-                SizedBox(
-                  width: 120,
-                  child: ElevatedButton(
-                    onPressed: () => replaceImage(index),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue.shade900,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        side: BorderSide(
-                          color: Colors.blue.shade900,
-                          width: 2,
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      alignment: WrapAlignment.center,
+                      children: [
+                        _buildActionButton(
+                          label: 'Rename',
+                          icon: Icons.edit,
+                          onPressed: () => renameFile(index),
                         ),
-                      ),
-                      foregroundColor: Colors.white, // White font color
-                    ),
-                    child: const Text(
-                      "Replace Image",
-                      style: TextStyle(
-                        color: Colors.white, // Text Color
-                        fontWeight: FontWeight.bold, // Bold Text
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 5),
-
-                SizedBox(
-                  width: 120,
-                  child: ElevatedButton(
-                    onPressed: () => openFile(file),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue.shade900,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        side: BorderSide(
-                          color: Colors.blue.shade900,
-                          width: 2,
+                        _buildActionButton(
+                          label: 'Replace',
+                          icon: Icons.swap_horiz,
+                          onPressed: () => replaceImage(index),
                         ),
-                      ),
-                      foregroundColor: Colors.white,
+                        _buildActionButton(
+                          label: 'Open',
+                          icon: Icons.open_in_new,
+                          onPressed: () => openFile(file),
+                        ),
+                      ],
                     ),
-                    child: const Text("Open"),
+                  ],
+                ),
+              ),
+
+              // Red close (X) button
+              Positioned(
+                right: 4,
+                top: 4,
+                child: GestureDetector(
+                  onTap: () => removeFile(index),
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.red,
+                    ),
+                    padding: const EdgeInsets.all(4),
+                    child: const Icon(
+                      Icons.close,
+                      size: 18,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           );
-
         }),
       ),
     )
-        : Center(
-      child: const Text(
+        : const Center(
+      child: Text(
         "No files selected yet.",
-        style: TextStyle(color: Colors.white),
+        style: TextStyle(color: Colors.black, fontSize: 16,fontFamily: "Times New Roman"),
       ),
     );
   }
+
+// Helper for consistent styled buttons with icon and label
+  Widget _buildActionButton({
+    required String label,
+    required IconData icon,
+    required VoidCallback onPressed,
+  }) {
+    return SizedBox(
+      width: 100, // Fixed width for consistency
+      height: 36,
+      child: ElevatedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(
+          icon,
+          size: 18,
+          color: Colors.black,
+        ),
+        label: Text(
+          label,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+            color: Colors.black,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.cyanAccent,
+          foregroundColor: Colors.black,
+          elevation: 3,
+          shadowColor: Colors.black45,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        ),
+      ),
+    );
+  }
+
+
 
   Widget _buildChooseFilesButton() {
     return ScaleTransition(
@@ -611,7 +769,15 @@ class _ShortageOfProductState extends State<ShortageOfProduct> with TickerProvid
             width: 200,
             padding: const EdgeInsets.symmetric(vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.cyan,
+              gradient: const LinearGradient(
+                colors: [
+                  Color(0xFF000F89), // Royal Blue
+                  Color(0xFF0F52BA), // Cobalt Blue
+                  Color(0xFF002147), // Dark Blue
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Center(
@@ -619,7 +785,7 @@ class _ShortageOfProductState extends State<ShortageOfProduct> with TickerProvid
                 'Choose Files',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 16, // Smaller font size
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -634,28 +800,28 @@ class _ShortageOfProductState extends State<ShortageOfProduct> with TickerProvid
     return ScaleTransition(
       scale: _buttonScaleAnimation,
       child: GestureDetector(
-        onTap: _isSubmitting ? null : _submitForm,
+        onTap: _isSubmitting ? null : _submitForm, // ✅ Let _submitForm handle validation
         child: Center(
           child: Container(
             width: 270,
-            padding: const EdgeInsets.symmetric(vertical: 15,horizontal: 15),
+            padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 15),
             decoration: BoxDecoration(
-              color: _isSubmitting ? Colors.grey : Colors.green,
+              gradient: _isSubmitting
+                  ? null
+                  : const LinearGradient(
+                colors: [
+                  Color(0xFF000F89), // Royal Blue
+                  Color(0xFF0F52BA), // Cobalt Blue
+                  Color(0xFF002147), // Dark Blue
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              color: _isSubmitting ? Colors.grey : null,
               borderRadius: BorderRadius.circular(12),
             ),
             child: _isSubmitting
-                ? Container()
-                : _isSuccess
-                ? const Center(
-              child: Text(
-                'Submit',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            )
+                ? const Center(child: CircularProgressIndicator(color: Colors.white))
                 : const Center(
               child: Text(
                 'Submit',
@@ -671,6 +837,8 @@ class _ShortageOfProductState extends State<ShortageOfProduct> with TickerProvid
       ),
     );
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -708,37 +876,141 @@ class _ShortageOfProductState extends State<ShortageOfProduct> with TickerProvid
         elevation: 10,
       ),
 
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: const Text(
-                'Report Details',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+      body: Center(
+        child: Container(
+          margin: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(16.0),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                offset: const Offset(0, 4),
+                blurRadius: 8,
+                spreadRadius: 1,
+              ),
+            ],
+          ),
+          child: SingleChildScrollView(
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Color(0xFF000F89), // Royal Blue
+                          Color(0xFF0F52BA), // Cobalt Blue
+                          Color(0xFF002147), // Dark Blue
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: Row(
+                      children: const [
+                        Icon(
+                          Icons.assignment_turned_in, // Report icon
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                        SizedBox(width: 12),
+                        Text(
+                          'Report Details',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.1,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  _buildTextField(
+                    'Product Name *',
+                    _productNameController,
+                    icon: Icons.shopping_bag,
+                    validator: _requiredValidator,
+                  ),
+
+                  _buildTextField(
+                    'Required Quantity *',
+                    _requiredQuantityController,
+                    icon: Icons.calculate,
+                    validator: _requiredValidator,
+                  ),
+
+                  _buildTextField(
+                    'Available Quantity',
+                    _availableQuantityController,
+                    icon: Icons.inventory,
+                    validator: _requiredValidator,
+                  ),
+
+                  const SizedBox(height: 20),
+                  _buildChooseFilesButton(),
+                  const SizedBox(height: 20),
+                  _buildFileList(),
+                  const SizedBox(height: 20),
+
+                  _buildTextField(
+                    'Site Location *',
+                    _siteLocationController,
+                    icon: Icons.place,
+                    validator: _requiredValidator,
+                  ),
+
+                  _buildTextField(
+                    'Description',
+                    _descriptionController,
+                    icon: Icons.text_snippet,
+                    validator: _requiredValidator,
+                  ),
+
+                  _buildTextField(
+                    'Phone Number *',
+                    _contactInfoController,
+                    keyboardType: TextInputType.phone,
+                    icon: Icons.phone_android,
+                    validator: _phoneValidator,
+                    maxLength: 10,
+                  ),
+
+                  _buildTextField(
+                    'Address',
+                    _addressController,
+                    icon: Icons.map,
+                    validator: _requiredValidator,
+                  ),
+
+                  _buildTextField(
+                    'Assigned Technician',
+                    _assignedTechnicianController,
+                    icon: Icons.build_circle,
+                    validator: _requiredValidator,
+                  ),
+
+                  const SizedBox(height: 20),
+                  _buildSubmitButton(),
+                  const SizedBox(height: 20),
+
+
+                ],
               ),
             ),
-            SizedBox(height: 20,),
-            _buildTextField('Product Name', _productNameController),
-            _buildTextField('Required Quantity', _requiredQuantityController, keyboardType: TextInputType.number),
-            _buildTextField('Available Quantity', _availableQuantityController, keyboardType: TextInputType.number),
-            const SizedBox(height: 20),
-            _buildChooseFilesButton(), // <-- CHOOSE FILE BUTTON HERE
-            const SizedBox(height: 20),
-            _buildFileList(),
-            const SizedBox(height: 20),
-            _buildTextField('Site Location', _siteLocationController),
-            _buildTextField('Description', _descriptionController),
-            _buildTextField('Contact Information', _contactInfoController),
-            _buildTextField('Address', _addressController),
-            _buildTextField('Assigned Technician', _assignedTechnicianController),
-            SizedBox(height: 20,),
-            _buildSubmitButton(),
-            const SizedBox(height: 20),
-          ],
+          ),
         ),
       ),
+
     );
   }
 }

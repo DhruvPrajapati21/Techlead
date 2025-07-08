@@ -186,27 +186,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           GestureDetector(
             onTap: () {
-              if (profileData['profileImage'] != null && profileData['profileImage'].toString().isNotEmpty) {
+              final imageUrl = profileData['profileImage'];
+              if (imageUrl != null && imageUrl.toString().isNotEmpty) {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => FullScreenImageView(imageUrl: profileData['profileImage']),
+                    builder: (context) => FullScreenImageView(imageUrl: imageUrl),
                   ),
                 );
               }
             },
             child: CircleAvatar(
-
               radius: 50,
               backgroundColor: Colors.white,
-              backgroundImage: profileData['profileImage'] != null && profileData['profileImage'].toString().isNotEmpty
+              backgroundImage: (profileData['profileImage'] != null &&
+                  profileData['profileImage'].toString().isNotEmpty)
                   ? NetworkImage(profileData['profileImage'])
                   : null,
-              child: profileData['profileImage'] == null || profileData['profileImage'].toString().isEmpty
+              child: (profileData['profileImage'] == null ||
+                  profileData['profileImage'].toString().isEmpty)
                   ? const Icon(Icons.person, size: 50, color: Colors.grey)
                   : null,
             ),
           ),
+
           const SizedBox(height: 10),
           Text(
             profileData['fullName'] ?? 'N/A',

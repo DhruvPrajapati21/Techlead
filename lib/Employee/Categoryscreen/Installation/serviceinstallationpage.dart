@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -204,6 +205,7 @@ class _InstallationPageState extends State<InstallationPage> {
       setState(() {});
     }
   }
+  final GlobalKey<ScaffoldMessengerState> _scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
   void openFile(File file) async {
     await OpenFile.open(file.path);
@@ -336,10 +338,8 @@ class _InstallationPageState extends State<InstallationPage> {
           });
         }
 
-        // Add uploaded files to formData
         formData['files'] = uploadedFiles;
 
-        // Store form data in Firestore
         await FirebaseFirestore.instance.collection('Installation').add(formData);
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -362,6 +362,31 @@ class _InstallationPageState extends State<InstallationPage> {
           _isSubmitting = false;
         });
       }
+    }
+  }
+
+  Future<void> _deleteRecord(String docId) async {
+    try {
+      await _firestore.collection('ReceptionPage').doc(docId).delete();
+      _scaffoldMessengerKey.currentState?.showSnackBar(
+        SnackBar(
+          content: Text(
+            'Reception Record deleted successfully',
+            style: TextStyle(fontFamily: "Times New Roman", color: Colors.white),
+          ),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      _scaffoldMessengerKey.currentState?.showSnackBar(
+        SnackBar(
+          content: Text(
+            'Error deleting record: $e',
+            style: TextStyle(fontFamily: "Times New Roman", color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -451,13 +476,13 @@ class _InstallationPageState extends State<InstallationPage> {
                   ],
                 ),
                 child: Form(
-                  key: _formKey, // Attach the GlobalKey to the Form
+                  key: _formKey,
                   child: Column(
                     children: [
                       buildTextField(
                         context: context,
                         controller: technicianNameController,
-                        labelText: "Technician Name",
+                        labelText: "Technician/Executive Name",
                         icon: Icons.person,
                         validator: validateField,
                       ),
@@ -715,7 +740,20 @@ class _InstallationPageState extends State<InstallationPage> {
                         labelText: "Customer Contact",
                         icon: Icons.phone,
                         keyboardType: TextInputType.phone,
-                        validator: validateField,
+                        inputFormatters: [
+                          LengthLimitingTextInputFormatter(10),
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Mobile number is required.';
+                          } else if (value.length != 10) {
+                            return 'Mobile number must be 10 digits.';
+                          } else if (!RegExp(r'^\d{10}$').hasMatch(value)) {
+                            return 'Enter a valid 10-digit number.';
+                          }
+                          return null;
+                        },
                       ),
                       SizedBox(height: 16),
                       buildTextField(
@@ -736,24 +774,30 @@ class _InstallationPageState extends State<InstallationPage> {
                         validator: validateField,
                       ),
                       SizedBox(height: 20),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue.shade900,
-                          shadowColor: Colors.purpleAccent.shade100,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                        ),
-                        onPressed: _isSubmitting ? null : _submitForm,
-                        child: _isSubmitting
-                            ? CircularProgressIndicator(color: Colors.white)
-                            : Text(
-                          "Submit",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontFamily: "Times New Roman",
-                            color: Colors.white,
+                      SizedBox(
+                        width: double.infinity,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12,vertical: 12),
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue.shade900,
+                              shadowColor: Colors.purpleAccent.shade100,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                            ),
+                            onPressed: _isSubmitting ? null : _submitForm,
+                            child: _isSubmitting
+                                ? CircularProgressIndicator(color: Colors.white)
+                                : Text(
+                              "Submit",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontFamily: "Times New Roman",
+                                color: Colors.white,
+                              ),
+                            ),
                           ),
                         ),
                       ),

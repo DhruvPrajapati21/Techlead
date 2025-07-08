@@ -38,6 +38,7 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
   final TextEditingController _locationController = TextEditingController();
   TextEditingController _dateController = TextEditingController();
 
+
   @override
   void initState() {
     super.initState();
@@ -75,11 +76,11 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
       context: context,
       barrierDismissible: true,
       builder: (context) {
-        return Center( // Ensures dialog is vertically centered
+        return Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(
-              maxWidth: 350,  // Controls width
-              maxHeight: 420, // Controls height to remove bottom expansion
+              maxWidth: 350,
+              maxHeight: 420,
             ),
             child: Material(
               borderRadius: BorderRadius.circular(16),
@@ -91,9 +92,8 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
                   setState(() {
                     _selectedDate = pickedDate;
                     _dateController.text =
-                        DateFormat('dd MMMM yy').format(pickedDate);
+                        DateFormat('dd MMMM yyyy').format(pickedDate);
                   });
-                  Navigator.of(context).pop();
                 },
               ),
             ),
@@ -464,7 +464,6 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
         'employeeId': _employeeIdController.text.trim(),
         "employeeName": _employeeNameController.text.trim(),
         "taskTitle": _taskTitleController.text.trim(),
-        "challenges": _challengesController.text.trim(),
         "actionsTaken": _actionsTakenController.text.trim(),
         "nextSteps": _nextStepsController.text.trim(),
         "service_status": selectedServiceStatus,
@@ -493,7 +492,6 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
       });
 
       _taskTitleController.clear();
-      _challengesController.clear();
       _actionsTakenController.clear();
       _nextStepsController.clear();
       _locationController.clear();
@@ -580,7 +578,6 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Employee Name Field
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Container(
@@ -601,22 +598,24 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
                       readOnly: true,
                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                       decoration: InputDecoration(
-
-                        filled: true,
-                        fillColor: Colors.transparent,
+                        labelText: 'Employee Name',
+                        floatingLabelBehavior: FloatingLabelBehavior.auto,
+                        labelStyle: const TextStyle(
+                          color: Colors.cyanAccent,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        prefixIcon: const Icon(Icons.person, color: Colors.white),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: BorderSide.none,
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
                       ),
                       validator: (value) =>
                       value == null || value.isEmpty ? 'Employee name is required' : null,
                     ),
                   ),
                 ),
-
-// Employee ID Field
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Container(
@@ -637,14 +636,18 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
                       readOnly: true,
                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                       decoration: InputDecoration(
-
-                        filled: true,
-                        fillColor: Colors.transparent,
+                        labelText: 'Employee ID',
+                        floatingLabelBehavior: FloatingLabelBehavior.auto,
+                        labelStyle: const TextStyle(
+                          color: Colors.cyanAccent,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        prefixIcon: const Icon(Icons.badge, color: Colors.white),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: BorderSide.none,
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
                       ),
                       validator: (value) =>
                       value == null || value.isEmpty ? 'Employee ID is required' : null,
@@ -654,52 +657,18 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
 
                 const SizedBox(height: 15),
 
-// Date Picker Field
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Container(
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [
-                            Color(0xFF000F89),
-                            Color(0xFF0F52BA),
-                            Color(0xFF002147),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: TextFormField(
-                        controller: _dateController,
-                        readOnly: true,
-                        onTap: () => _selectDate(context),
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                        decoration: InputDecoration(
-                          label: const Text(
-                            "Select Date",
-                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                          ),
-                          prefixIcon: const Icon(Icons.date_range, color: Colors.white),
-                          filled: true,
-                          fillColor: Colors.transparent,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please select a date';
-                          }
-                          return null;
-                        },
-                      )
-
-                  ),
+                _buildDateField(
+                  controller: _dateController,
+                  label: "Select Date",
+                  icon: Icons.date_range,
+                  onTap: () => _selectDate(context),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please select a date';
+                    }
+                    return null;
+                  },
                 ),
-
 
                 const SizedBox(height: 15),
                 _buildTextField(
@@ -717,11 +686,11 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
                     onPressed: pickFiles,
                     style: ElevatedButton.styleFrom(
                       elevation: 5,
-                      padding: EdgeInsets.zero, // Remove internal padding to allow full gradient
+                      padding: EdgeInsets.zero,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      backgroundColor: Colors.transparent, // Needed for gradient effect
+                      backgroundColor: Colors.transparent,
                       shadowColor: Colors.grey.withOpacity(0.5),
                     ),
                     child: Ink(
@@ -745,7 +714,7 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: Colors.cyanAccent,
                           ),
                         ),
                       ),
@@ -842,7 +811,6 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
                                     ),
                                   ),
                                   SizedBox(height: 5),
-
                                   ElevatedButton(
                                     onPressed: () => renameFile(index),
                                     style: ElevatedButton.styleFrom(
@@ -924,7 +892,7 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
                     ),
                   ),
                 )
-                    : Text("No files selected yet."),
+                    : Center(child: Text("No files selected yet.")),
 
                 SizedBox(height: 16),
 
@@ -1103,7 +1071,6 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
                     ),
                   ),
                 ),
-
               ],
             ),
           ),
@@ -1152,6 +1119,61 @@ class _DailyTaskReport2State extends State<DailyTaskReport2> {
       ],
     );
   }
+
+  // ✅ Reusable Date Picker Field
+  Widget _buildDateField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    required VoidCallback onTap,
+    String? Function(String?)? validator,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [
+              Color(0xFF000F89), // Royal Blue
+              Color(0xFF0F52BA), // Cobalt Blue
+              Color(0xFF002147), // Midnight Blue
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: TextFormField(
+          controller: controller,
+          readOnly: true,
+          onTap: onTap,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+          decoration: InputDecoration(
+            labelText: label,
+            labelStyle: const TextStyle(
+              color: Colors.cyanAccent,
+              fontWeight: FontWeight.bold,
+            ),
+            prefixIcon: Icon(icon, color: Colors.white),
+            filled: true,
+            fillColor: Colors.transparent,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          ),
+          validator: validator,
+          cursorColor: Colors.white,
+        ),
+      ),
+    );
+  }
+
 
   Widget _buildTextField({
     required TextEditingController controller,

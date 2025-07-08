@@ -1,8 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import '../../../Employee/Homescreen/Date_And_Time_Code/Customize_Date_001.dart';
+import '../../../Employee/Homescreen/Date_And_Time_Code/Customize_Time_001.dart';
 
 class Editinstallationpage extends StatefulWidget {
   final String docId;
@@ -16,6 +20,8 @@ class Editinstallationpage extends StatefulWidget {
 
 class _EditinstallationpageState extends State<Editinstallationpage> {
   final _formKey = GlobalKey<FormState>();
+  FocusNode dropdownFocus = FocusNode();
+  FocusNode nextFieldFocus = FocusNode();
   late String fullName,
       contactNumber,
       email,
@@ -33,6 +39,14 @@ class _EditinstallationpageState extends State<Editinstallationpage> {
 
   List<String> serviceStatusOptions = ["Pending", "In Progress", "Completed"];
   late String selectedServiceStatus;
+
+
+  late TextEditingController _dateController;
+  late TextEditingController _timeController;
+
+  late DateTime _selectedDate;
+  late TimeOfDay _selectedTime;
+
 
   final Map<String, IconData> products = {
     'Smart Lights': FontAwesomeIcons.lightbulb,
@@ -90,6 +104,7 @@ class _EditinstallationpageState extends State<Editinstallationpage> {
   @override
   void initState() {
     super.initState();
+
     fullName = widget.initialData['technician_name'] ?? '';
     contactNumber = widget.initialData['installation_site'] ?? '';
     email = widget.initialData['installation_date'] ?? '';
@@ -100,6 +115,27 @@ class _EditinstallationpageState extends State<Editinstallationpage> {
     taskstatus = widget.initialData['customer_contact'] ?? '';
     meetingcstatus = widget.initialData['service_description'] ?? '';
     remarks = widget.initialData['remarks'] ?? '';
+
+    _selectedDate = email.isNotEmpty
+        ? DateTime.tryParse(email) ?? DateTime.now()
+        : DateTime.now();
+
+    _selectedTime = preferredContactMethod.isNotEmpty
+        ? TimeOfDay(
+        hour: int.tryParse(preferredContactMethod.split(':')[0]) ?? 0,
+        minute: int.tryParse(preferredContactMethod.split(':')[1]) ?? 0)
+        : TimeOfDay.now();
+
+    _dateController = TextEditingController();
+    _timeController = TextEditingController();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    _dateController.text = DateFormat('dd MMMM yyyy').format(_selectedDate);
+    _timeController.text = _selectedTime.format(context);
   }
 
   @override
@@ -119,7 +155,7 @@ class _EditinstallationpageState extends State<Editinstallationpage> {
               "Edit Installation Page",
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                fontSize: 24,
+                fontSize: 16,
                 letterSpacing: 1.5,
                 color: Colors.white,
                 fontFamily: 'Roboto',
@@ -191,23 +227,161 @@ class _EditinstallationpageState extends State<Editinstallationpage> {
                           buildTextFormField('Installation Site', contactNumber,
                               Icons.phone, (value) => contactNumber = value),
 
-                          buildTextFormField('Installation Date', email,
-                              Icons.email, (value) => email = value),
-
-                          buildTextFormField(
-                              'Service Time',
-                              preferredContactMethod,
-                              FontAwesomeIcons.digitalOcean,
-                                  (value) => preferredContactMethod = value),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Installation Date',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blue.shade900,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                GestureDetector(
+                                  onTap: () =>
+                                      showModalBottomSheet(
+                                        context: context,
+                                        backgroundColor: Colors.transparent,
+                                        builder: (context) =>
+                                            buildGradientCalendar(
+                                              context,
+                                              _selectedDate,
+                                                  (pickedDate) {
+                                                setState(() {
+                                                  _selectedDate = pickedDate;
+                                                  email = pickedDate
+                                                      .toIso8601String(); // Save for Firestore
+                                                  _dateController.text =
+                                                      DateFormat('dd MMMM yyyy')
+                                                          .format(
+                                                          pickedDate); // Display format
+                                                });
+                                              },
+                                            ),
+                                      ),
+                                  child: AbsorbPointer(
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        gradient: const LinearGradient(
+                                          colors: [
+                                            Color(0xFF000F89),
+                                            Color(0xFF0F52BA),
+                                            Color(0xFF002147),
+                                          ],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: Colors.white),
+                                      ),
+                                      child: TextFormField(
+                                        controller: _dateController,
+                                        style: GoogleFonts.poppins(
+                                            fontSize: 16, color: Colors.white),
+                                        decoration: const InputDecoration(
+                                          prefixIcon: Icon(Icons.calendar_today,
+                                              color: Colors.cyanAccent),
+                                          border: InputBorder.none,
+                                          contentPadding: EdgeInsets.symmetric(
+                                              horizontal: 16, vertical: 14),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Service Time',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blue.shade900,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                GestureDetector(
+                                  onTap: () =>
+                                      showModalBottomSheet(
+                                        context: context,
+                                        backgroundColor: Colors.transparent,
+                                        builder: (context) =>
+                                            buildGradientTimePicker(
+                                              context,
+                                              _selectedTime,
+                                                  (pickedTime) {
+                                                setState(() {
+                                                  _selectedTime = pickedTime;
+                                                  preferredContactMethod =
+                                                  "${pickedTime
+                                                      .hour}:${pickedTime
+                                                      .minute}";
+                                                  _timeController.text =
+                                                      pickedTime.format(
+                                                          context);
+                                                });
+                                              },
+                                            ),
+                                      ),
+                                  child: AbsorbPointer(
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        gradient: const LinearGradient(
+                                          colors: [
+                                            Color(0xFF000F89),
+                                            Color(0xFF0F52BA),
+                                            Color(0xFF002147),
+                                          ],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: Colors.white),
+                                      ),
+                                      child: TextFormField(
+                                        controller: _timeController,
+                                        style: GoogleFonts.poppins(
+                                            fontSize: 16, color: Colors.white),
+                                        decoration: const InputDecoration(
+                                          prefixIcon: Icon(Icons.access_time,
+                                              color: Colors.cyanAccent),
+                                          border: InputBorder.none,
+                                          contentPadding: EdgeInsets.symmetric(
+                                              horizontal: 16, vertical: 14),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
 
                           buildDropdownField(
                             'Home Automation Product',
                             leadSource,
                             FontAwesomeIcons.user,
                             products.entries
-                                .map((entry) => {'text': entry.key, 'icon': entry.value})
+                                .map((entry) =>
+                            {
+                              'text': entry.key,
+                              'icon': entry.value
+                            })
                                 .toList(),
-                                (newValue) => setState(() => leadSource = newValue!),
+                                (newValue) =>
+                                setState(() => leadSource = newValue!),
+                            currentFocus: dropdownFocus,
+                            nextFocus: nextFieldFocus,
                           ),
 
                           buildDropdownField(
@@ -218,8 +392,13 @@ class _EditinstallationpageState extends State<Editinstallationpage> {
                                   .map((status) =>
                               {'text': status, 'icon': Icons.info})
                                   .toList(),
-                                  (newValue) => setState(
-                                      () => selectedServiceStatus = newValue!)),
+                                  (newValue) =>
+                                  setState(
+                                          () =>
+                                      selectedServiceStatus = newValue!),
+                            currentFocus: dropdownFocus,
+                            nextFocus: nextFieldFocus,
+                          ),
 
                           buildTextFormField(
                               'Customer Name',
@@ -227,8 +406,26 @@ class _EditinstallationpageState extends State<Editinstallationpage> {
                               Icons.details,
                                   (value) => additionalDetails = value),
 
-                          buildTextFormField('Customer Contact', taskstatus,
-                              Icons.details, (value) => taskstatus = value),
+                          buildTextFormField(
+                            'Customer Contact',
+                            taskstatus,
+                            Icons.details,
+                                (val) => taskstatus = val,
+                            validator: (value) {
+                              if (value == null || value.isEmpty)
+                                return 'Please enter contact number';
+                              if (!RegExp(r'^\d{10}$').hasMatch(value))
+                                return 'Contact number must be exactly 10 digits';
+                              return null;
+                            },
+                            inputFormatters: [
+                              LengthLimitingTextInputFormatter(10),
+                              // ⬅ Limits max length
+                              FilteringTextInputFormatter.digitsOnly,
+                              // ⬅ Allows only digits
+                            ],
+                          ),
+
 
                           buildTextFormField(
                               'Service Description',
@@ -242,28 +439,46 @@ class _EditinstallationpageState extends State<Editinstallationpage> {
                           SizedBox(height: 20),
 
                           Container(
-
-                            child: ElevatedButton(
-                              onPressed: _updateRecord,
-                              style: ElevatedButton.styleFrom(
-                                padding: EdgeInsets.symmetric(horizontal: 30, vertical: 12),
-                                backgroundColor: Color(0xFF0A2A5A),
-                                shadowColor: Colors.transparent,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [
+                                  Color(0xFF000F89), // Royal Blue
+                                  Color(0xFF0F52BA), // Cobalt Blue
+                                  Color(0xFF002147), // Navy Blue
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
                               ),
-                              child: Text(
-                                'Update',
-                                style: GoogleFonts.poppins(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                  color: Colors.white,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 12),
+                                child: ElevatedButton(
+                                  onPressed: _updateRecord,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    shadowColor: Colors.transparent,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 30, vertical: 12),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'Update',
+                                    style: GoogleFonts.poppins(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                      color: Colors.white,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-
                         ],
                       ),
                     ),
@@ -283,8 +498,11 @@ class _EditinstallationpageState extends State<Editinstallationpage> {
       String value,
       IconData icon,
       List<Map<String, dynamic>> items,
-      ValueChanged<String?> onChanged,
-      ) {
+      ValueChanged<String?> onChanged, {
+        String? Function(String?)? validator,
+        required FocusNode currentFocus,
+        FocusNode? nextFocus,
+      }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Column(
@@ -298,34 +516,65 @@ class _EditinstallationpageState extends State<Editinstallationpage> {
               color: Colors.blue.shade900,
             ),
           ),
-          SizedBox(height: 6),
-          DropdownButtonFormField<String>(
-            value: items.any((item) => item['text'] == value) ? value : null,
-            decoration: InputDecoration(
-              prefixIcon: Icon(icon, color: Colors.cyanAccent),
-              filled: true,
-              fillColor: Color(0xFF0A2A5A),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+          const SizedBox(height: 6),
+          Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [
+                  Color(0xFF000F89),
+                  Color(0xFF0F52BA),
+                  Color(0xFF002147),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Focus(
+              focusNode: currentFocus,
+              child: DropdownButtonFormField<String>(
+                isExpanded: true,
+                value: items.any((item) => item['text'] == value) ? value : null,
+                decoration: const InputDecoration(
+                  prefixIcon: Icon(Icons.arrow_drop_down, color: Colors.cyanAccent),
+                  border: InputBorder.none,
+                  errorStyle: TextStyle(color: Colors.cyanAccent),
+                ),
+                style: const TextStyle(color: Colors.white, fontSize: 16),
+                dropdownColor: const Color(0xFF002147),
+                iconEnabledColor: Colors.cyanAccent,
+                onChanged: (val) {
+                  onChanged(val);
+                  // Move focus to next field if specified
+                  if (nextFocus != null) {
+                    FocusScope.of(currentFocus.context!).requestFocus(nextFocus);
+                  }
+                },
+                validator: validator,
+                items: items.map<DropdownMenuItem<String>>((item) {
+                  return DropdownMenuItem<String>(
+                    value: item['text'],
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(item['icon'], color: Colors.cyanAccent),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            item['text'],
+                            style: const TextStyle(color: Colors.white),
+                            softWrap: true,
+                            overflow: TextOverflow.visible,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
               ),
             ),
-            onChanged: onChanged,
-            dropdownColor: const Color(0xFF0A2A5A),
-            items: items.map<DropdownMenuItem<String>>((Map<String, dynamic> item) {
-              return DropdownMenuItem<String>(
-                value: item['text'],
-                child: Row(
-                  children: [
-                    Icon(item['icon'], color: Colors.cyanAccent),
-                    SizedBox(width: 10),
-                    Text(
-                      item['text'],
-                      style: GoogleFonts.poppins(fontSize: 16, color: Colors.white),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
           ),
         ],
       ),
@@ -334,12 +583,14 @@ class _EditinstallationpageState extends State<Editinstallationpage> {
 
 
   // Text form field
-  Widget buildTextFormField(
-      String label,
+  Widget buildTextFormField(String label,
       String initialValue,
       IconData icon,
-      Function(String) onChanged,
-      ) {
+      Function(String) onChanged, {
+        String? Function(String?)? validator,
+        List<TextInputFormatter>? inputFormatters,
+        bool readOnly = false,
+      }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Column(
@@ -353,25 +604,48 @@ class _EditinstallationpageState extends State<Editinstallationpage> {
               color: Colors.blue.shade900,
             ),
           ),
-          SizedBox(height: 6),
-          TextFormField(
-            initialValue: initialValue,
-            style: GoogleFonts.poppins(fontSize: 16, color: Colors.white),
-            decoration: InputDecoration(
-              prefixIcon: Icon(icon, color: Colors.cyanAccent),
-              filled: true,
-              fillColor: Color(0xFF0A2A5A),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+          const SizedBox(height: 6),
+          Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [
+                  Color(0xFF000F89), // Royal Blue
+                  Color(0xFF0F52BA), // Cobalt Blue
+                  Color(0xFF002147), // Navy Blue
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white),
             ),
-            onChanged: onChanged,
+            child: TextFormField(
+              initialValue: initialValue,
+              readOnly: readOnly,
+              style: GoogleFonts.poppins(fontSize: 16, color: Colors.white),
+              decoration: InputDecoration(
+                prefixIcon: Icon(icon, color: Colors.cyanAccent),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 14),
+                errorStyle: const TextStyle(
+                    color: Colors.cyanAccent), // ✅ Error text color
+              ),
+
+              onChanged: readOnly ? null : onChanged,
+              validator: validator,
+              inputFormatters: inputFormatters,
+              textInputAction: TextInputAction.next,
+              onEditingComplete: () => FocusScope.of(context).nextFocus(),
+              keyboardType: inputFormatters != null
+                  ? TextInputType.number
+                  : TextInputType.text,
+            ),
           ),
         ],
       ),
     );
   }
-
 
   void _updateRecord() async {
     if (_formKey.currentState!.validate()) {
@@ -386,22 +660,23 @@ class _EditinstallationpageState extends State<Editinstallationpage> {
           'service_time': preferredContactMethod,
           'selected_product': leadSource,
           'service_status': selectedServiceStatus,
-
           'customer_name': additionalDetails,
           'customer_contact': taskstatus,
           'service_description': meetingcstatus,
           'remarks': remarks,
         });
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             elevation: 6,
             behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.transparent, // Needed for gradient to show
+            backgroundColor: Colors.transparent,
             content: Container(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF0A2A5A), Color(0xFF1F4788)], // dark bluish gradient
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF28A745), Color(0xFF218838)],
+                  // Green gradient
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -410,13 +685,14 @@ class _EditinstallationpageState extends State<Editinstallationpage> {
                   BoxShadow(
                     color: Colors.black.withOpacity(0.25),
                     blurRadius: 10,
-                    offset: Offset(0, 4),
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
               child: Row(
-                children: [
-                  Icon(Icons.check_circle_outline, color: Colors.white, size: 26),
+                children: const [
+                  Icon(Icons.check_circle_outline, color: Colors.white,
+                      size: 26),
                   SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -432,16 +708,58 @@ class _EditinstallationpageState extends State<Editinstallationpage> {
                 ],
               ),
             ),
-            duration: Duration(seconds: 3),
+            duration: const Duration(seconds: 3),
           ),
         );
 
         Navigator.of(context).pop();
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Error updating record: $e'),
-          backgroundColor: Colors.red,
-        ));
+        // ❌ Error Snackbar with red gradient
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            elevation: 6,
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.transparent,
+            content: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFD32F2F), Color(0xFFB71C1C)],
+                  // Red gradient
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.25),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                      Icons.error_outline, color: Colors.white, size: 26),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Error updating record: $e',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        fontFamily: 'Roboto',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            duration: const Duration(seconds: 3),
+          ),
+        );
       }
     }
   }

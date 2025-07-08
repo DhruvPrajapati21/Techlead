@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:techlead/Employee/Homescreen/EmpHomescreen.dart';
 
 import '../../Loginui/beizercontainer.dart';
@@ -112,61 +113,92 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  Widget _entryField(String title,
-      {bool isPassword = false,
+  Widget _entryField(
+      String title, {
+        bool isPassword = false,
         TextEditingController? controller,
         String? Function(String?)? validator,
         bool isInvalid = false,
         String? hintText,
         Color hintTextColor = Colors.white,
-        List<Color> gradientColors = const [Color(0xFF0062BA), Color(0xFF176CEF)]}) { // Added gradientColors parameter
+      }) {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 10),
+      margin: const EdgeInsets.symmetric(vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
+        children: [
           Text(
             title,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
+            style: GoogleFonts.poppins(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 10),
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: gradientColors,
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: TextFormField(
-              controller: controller,
-              textInputAction: TextInputAction.next,
-              onEditingComplete: () => FocusScope.of(context).nextFocus(),
-              obscureText: isPassword && !_isPasswordVisible,
-              validator: validator,
-              style: const TextStyle(color: Colors.white,fontWeight: FontWeight.bold),
-              decoration: InputDecoration(
-                hintText: hintText,
-                hintStyle: TextStyle(color: hintTextColor),
-                filled: true,
-                fillColor: Colors.transparent,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                border: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                suffixIcon: isPassword
-                    ? IconButton(
-                  icon: Icon(
-                    _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                    color: Colors.blueAccent,
+          Material(
+            elevation: 8,
+            borderRadius: BorderRadius.circular(16),
+            color: Colors.transparent,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                gradient: LinearGradient(
+                  colors: [ Color(0xFF000F89), // Royal Blue
+                    Color(0xFF0F52BA), // Cobalt Blue (replacing Indigo)
+                    Color(0xFF002147),],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                border: Border.all(color: Colors.white.withOpacity(0.3)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.15),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
                   ),
-                  onPressed: () {
-                    setState(() {
-                      _isPasswordVisible = !_isPasswordVisible;
-                    });
-                  },
-                )
-                    : null,
+                ],
+              ),
+              child: TextFormField(
+                controller: controller,
+                textInputAction: TextInputAction.next,
+                onEditingComplete: () => FocusScope.of(context).nextFocus(),
+                obscureText: isPassword && !_isPasswordVisible,
+                validator: validator,
+                style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold),
+                decoration: InputDecoration(
+                  prefixIcon: Icon(
+                    isPassword ? Icons.lock_outline : Icons.email_outlined,
+                    color: Colors.white,
+                  ),
+                  suffixIcon: isPassword
+                      ? IconButton(
+                    icon: Icon(
+                      _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                      color: Colors.white,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _isPasswordVisible = !_isPasswordVisible;
+                      });
+                    },
+                  )
+                      : null,
+                  hintText: hintText,
+                  hintStyle: GoogleFonts.poppins(color: hintTextColor),
+                  errorStyle: GoogleFonts.poppins(
+                    color: Colors.cyanAccent, // 👈 set error text color here
+                    fontWeight: FontWeight.w500,
+                  ),
+                  filled: true,
+                  fillColor: Colors.transparent,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+
               ),
             ),
           ),
@@ -174,6 +206,7 @@ class _LoginPageState extends State<LoginPage> {
       ),
     );
   }
+
 
   Widget _emailPasswordWidget() {
     return Form(
@@ -206,35 +239,47 @@ class _LoginPageState extends State<LoginPage> {
   Widget _submitButton() {
     return GestureDetector(
       onTap: _handleLogin,
-      child: Container(
-        width: MediaQuery.of(context).size.width,
-        padding: const EdgeInsets.symmetric(vertical: 15),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 18),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          borderRadius: const BorderRadius.all(Radius.circular(5)),
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-
-              offset: const Offset(2, 4),
-              blurRadius: 5,
-              spreadRadius: 2,
-            )
-          ],
+          borderRadius: BorderRadius.circular(16),
           gradient: const LinearGradient(
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-            colors: [Color(0xFF002A55), Color(0xFF2F7DF3)],
+            colors: [
+              Color(0xFF000F89), // Royal Blue
+              Color(0xFF0F52BA), // Cobalt Blue
+              Color(0xFF002147), // Deep Blue
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
+          border: Border.all(color: Colors.white.withOpacity(0.2)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
+            ),
+          ],
         ),
         child: _isLoading
-            ? const CircularProgressIndicator(color: Colors.white)
-            : const Text(
+            ? const CircularProgressIndicator(
+          color: Colors.white,
+        )
+            : Text(
           'Login',
-          style: TextStyle(fontSize: 20, color: Colors.white,fontWeight: FontWeight.bold),
+          style: GoogleFonts.poppins(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+            letterSpacing: 1,
+          ),
         ),
       ),
     );
   }
+
 
 
 
@@ -255,28 +300,49 @@ class _LoginPageState extends State<LoginPage> {
           child: Stack(
             children: <Widget>[
               Positioned(
-                top: -height * .15,
-                right: -MediaQuery.of(context).size.width * .25,
-                child: const BezierContainer(),
+                top: -height * 0.15,
+                left: MediaQuery.of(context).size.width * 0.25,
+                right: MediaQuery.of(context).size.width * 0.25,
+                child: const BezierContainer(),  // adjust size inside container
               ),
+
+              // Left Center
               Positioned(
-                top: -height * .05,
-                right: -MediaQuery.of(context).size.width * -.6,
+                top: height * 0.25,
+                left: -MediaQuery.of(context).size.width * 0.3,
                 child: const BezierContainerLeft(),
               ),
+
+              // Right Center
               Positioned(
-                top: height * 0.7,
-                right: -MediaQuery.of(context).size.width * -.4,
+                top: height * 0.25,
+                right: -MediaQuery.of(context).size.width * 0.3,
+                child: const BezierContainer(), // You'll need to create this if not existing
+              ),
+
+              // Bottom Center
+              Positioned(
+                bottom: -height * 0.15,
+                left: MediaQuery.of(context).size.width * 0.25,
+                right: MediaQuery.of(context).size.width * 0.25,
                 child: const BezierContainerBottom(),
+              ),
+
+              // Center (optional, or can be your main content)
+              Positioned(
+                top: height * 0.4,
+                left: MediaQuery.of(context).size.width * 0.3,
+                right: MediaQuery.of(context).size.width * 0.3,
+                child: const BezierContainerBottom(),  // Optional, create if needed
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: SingleChildScrollView(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.start, // <-- changed here
                     children: <Widget>[
-                      SizedBox(height: height * .2),
+                      SizedBox(height: height * .1),  // You can adjust this space if needed
                       Align(
                         alignment: Alignment.topLeft,
                         child: IconButton(
@@ -291,27 +357,10 @@ class _LoginPageState extends State<LoginPage> {
                       _emailPasswordWidget(),
                       const SizedBox(height: 40),
                       _submitButton(),
-                      // Container(
-                      //   padding: const EdgeInsets.symmetric(vertical: 10),
-                      //   alignment: Alignment.centerRight,
-                      //   child: GestureDetector(
-                      //     onTap: () {
-                      //       Navigator.push(
-                      //         context,
-                      //         MaterialPageRoute(builder: (context) => const ForgotPasswordPage()),
-                      //       );
-                      //     },
-                      //     child: const Text(
-                      //       'Forgot Password ?',
-                      //       style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.blue),
-                      //     ),
-                      //   ),
-                      // ),
-                      // const SizedBox(height: 20),
-                      // _createAccountLabel(),
                     ],
                   ),
                 ),
+
               ),
             ],
           ),
@@ -321,49 +370,37 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _title() {
-    return RichText(
-      textAlign: TextAlign.center,
-      text: const TextSpan(
-        text: 'L',
-        style: TextStyle(fontSize: 30, fontWeight: FontWeight.w700, color: Colors.white),
-        children: [
-          TextSpan(
-            text: 'og',
-            style: TextStyle(color: Colors.white, fontSize: 30),
+    return Column(
+      children: [
+        const Icon(
+          Icons.lock_outline, // You can change this to any icon you like
+          size: 60,
+          color: Colors.white,
+        ),
+        const SizedBox(height: 10),
+        RichText(
+          textAlign: TextAlign.center,
+          text: const TextSpan(
+            text: 'L',
+            style: TextStyle(
+              fontSize: 30,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+            children: [
+              TextSpan(
+                text: 'og',
+                style: TextStyle(color: Colors.white, fontSize: 30),
+              ),
+              TextSpan(
+                text: 'in',
+                style: TextStyle(color: Colors.white, fontSize: 30),
+              ),
+            ],
           ),
-          TextSpan(
-            text: 'in',
-            style: TextStyle(color: Colors.white, fontSize: 30),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
-//   Widget _createAccountLabel() {
-//     return InkWell(
-//       onTap: () {
-//         Navigator.push(context, MaterialPageRoute(builder: (context) => SignUpPage()));
-//       },
-//       child: Container(
-//         margin: const EdgeInsets.symmetric(vertical: 20),
-//         padding: const EdgeInsets.all(15),
-//         alignment: Alignment.bottomCenter,
-//         child: Row(
-//           mainAxisAlignment: MainAxisAlignment.center,
-//           children: const <Widget>[
-//             Text(
-//               'Don\'t have an account ?',
-//               style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-//             ),
-//             SizedBox(width: 10),
-//             Text(
-//               'SignUp',
-//               style: TextStyle(color: Color(0xfff79c4f), fontSize: 13, fontWeight: FontWeight.w600),
-//             ),
-//           ],
-//         ),
-//       ),
-//     );
-//   }
 }

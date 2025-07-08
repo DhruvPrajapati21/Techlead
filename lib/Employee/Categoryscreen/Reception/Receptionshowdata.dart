@@ -144,7 +144,7 @@ class _ReceptionshowdataState extends State<Receptionshowdata> {
                               : "No tasks assigned."
                               "",
                           style: const TextStyle(
-                            color: Colors.white,
+                            color: Colors.black,
                             fontSize: 16,
                             fontFamily: "Times New Roman",
                           ),
@@ -152,13 +152,12 @@ class _ReceptionshowdataState extends State<Receptionshowdata> {
                       );
                     }
 
-
                     if (assignedTasks.isEmpty) {
                       return const Center(
                         child: Text(
                           "No tasks available between these dates.",
                           style: TextStyle(
-                              color: Colors.white,
+                              color: Colors.black,
                               fontSize: 16,
                               fontFamily: "Times New Roman"),
                         ),

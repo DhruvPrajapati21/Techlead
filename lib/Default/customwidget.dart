@@ -476,7 +476,7 @@ Widget buildCustomCheckboxTile({
   required ValueChanged<bool?> onChanged,
   required IconData icon,
   required Color color,
-  FocusNode? focusNode, // Optional focus node for keyboard navigation
+  FocusNode? focusNode,
   FocusNode? nextFocusNode,
 }) {
   return Focus(
@@ -498,31 +498,10 @@ Widget buildCustomCheckboxTile({
           borderRadius: BorderRadius.circular(12),
         ),
         child: CheckboxListTile(
-          title: Row(
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.blue.shade800,
-                ),
-                padding: const EdgeInsets.all(6),
-                child: Icon(icon, color: Colors.white, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue.shade900,
-                ),
-              ),
-            ],
-          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           value: value,
           onChanged: (val) {
             onChanged(val);
-            // Move to next focusable widget if provided
             if (nextFocusNode != null) {
               nextFocusNode.requestFocus();
             }
@@ -530,13 +509,38 @@ Widget buildCustomCheckboxTile({
           activeColor: Colors.blue.shade900,
           checkColor: Colors.white,
           controlAffinity: ListTileControlAffinity.leading,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          title: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.blue.shade800,
+                ),
+                padding: const EdgeInsets.all(6),
+                margin: const EdgeInsets.only(top: 2),
+                child: Icon(icon, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded( // Ensures long text wraps responsively
+                child: Text(
+                  title,
+                  softWrap: true,
+                  overflow: TextOverflow.visible,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue.shade900,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     ),
   );
 }
-
 
 
 Widget buildCheckboxField({

@@ -4,8 +4,8 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'Edit_Rexeption_Data/edit_reception_data.dart';
 
+import 'Edit_Reception_Data/edit_reception_data.dart';
 class Showreceptiondata extends StatefulWidget {
   @override
   _ShowreceptiondataState createState() => _ShowreceptiondataState();
@@ -214,8 +214,7 @@ class _ShowreceptiondataState extends State<Showreceptiondata> {
                       child: Text(
                         'No Reception info available!',
                         style: TextStyle(
-                            fontFamily: 'Times New Roman',
-                            fontWeight: FontWeight.bold),
+                            fontFamily: 'Times New Roman',),
                       ),
                     );
                   }
@@ -255,11 +254,10 @@ class _ShowreceptiondataState extends State<Showreceptiondata> {
                   if (filteredDocs.isEmpty) {
                     return Center(
                       child: Text(
-                        'No data between selected dates',
+                        'No data between selected dates!',
                         style: TextStyle(
                           fontFamily: 'Times New Roman',
                           fontSize: 18,
-                          fontWeight: FontWeight.bold,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -385,7 +383,7 @@ class _ShowreceptiondataState extends State<Showreceptiondata> {
                                     buildFormField(
                                         'Meeting Location: ', doc['location']),
                                     buildFormField('Assigned Staff/CEO: ',
-                                        doc['location']),
+                                        doc['assigned_staff']),
                                     SizedBox(
                                       height: 10,
                                     ),

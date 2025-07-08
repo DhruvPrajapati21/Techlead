@@ -239,7 +239,7 @@ class _AttendanceState extends ConsumerState<Attendance> {
 
         final smtpServer = gmail(username, appSpecificPassword);
         final message = Message()
-          ..from = Address('Info@techleadsolution.in', 'Techlead')
+          ..from = Address('Info@techleadsolution.in', 'Techlead The Engineering Solution')
           ..recipients.add('Info@techleadsolution.in')
           ..subject = 'Monthly Attendance Data'
           ..text = 'Please find the attached monthly attendance data Excel sheet.\n'
@@ -312,7 +312,7 @@ class _AttendanceState extends ConsumerState<Attendance> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: const [
-                Icon(Icons.message, color: Colors.cyanAccent),
+                Icon(Icons.message, color: Colors.blueAccent),
                 SizedBox(width: 12.0),
                 Expanded(
                   child: Text(
@@ -433,31 +433,48 @@ class _AttendanceState extends ConsumerState<Attendance> {
           ..attachments.add(
             FileAttachment(tempFile)..fileName = 'attendance_data.xlsx',
           );
-
         try {
           final sendReport = await send(message, smtpServer);
           print('Message sent: ' + sendReport.toString());
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                  content: Text('Excel file sent via email successfully!')),
+                backgroundColor: Colors.green, // ✅ Green background
+                content: const Text(
+                  'Excel file sent via email successfully!',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold), // ✅ White text
+                ),
+              ),
             );
           }
         } on MailerException catch (e) {
           print('Message not sent. $e');
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Error sending email.')),
+              SnackBar(
+                backgroundColor: Colors.red, // ❌ Red background
+                content: const Text(
+                  'Error sending email.',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold), // ✅ White text
+                ),
+              ),
             );
           }
         }
+
       } else {
         throw Exception('Failed to save file');
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error generating Excel file.')),
+          SnackBar(
+            backgroundColor: Colors.red,
+            content: const Text(
+              'Error generating Excel file.',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold), // ✅ White text
+            ),
+          ),
         );
       }
       print('Error generating Excel file: $e');
@@ -541,7 +558,7 @@ class _AttendanceState extends ConsumerState<Attendance> {
                     ),
                     decoration: InputDecoration(
                       filled: true,
-                      fillColor: const Color(0xFF0D1B3E), // Dark blue background
+                      fillColor: const Color(0xFF3f2e6c), // Dark blue background
                       labelText: 'Search by Employee Name',
                       labelStyle: const TextStyle(
                         color: Colors.white70,
@@ -568,7 +585,7 @@ class _AttendanceState extends ConsumerState<Attendance> {
 
                 ),
                 IconButton(
-                  icon: Icon(Icons.date_range),
+                  icon: Icon(Icons.date_range,color: Color(0xFF3f2e6c),),
                   onPressed: () {
                     _selectDate(context);
                   },
@@ -752,7 +769,7 @@ class _AttendanceState extends ConsumerState<Attendance> {
                                         }
                                       },
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFF0D1B3E),
+                                        backgroundColor: const Color(0xFF3f2e6c),
 
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(5.0),

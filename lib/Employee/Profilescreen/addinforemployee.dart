@@ -216,7 +216,6 @@ class _AddProfilePageState extends State<AddProfilePage> with SingleTickerProvid
         _isSubmitting = false;
       });
 
-
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -403,7 +402,6 @@ class _AddProfilePageState extends State<AddProfilePage> with SingleTickerProvid
                           return null;
                         },
                       ),
-
 
                       _buildDecoratedField(
                         controller: _dobController,

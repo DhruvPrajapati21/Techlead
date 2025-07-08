@@ -156,7 +156,6 @@ class _DailyReportRecordOfReceptionState
               final report = doc.data() as Map<String, dynamic>;
               final docId = doc.id;
 
-              // Use the shared reusable widget:
               return ReportCardWidget.buildReportCard(context, report, docId);
             },
           );

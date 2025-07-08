@@ -3,44 +3,75 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 
-class EditReceptionReportScreen extends StatefulWidget {
+class EditAllTaskOfReports extends StatefulWidget {
   final String docId;
   final Map<String, dynamic> reportData;
 
-  const EditReceptionReportScreen({
+  const EditAllTaskOfReports({
     super.key,
     required this.docId,
     required this.reportData,
   });
 
   @override
-  State<EditReceptionReportScreen> createState() => _EditReceptionReportScreenState();
+  State<EditAllTaskOfReports> createState() => _EditAllTaskOfReportsState();
 }
 
-class _EditReceptionReportScreenState extends State<EditReceptionReportScreen> {
+class _EditAllTaskOfReportsState extends State<EditAllTaskOfReports> {
   final Map<String, TextEditingController> controllers = {};
   final List<String> serviceStatuses = ["Pending", "In Progress", "Completed"];
 
   List<Map<String, dynamic>> uploadedFiles = [];
   List<Map<String, dynamic>> deletedFiles = [];
   Map<String, String> renamedFiles = {};
+  List<String> fieldOrder = [
+    'employeeId',
+    'employeeName',
+    'Service_department',
+    'location',
+    'taskTitle',
+    'service_status',
+    'date',
+    'actionsTaken',
+    'nextSteps',
+  ];
 
   @override
   void initState() {
     super.initState();
-    widget.reportData.forEach((key, value) {
-      if (key != 'userId' && (value is String || value == null)) {
-        controllers[key] = TextEditingController(text: value ?? '');
-      }
-    });
 
+    for (var key in fieldOrder) {
+      final value = widget.reportData[key];
+
+      // ✅ Convert Timestamp to formatted date
+      if (key == 'date' && value is Timestamp) {
+        DateTime dt = value.toDate();
+        controllers[key] = TextEditingController(
+          text: DateFormat('dd MMM yyyy').format(dt),
+        );
+      }
+      // ✅ Convert normal string/int/double/etc. including 'challenges'
+      else if (value is! Map && value is! List) {
+        controllers[key] = TextEditingController(
+          text: value?.toString() ?? '',
+        );
+      }
+      // ❗ Log skipped complex fields (Map or List)
+      else {
+        debugPrint('Skipped key: $key, value type: ${value.runtimeType}');
+      }
+    }
+
+    // ✅ Load uploaded files if any
     if (widget.reportData['uploadedFiles'] != null &&
         widget.reportData['uploadedFiles'] is List) {
       uploadedFiles = List<Map<String, dynamic>>.from(widget.reportData['uploadedFiles']);
     }
   }
+
 
   @override
   void dispose() {
@@ -124,23 +155,141 @@ class _EditReceptionReportScreenState extends State<EditReceptionReportScreen> {
           }
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('File replaced successfully!')),
-        );
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error replacing file: $e')),
-        );
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'File replaced successfully!',
+                style: TextStyle(color: Colors.white),
+              ),
+              backgroundColor: Colors.green, // ✅ Green background
+              duration: Duration(seconds: 2),
+            ),
+          );
+        } catch (e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Error replacing file: $e',
+                style: const TextStyle(color: Colors.white),
+              ),
+              backgroundColor: Colors.red, // ✅ Red background
+              duration: const Duration(seconds: 3),
+            ),
+          );
       }
     }
   }
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        behavior: SnackBarBehavior.floating,
+        content: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [
+                Color(0xFF000F89),
+                Color(0xFF0F52BA),
+                Color(0xFF002147),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.cyanAccent),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  message,
+                  style: const TextStyle(
+                    color: Colors.cyanAccent,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        behavior: SnackBarBehavior.floating,
+        content: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [
+                Color(0xFF000F89),
+                Color(0xFF0F52BA),
+                Color(0xFF002147),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.check_circle_outline, color: Colors.white),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  message,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.normal,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
   Future<void> _submit() async {
     Map<String, dynamic> updatedData = {};
+    bool hasEmptyFields = false;
 
     controllers.forEach((key, controller) {
-      updatedData[key] = controller.text.trim();
+      String value = controller.text.trim();
+
+      if (value.isEmpty) {
+        hasEmptyFields = true;
+      }
+
+      if (key == 'date') {
+        try {
+          DateTime parsed = DateFormat('dd MMM yyyy').parse(value);
+          updatedData[key] = Timestamp.fromDate(parsed);
+        } catch (e) {
+          debugPrint("Date parsing failed for '$value': $e");
+          updatedData[key] = value;
+        }
+      } else {
+        updatedData[key] = value;
+      }
     });
+
+    if (hasEmptyFields) {
+      if (mounted) _showErrorSnackBar("Please fill in all the fields.");
+      return;
+    }
+
+    if (widget.reportData['workLog'] != null) {
+      updatedData['workLog'] = widget.reportData['workLog'];
+    }
 
     updatedData['uploadedFiles'] = uploadedFiles;
 
@@ -150,7 +299,7 @@ class _EditReceptionReportScreenState extends State<EditReceptionReportScreen> {
           final ref = FirebaseStorage.instance.refFromURL(file['downloadUrl']);
           await ref.delete();
         } catch (e) {
-          print("Failed to delete ${file['fileName']}: $e");
+          debugPrint("Failed to delete ${file['fileName']}: $e");
         }
       }
 
@@ -159,16 +308,18 @@ class _EditReceptionReportScreenState extends State<EditReceptionReportScreen> {
           .doc(widget.docId)
           .update(updatedData);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Report updated successfully!')),
-      );
-      Navigator.pop(context);
+      if (mounted) {
+        _showSuccessSnackBar("Report updated successfully!");
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted) Navigator.pop(context);
+        });
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Update failed: $e')),
-      );
+      if (mounted) _showErrorSnackBar("Update failed: $e");
     }
   }
+
+
 
   Widget _buildFileTile(Map<String, dynamic> file) {
     final String url = file['downloadUrl'] ?? '';
@@ -299,7 +450,9 @@ class _EditReceptionReportScreenState extends State<EditReceptionReportScreen> {
       final extension = p.extension(fileName).replaceAll('.', '');
       final storageRef = FirebaseStorage.instance
           .ref()
-          .child('uploaded_reports/${DateTime.now().millisecondsSinceEpoch}_$fileName');
+          .child('uploaded_reports/${DateTime
+          .now()
+          .millisecondsSinceEpoch}_$fileName');
 
       try {
         final uploadTask = await storageRef.putData(fileBytes);
@@ -315,35 +468,54 @@ class _EditReceptionReportScreenState extends State<EditReceptionReportScreen> {
           uploadedFiles.add(newFile);
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            content: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.blue.shade600, Colors.blue.shade900],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Colors.green,
+              elevation: 0,
+              content: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 20, vertical: 14),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade600,
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Text(
-                'File uploaded successfully!',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                child: const Text(
+                  'File uploaded successfully!',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
-          ),
-        );
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Upload failed: $e')),
-        );
+          );
+        } catch (e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Colors.red,
+              elevation: 0,
+              content: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 20, vertical: 14),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade600,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  'Upload failed: $e',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
       }
     }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -403,10 +575,10 @@ class _EditReceptionReportScreenState extends State<EditReceptionReportScreen> {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                for (var entry in controllers.entries)
+                for (var key in fieldOrder)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 6),
-                    child: entry.key == 'service_status'
+                    child: key == 'service_status'
                         ? Container(
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
@@ -422,10 +594,10 @@ class _EditReceptionReportScreenState extends State<EditReceptionReportScreen> {
                         border: Border.all(color: Colors.white),
                       ),
                       child: DropdownButtonFormField<String>(
-                        value: entry.value.text.isNotEmpty ? entry.value.text : null,
+                        value: controllers[key]!.text.isNotEmpty ? controllers[key]!.text : null,
                         onChanged: (value) {
                           setState(() {
-                            entry.value.text = value!;
+                            controllers[key]!.text = value!;
                           });
                         },
                         items: serviceStatuses
@@ -458,19 +630,184 @@ class _EditReceptionReportScreenState extends State<EditReceptionReportScreen> {
                         border: Border.all(color: Colors.white),
                       ),
                       child: TextField(
-                        controller: entry.value,
-                        readOnly: ['employeeName', 'Service_department', 'employeeId'].contains(entry.key),
+                        controller: controllers[key],
+                        readOnly: ['employeeName', 'Service_department', 'employeeId', 'date'].contains(key),
                         style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                         decoration: InputDecoration(
                           border: InputBorder.none,
-                          labelText: entry.key.replaceAll("_", " ").toUpperCase(),
-                          labelStyle: const TextStyle(color: Colors.cyanAccent,fontWeight: FontWeight.bold),
+                          labelText: key.replaceAll("_", " ").toUpperCase(),
+                          labelStyle: const TextStyle(
+                            color: Colors.cyanAccent,
+                            fontWeight: FontWeight.bold,
+                          ),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                         ),
+                        onTap: key == 'date'
+                            ? () async {
+                          final DateTime today = DateTime.now();
+                          final DateTime firstDate = DateTime(today.year, today.month, today.day);
+
+                          final DateTime? picked = await showDatePicker(
+                            context: context,
+                            initialDate: firstDate,
+                            firstDate: firstDate,
+                            lastDate: DateTime(2101),
+                            builder: (BuildContext context, Widget? child) {
+                              return Theme(
+                                data: ThemeData(
+                                  dialogBackgroundColor: const Color(0xFF0D1B3E),
+                                  colorScheme: const ColorScheme.dark(
+                                    primary: Colors.white,
+                                    onPrimary: Color(0xFF0D1B3E),
+                                    surface: Color(0xFF0D1B3E),
+                                    onSurface: Colors.white,
+                                  ),
+                                  primaryTextTheme: const TextTheme(
+                                    titleLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                    bodyLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                    bodyMedium: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                    labelLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                  ),
+                                  textButtonTheme: TextButtonThemeData(
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: Colors.white,
+                                      textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                ),
+                                child: child!,
+                              );
+                            },
+                          );
+
+                          if (picked != null) {
+                            setState(() {
+                              controllers['date']?.text = DateFormat('dd MMM yyyy').format(picked);
+                            });
+                          }
+                        }
+                            : null,
+
                       ),
                     ),
                   ),
+                // === Add this just below the controller-based fields ===
+                if (widget.reportData['workLog'] != null && widget.reportData['workLog'] is List) ...[
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [
+                          Color(0xFF000F89),
+                          Color(0xFF0F52BA),
+                          Color(0xFF002147),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Work Log",
+                          style: TextStyle(
+                            color: Colors.cyanAccent,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        ...List.generate(widget.reportData['workLog'].length, (index) {
+                          final timeSlotController = TextEditingController(
+                            text: widget.reportData['workLog'][index]['timeSlot'] ?? '',
+                          );
+                          final descriptionController = TextEditingController(
+                            text: widget.reportData['workLog'][index]['description'] ?? '',
+                          );
 
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [
+                                          Color(0xFF000F89),
+                                          Color(0xFF0F52BA),
+                                          Color(0xFF002147),
+                                        ],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(color: Colors.white),
+                                    ),
+                                    child: TextField(
+                                      controller: timeSlotController,
+                                      onChanged: (value) {
+                                        widget.reportData['workLog'][index]['timeSlot'] = value;
+                                      },
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      decoration: const InputDecoration(
+                                        labelText: "Time Slot",
+                                        labelStyle: TextStyle(color: Colors.cyanAccent),
+                                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                                        border: InputBorder.none,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [
+                                          Color(0xFF000F89),
+                                          Color(0xFF0F52BA),
+                                          Color(0xFF002147),
+                                        ],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(color: Colors.white),
+                                    ),
+                                    child: TextField(
+                                      controller: descriptionController,
+                                      onChanged: (value) {
+                                        widget.reportData['workLog'][index]['description'] = value;
+                                      },
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      decoration: const InputDecoration(
+                                        labelText: "Description",
+                                        labelStyle: TextStyle(color: Colors.cyanAccent),
+                                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                                        border: InputBorder.none,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 20),
                 if (uploadedFiles.isNotEmpty) ...[
                   Align(
@@ -499,8 +836,8 @@ class _EditReceptionReportScreenState extends State<EditReceptionReportScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    // Add File Button with gradient background
                     Container(
+                      width: 140,
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
                           colors: [
@@ -518,17 +855,19 @@ class _EditReceptionReportScreenState extends State<EditReceptionReportScreen> {
                         icon: const Icon(Icons.add),
                         label: const Text("Add File"),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent, // Important: transparent so gradient shows
-                          shadowColor: Colors.transparent, // Remove shadow to keep it clean
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
                       ),
                     ),
+                    SizedBox(height: 20,),
 
                     // Submit Button with gradient background
                     Container(
+                      width: 140,
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
                           colors: [

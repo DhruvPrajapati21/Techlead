@@ -302,7 +302,7 @@ class _SmdailytaskreportState
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => EditReceptionReportScreen(
+                        builder: (_) => EditAllTaskOfReports(
                           docId: docId,
                           reportData: task,
                         ),

@@ -110,22 +110,22 @@ class _DigitlmarketingshowdataState extends State<Digitlmarketingshowdata> {
                       }).toList();
 
                       if (assignedTasks.isEmpty) {
-                        return const Center(child: Text("No tasks available between these dates.", style: TextStyle(fontSize: 16)));
-                      }
-
-                      if (assignedTasks.isEmpty) {
                         return Center(
                           child: Text(
                             (widget.unreadCount ?? 0) > 0
                                 ? "You have unread tasks, but none match the filters."
                                 : "No tasks assigned.",
                             style: const TextStyle(
-                              color: Colors.white,
+                              color: Colors.black,
                               fontSize: 16,
                               fontFamily: "Times New Roman",
                             ),
                           ),
                         );
+                      }
+
+                      if (assignedTasks.isEmpty) {
+                        return const Center(child: Text("No tasks available between these dates.", style: TextStyle(fontSize: 16)));
                       }
 
                       WidgetsBinding.instance.addPostFrameCallback((_) {
