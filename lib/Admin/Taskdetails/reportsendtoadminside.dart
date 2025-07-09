@@ -1,4 +1,3 @@
-// [Keep all your imports as-is]
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -144,7 +143,20 @@ class _ReportSendToAdminSideState extends State<ReportSendToAdminSide> {
                 List<QueryDocumentSnapshot> filteredReports = snapshot.data!.docs.where((doc) {
                   final data = doc.data() as Map<String, dynamic>;
                   final name = data["employeeName"]?.toString().toLowerCase() ?? '';
-                  final reportDate = (data["timestamp"] as Timestamp?)?.toDate() ?? DateTime.now();
+
+                  // 🔽 Handle Timestamp or String safely
+                  DateTime reportDate;
+                  try {
+                    if (data["timestamp"] is Timestamp) {
+                      reportDate = (data["timestamp"] as Timestamp).toDate();
+                    } else if (data["timestamp"] is String) {
+                      reportDate = DateTime.parse(data["timestamp"]);
+                    } else {
+                      reportDate = DateTime.now();
+                    }
+                  } catch (e) {
+                    reportDate = DateTime.now();
+                  }
 
                   if (_startDate != null && reportDate.isBefore(_startDate!)) return false;
                   if (_endDate != null && reportDate.isAfter(_endDate!)) return false;
@@ -154,7 +166,7 @@ class _ReportSendToAdminSideState extends State<ReportSendToAdminSide> {
 
                 if (filteredReports.isEmpty) {
                   return const Center(
-                    child: Text("No reports match your search/date range!", style: TextStyle(color: Colors.black,fontFamily: "Times New Roman")),
+                    child: Text("No reports match your search/date range!", style: TextStyle(color: Colors.black, fontFamily: "Times New Roman")),
                   );
                 }
 
@@ -192,21 +204,28 @@ class _ReportSendToAdminSideState extends State<ReportSendToAdminSide> {
     );
   }
 
+  String _formatDate(dynamic value) {
+    try {
+      if (value is Timestamp) {
+        return DateFormat('dd MMM yyyy').format(value.toDate());
+      } else if (value is String) {
+        DateTime parsedDate = DateTime.parse(value);
+        return DateFormat('dd MMM yyyy').format(parsedDate);
+      } else {
+        return "Invalid date";
+      }
+    } catch (e) {
+      return "Invalid date";
+    }
+  }
+
   Widget _buildSectionTitle(String title) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.amberAccent),
-        ),
+        Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.amberAccent)),
         const SizedBox(height: 4),
-        Container(
-          height: 2,
-          width: 50,
-          color: Colors.cyanAccent,
-          margin: const EdgeInsets.only(bottom: 10),
-        ),
+        Container(height: 2, width: 50, color: Colors.cyanAccent, margin: const EdgeInsets.only(bottom: 10)),
       ],
     );
   }
@@ -229,7 +248,7 @@ class _ReportSendToAdminSideState extends State<ReportSendToAdminSide> {
             buildReportRow(Icons.category, "Department:", data["Service_department"]),
             buildReportRow(Icons.miscellaneous_services, "Service Status:", data["service_status"]),
             buildReportRow(Icons.location_on, "Location:", data["location"]),
-            buildReportRow(Icons.date_range, "Date:", DateFormat('dd MMM yyyy').format(data["timestamp"].toDate())),
+            buildReportRow(Icons.date_range, "Date:", _formatDate(data["timestamp"])),
 
             const SizedBox(height: 12),
             _buildSectionTitle("Task Info"),
@@ -336,11 +355,7 @@ class _ReportSendToAdminSideState extends State<ReportSendToAdminSide> {
                   placeholder: (context, url) => Shimmer.fromColors(
                     baseColor: Colors.indigo.shade700,
                     highlightColor: Colors.indigo.shade400,
-                    child: Container(
-                      width: double.infinity,
-                      height: 150,
-                      color: Colors.indigo.shade900,
-                    ),
+                    child: Container(width: double.infinity, height: 150, color: Colors.indigo.shade900),
                   ),
                   errorWidget: (context, url, error) => const Text("Image failed to load", style: TextStyle(color: Colors.red)),
                 ),

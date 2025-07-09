@@ -183,8 +183,6 @@ Future<void> _handleNotification(RemoteMessage message, {bool isFromBackground =
   await _showLocalNotification(message);
 }
 
-
-
 void initializeFirebaseMessageListener() {
   FirebaseMessaging.onMessage.listen((message) {
     debugPrint('📥 Foreground FCM: ${message.data}');
