@@ -63,7 +63,7 @@ class _CategoryscreenState extends State<Categoryscreen> {
     ];
 
     allCategories = [
-      {'label': 'Human Resources', 'icon': Icons.work, 'color': catColors[0]},
+      {'label': 'Human Resource', 'icon': Icons.work, 'color': catColors[0]},
       {'label': 'Finance', 'icon': Icons.account_balance_wallet, 'color': catColors[1]},
       {'label': 'Management', 'icon': Icons.business, 'color': catColors[2]},
       {'label': 'Installation', 'icon': Icons.build, 'color': catColors[0]},
@@ -199,7 +199,7 @@ class _CategoryscreenState extends State<Categoryscreen> {
 
     Widget destination;
     switch (department) {
-      case 'Human Resources':
+      case 'Human Resource':
         destination = unreadCount > 0 ? Hrreceiveddata(projectName: projectName, unreadCount: unreadCount, highlightedTaskId: latestTaskId) : const Hrhomescreen();
         break;
       case 'Finance':

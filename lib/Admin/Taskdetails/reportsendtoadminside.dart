@@ -144,7 +144,6 @@ class _ReportSendToAdminSideState extends State<ReportSendToAdminSide> {
                   final data = doc.data() as Map<String, dynamic>;
                   final name = data["employeeName"]?.toString().toLowerCase() ?? '';
 
-                  // 🔽 Handle Timestamp or String safely
                   DateTime reportDate;
                   try {
                     if (data["timestamp"] is Timestamp) {
@@ -158,11 +157,20 @@ class _ReportSendToAdminSideState extends State<ReportSendToAdminSide> {
                     reportDate = DateTime.now();
                   }
 
-                  if (_startDate != null && reportDate.isBefore(_startDate!)) return false;
-                  if (_endDate != null && reportDate.isAfter(_endDate!)) return false;
+                  DateTime? start = _startDate != null
+                      ? DateTime(_startDate!.year, _startDate!.month, _startDate!.day, 0, 0, 0)
+                      : null;
+                  DateTime? end = _endDate != null
+                      ? DateTime(_endDate!.year, _endDate!.month, _endDate!.day, 23, 59, 59)
+                      : null;
+
+                  if (start != null && reportDate.isBefore(start)) return false;
+                  if (end != null && reportDate.isAfter(end)) return false;
                   if (_searchQuery.isNotEmpty && !name.contains(_searchQuery)) return false;
+
                   return true;
                 }).toList();
+
 
                 if (filteredReports.isEmpty) {
                   return const Center(
@@ -335,7 +343,8 @@ class _ReportSendToAdminSideState extends State<ReportSendToAdminSide> {
           padding: const EdgeInsets.symmetric(vertical: 5),
           child: isImage
               ? GestureDetector(
-            onTap: () {
+            onTap: () async {
+              await precacheImage(CachedNetworkImageProvider(fileUrl), context);
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -343,6 +352,7 @@ class _ReportSendToAdminSideState extends State<ReportSendToAdminSide> {
                 ),
               );
             },
+
             child: Hero(
               tag: fileName,
               child: ClipRRect(

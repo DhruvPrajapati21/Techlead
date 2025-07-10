@@ -299,8 +299,8 @@ class _LeaveInfoState extends ConsumerState<LeaveInfo> {
 
         final smtpServer = gmail(username, appSpecificPassword);
         final message = Message()
-          ..from = Address('Info@techleadsolution.in', 'Techlead The Engineering Solution')
-          ..recipients.add('Info@techleadsolution.in')
+          ..from = Address('Deep6796@gmail.com', 'Techlead')
+          ..recipients.add('Deep6796@gmail.com')
           ..subject = 'Monthly Leave Records Data'
           ..text = 'Please find the attached monthly leave records Excel sheet.\n'
           ..attachments.add(
@@ -458,8 +458,8 @@ class _LeaveInfoState extends ConsumerState<LeaveInfo> {
 
         final smtpServer = gmail(username, appSpecificPassword);
         final message = Message()
-          ..from = Address('Info@techleadsolution.in', 'Techlead')
-          ..recipients.add('Info@techleadsolution.in')
+          ..from = Address('Deep6796@gmail.com', 'Techlead')
+          ..recipients.add('Deep6796@gmail.com')
           ..subject = 'Leave Records Data'
           ..text = 'Please find the attached leave records Excel Sheet.\n'
           ..attachments.add(

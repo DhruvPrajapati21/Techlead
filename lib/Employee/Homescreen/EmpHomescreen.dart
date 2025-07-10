@@ -1166,7 +1166,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                    builder: (context) => Viewguildlines()),
+                                    builder: (context) => UserViewGuideLines()),
                               );
                             },
                           ),

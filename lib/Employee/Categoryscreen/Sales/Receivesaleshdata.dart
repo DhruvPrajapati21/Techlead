@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../FileViwerscreen.dart';
@@ -75,23 +76,32 @@ class _ReceivesalesdataState extends State<Receivesalesdata> {
                       .snapshots(),
                   builder: (context, taskSnapshot) {
                     if (!taskSnapshot.hasData || taskSnapshot.data!.docs.isEmpty) {
-                      return const Center(child: Text("No tasks assigned.", style: TextStyle(fontSize: 16)));
+                      return const Center(
+                          child: Text("No tasks assigned.", style: TextStyle(fontSize: 16,fontFamily: "Times New Roman")));
                     }
 
                     final assignedTasks = taskSnapshot.data!.docs.where((doc) {
                       final task = doc.data() as Map<String, dynamic>;
                       final isUnread = task['isUnread'] == true;
                       final name = task['projectName']?.toString().toLowerCase() ?? '';
-                      if (searchQuery.isNotEmpty && !name.contains(searchQuery.toLowerCase())) return false;
+
+                      if (searchQuery.isNotEmpty &&
+                          !name.contains(searchQuery.toLowerCase())) return false;
 
                       if (startDate != null && endDate != null) {
                         try {
                           DateTime assignedDate = task['date'] is Timestamp
                               ? (task['date'] as Timestamp).toDate()
                               : DateFormat('dd MMMM yy').parse(task['date']);
-                          DateTime start = DateTime(startDate!.year, startDate!.month, startDate!.day);
-                          DateTime end = DateTime(endDate!.year, endDate!.month, endDate!.day, 23, 59, 59);
-                          if (assignedDate.isBefore(start) || assignedDate.isAfter(end)) return false;
+
+                          DateTime start = DateTime(
+                              startDate!.year, startDate!.month, startDate!.day);
+                          DateTime end = DateTime(
+                              endDate!.year, endDate!.month, endDate!.day, 23, 59, 59);
+
+                          if (assignedDate.isBefore(start) || assignedDate.isAfter(end)) {
+                            return false;
+                          }
                         } catch (_) {
                           return false;
                         }
@@ -100,24 +110,9 @@ class _ReceivesalesdataState extends State<Receivesalesdata> {
                       return true;
                     }).toList();
 
-
                     if (assignedTasks.isEmpty) {
-                      return Center(
-                        child: Text(
-                          (widget.unreadCount ?? 0) > 0
-                              ? "You have unread tasks, but none match the filters."
-                              : "No tasks assigned.",
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontSize: 16,
-                            fontFamily: "Times New Roman",
-                          ),
-                        ),
-                      );
-                    }
-
-                    if (assignedTasks.isEmpty) {
-                      return const Center(child: Text("No tasks available between these dates.", style: TextStyle(fontSize: 16)));
+                      return const Center(child: Text("No tasks available between these dates.", style: TextStyle(fontSize: 16,fontFamily: "Times New Roman")));
+                      // return empty widget to avoid showing text
                     }
 
                     WidgetsBinding.instance.addPostFrameCallback((_) {

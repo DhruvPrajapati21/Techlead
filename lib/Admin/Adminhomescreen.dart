@@ -19,6 +19,7 @@ import 'Employeedetails/Empshowdata.dart';
 import 'Employeedetails/EnSignUpPage.dart';
 import 'Employeedetails/Showemployees.dart';
 import 'Employeedetails/forgotpassword.dart';
+import 'Guildlines/Adminviewguildlines.dart';
 import 'Guildlines/Guildlinesassign.dart';
 import 'Installation/fetchedshortagereport.dart';
 import 'Piechart/Addpiegraph.dart';
@@ -391,7 +392,7 @@ class _NewPieShowState extends State<NewPieShow>
                     children: [
                       _buildDrawerItem(
                         icon: Icons.task,
-                        text: 'Show Task',
+                        text: 'Show Employee Tasks',
                         onTap: () {
                           Navigator.push(
                               context,
@@ -402,7 +403,7 @@ class _NewPieShowState extends State<NewPieShow>
                       ),
                       _buildDrawerItem(
                         icon: Icons.add,
-                        text: 'Add Task',
+                        text: 'Task Assign',
                         onTap: () {
                           Navigator.push(
                               context,
@@ -437,7 +438,7 @@ class _NewPieShowState extends State<NewPieShow>
                           ),
                           _buildDrawerItem(
                             icon: Icons.people_alt,
-                            text: 'Employee Auth',
+                            text: 'Employee Authentication',
                             onTap: () {
                               Navigator.push(
                                   context,
@@ -447,7 +448,7 @@ class _NewPieShowState extends State<NewPieShow>
                           ),
                           _buildDrawerItem(
                             icon: Icons.people_outline_outlined,
-                            text: 'Employee Profile',
+                            text: 'Employee Profiles',
                             onTap: () {
                               Navigator.push(
                                   context,
@@ -474,6 +475,16 @@ class _NewPieShowState extends State<NewPieShow>
                                   context,
                                   MaterialPageRoute(
                                       builder: (context) => AddGuidelines()));
+                            },
+                          ),
+                          _buildDrawerItem(
+                            icon: Icons.view_agenda,
+                            text: 'View Guildlines',
+                            onTap: () {
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => AdminGuideLines()));
                             },
                           ),
                           _buildDrawerItem(

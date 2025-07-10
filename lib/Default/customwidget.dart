@@ -232,7 +232,7 @@ Widget buildMultiSelectDropdownField({
   required List<String> items,
   required List<String> selectedItems,
   required ValueChanged<List<String>> onChanged,
-  FocusNode? nextFocus, // optional next focus node
+  FocusNode? nextFocus,
 }) {
   return Container(
     decoration: BoxDecoration(
@@ -267,6 +267,13 @@ Widget buildMultiSelectDropdownField({
       },
       popupProps: PopupPropsMultiSelection.menu(
         showSearchBox: true,
+        itemBuilder: (context, item, isSelected) => Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Text(
+            item,
+            style: const TextStyle(color: Colors.white),
+          ),
+        ),
         searchFieldProps: TextFieldProps(
           textInputAction: TextInputAction.next,
           decoration: InputDecoration(
@@ -286,6 +293,12 @@ Widget buildMultiSelectDropdownField({
           borderRadius: BorderRadius.circular(16),
         ),
       ),
+      dropdownBuilder: (context, selectedItems) {
+        return Text(
+          selectedItems.join(', '),
+          style: const TextStyle(color: Colors.white), // selected text
+        );
+      },
       dropdownDecoratorProps: DropDownDecoratorProps(
         dropdownSearchDecoration: InputDecoration(
           labelText: labelText,
@@ -302,7 +315,6 @@ Widget buildMultiSelectDropdownField({
     ),
   );
 }
-
 
 
 Widget buildSection(String title, List<Widget> children) {

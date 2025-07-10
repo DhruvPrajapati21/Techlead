@@ -561,7 +561,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-
 class FullScreenImageView extends StatelessWidget {
   final String imageUrl;
 

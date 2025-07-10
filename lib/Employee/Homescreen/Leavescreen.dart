@@ -158,7 +158,7 @@ class _LeavescreenState extends State<Leavescreen> {
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Data added and email sent successfully!', style: TextStyle(color: Colors.white)),
+              content: Text('Leave Data added and email sent successfully!', style: TextStyle(color: Colors.white)),
               backgroundColor: Colors.green,
               duration: Duration(seconds: 3),
             ),
@@ -200,7 +200,7 @@ class _LeavescreenState extends State<Leavescreen> {
     String formattedDateTime = DateFormat('dd-MM-yyyy hh:mm:ss a').format(now);
     final message = Message()
       ..from = Address(userEmail, empNameController.text.trim())
-      ..recipients.add('Info@techleadsolution.in')
+      ..recipients.add('Deep6796@gmail.com')
       ..subject = 'New Leave Request'
       ..text = 'Leave Request Details:\n'
           'Empid:${empIdController.text.trim()}\n'

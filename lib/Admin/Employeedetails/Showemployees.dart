@@ -13,36 +13,57 @@ class Showemployees extends ConsumerStatefulWidget {
 }
 
 class _ShowemployeesState extends ConsumerState<Showemployees> {
-
   String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
+    // Set the custom title
     WidgetsBinding.instance.addPostFrameCallback((_) {
-
-      ref.read(customTitleWidgetProvider.notifier).state = Row(
-        mainAxisSize: MainAxisSize.min,
-        children: const [
-          Icon(Icons.person_2_rounded, color: Colors.white),
-          SizedBox(width: 8),
-          Text(
-            "Employee Authtication Details",
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold,fontFamily: "Times New Roman",fontSize: 14),
-          ),
-        ],
-      );
+      ref.read(appBarTitleProvider.notifier).state =
+          "Employee Authentication Details";
     });
   }
 
   final CollectionReference usersRef =
-  FirebaseFirestore.instance.collection('Empauth');
+      FirebaseFirestore.instance.collection('Empauth');
 
   Future<void> _deleteUser(String docId) async {
     try {
       await usersRef.doc(docId).delete();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Employee deleted successfully')),
+        SnackBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          behavior: SnackBarBehavior.floating,
+          content: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [
+                  Color(0xFF000F89), // Royal Blue
+                  Color(0xFF0F52BA), // Cobalt Blue
+                  Color(0xFF002147), // Midnight Blue
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: const [
+                Icon(Icons.check_circle_outline, color: Colors.white),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Employee deleted successfully!',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       );
     } catch (e) {
       print("Delete error: $e");
@@ -55,27 +76,88 @@ class _ShowemployeesState extends ConsumerState<Showemployees> {
   void _confirmDelete(String docId) {
     showDialog(
       context: context,
-      builder: (context) =>
-          AlertDialog(
-            title: const Text("Confirm Delete"),
-            content: const Text(
-                "Are you sure you want to delete this employee?"),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("Cancel"),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _deleteUser(docId);
-                },
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                child: const Text(
-                    "Delete", style: TextStyle(color: Colors.white)),
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [
+                Color(0xFF0F52BA), // Cobalt Blue
+                Color(0xFF1E64D8), // Royal Blue
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 10,
+                offset: Offset(0, 6),
               ),
             ],
           ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.warning_amber_rounded,
+                  color: Colors.white, size: 40),
+              const SizedBox(height: 16),
+              const Text(
+                "Confirm Delete",
+                style: TextStyle(
+                  fontSize: 20,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                "Are you sure you want to delete this employee?",
+                style: TextStyle(color: Colors.white70, fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.white),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12),
+                    ),
+                    child: const Text(
+                      "Cancel",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _deleteUser(docId);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.redAccent,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12),
+                    ),
+                    child: const Text("Delete"),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -91,8 +173,8 @@ class _ShowemployeesState extends ConsumerState<Showemployees> {
     );
   }
 
-  TableRow _buildDataRow(String id, String username, String email,
-      String password) {
+  TableRow _buildDataRow(
+      String id, String username, String email, String password) {
     return TableRow(
       decoration: const BoxDecoration(
         color: Colors.transparent,
@@ -149,9 +231,12 @@ class _ShowemployeesState extends ConsumerState<Showemployees> {
         ),
         child: Column(
           children: [
+            SizedBox(
+              height: 10,
+            ),
             Padding(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 16.0, vertical: 10),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10.0, vertical: 10),
               child: TextField(
                 onChanged: (value) {
                   setState(() {
@@ -160,7 +245,7 @@ class _ShowemployeesState extends ConsumerState<Showemployees> {
                 },
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
-                  hintText: 'Search by username',
+                  hintText: 'Search by username...',
                   hintStyle: const TextStyle(color: Colors.white),
                   prefixIcon: const Icon(Icons.search, color: Colors.white),
                   filled: true,
@@ -171,8 +256,8 @@ class _ShowemployeesState extends ConsumerState<Showemployees> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(15),
-                    borderSide: const BorderSide(
-                        color: Colors.cyanAccent, width: 2),
+                    borderSide:
+                        const BorderSide(color: Colors.cyanAccent, width: 2),
                   ),
                 ),
               ),
@@ -185,51 +270,84 @@ class _ShowemployeesState extends ConsumerState<Showemployees> {
                 builder: (context, snapshot) {
                   if (snapshot.hasError) {
                     return const Center(
-                      child: Text(
-                          'Something went wrong', style: TextStyle(color: Colors
-                          .white)),
+                      child: Text('Something went wrong',
+                          style: TextStyle(color: Colors.white)),
                     );
                   }
 
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(
-                      child: CircularProgressIndicator(
-                          color: Colors.cyanAccent),
+                      child:
+                          CircularProgressIndicator(color: Colors.cyanAccent),
                     );
                   }
 
                   final users = snapshot.data!.docs.where((doc) {
                     final data = doc.data() as Map<String, dynamic>;
-                    final username = (data['username'] ?? '')
-                        .toString()
-                        .toLowerCase();
+                    final username =
+                        (data['username'] ?? '').toString().toLowerCase();
                     return username.contains(_searchQuery);
                   }).toList();
 
+                  if (users.isEmpty) {
+                    return const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(20),
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                          ),
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 24, vertical: 16),
+                            child: Text(
+                              'No employee found matching your search.',
+                              style: TextStyle(
+                                fontFamily: 'Times New Roman',
+                                fontSize: 18,
+                                color: Colors.white,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }
                   return SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Table(
-                        defaultColumnWidth: const IntrinsicColumnWidth(),
-                        border: TableBorder.all(color: Colors.white),
-                        children: [
-                          _buildHeaderRow(),
-                          ...users.map((user) {
-                            final data = user.data() as Map<String, dynamic>;
-                            final id = user.id;
-                            final username = data['username'] ?? 'No Name';
-                            final email = data['email'] ?? 'No Email';
-                            final password = data['password'] ?? 'No Password';
+                    scrollDirection: Axis.vertical,
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Table(
+                          defaultColumnWidth: const IntrinsicColumnWidth(),
+                          border: TableBorder.all(color: Colors.white),
+                          children: [
+                            _buildHeaderRow(),
+                            ...users.map((user) {
+                              final data = user.data() as Map<String, dynamic>;
+                              final id = user.id;
+                              final username = data['username'] ?? 'No Name';
+                              final email = data['email'] ?? 'No Email';
+                              final password =
+                                  data['password'] ?? 'No Password';
 
-                            return _buildDataRow(id, username, email, password);
-                          }).toList(),
-                        ],
+                              return _buildDataRow(
+                                  id, username, email, password);
+                            }).toList(),
+                          ],
+                        ),
                       ),
                     ),
                   );
                 },
               ),
+            ),
+            SizedBox(
+              height: 20,
             ),
           ],
         ),

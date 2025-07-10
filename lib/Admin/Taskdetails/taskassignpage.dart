@@ -58,7 +58,7 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
     {'name': 'Digital Marketing', 'icon': Icons.campaign},
     {'name': 'Reception', 'icon': Icons.phone},
     {'name': 'Account', 'icon': Icons.book},
-    {'name': 'Human Resources', 'icon': Icons.group},
+    {'name': 'Human Resource', 'icon': Icons.group},
     {'name': 'Management', 'icon': Icons.business},
     {'name': 'Sales', 'icon': Icons.shopping_cart},
     {'name': 'Installation', 'icon': Icons.build},
@@ -457,7 +457,7 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
           SnackBar(
             backgroundColor: Colors.green,
             content: const Text(
-              'Task assigned and notifications sent!',
+              'Task assigned and notifications sent successfully!',
               style: TextStyle(color: Colors.white),
             ),
           ),
@@ -799,18 +799,15 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
     });
   }
 
-
   @override
   void initState() {
     super.initState();
     _fetchEmployeeNames();
-    initializeFirebaseMessageListener();
+    // initializeFirebaseMessageListener();
     filteredDepartmentList = departmentList;
     _loadAdminData();
     getAdminFcmToken();
   }
-
-
 
   @override
   Widget build(BuildContext context) {

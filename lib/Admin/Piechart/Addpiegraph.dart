@@ -155,7 +155,7 @@ class _AdminFetchDataPiePageState extends ConsumerState<AdminFetchDataPiePage> {
             const SizedBox(height: 16.0),
             _buildTextField(projectNameController, 'Project Name',),
             const SizedBox(height: 16.0),
-            _buildDropdownField('Project Status', selectedProjectStatus, ['Not Started', 'In Progress', 'Completed'], (newValue) {
+            _buildDropdownField('Project Status', selectedProjectStatus, ['In Progress', 'Completed'], (newValue) {
               setState(() {
                 selectedProjectStatus = newValue;
               });

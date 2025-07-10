@@ -239,8 +239,8 @@ class _AttendanceState extends ConsumerState<Attendance> {
 
         final smtpServer = gmail(username, appSpecificPassword);
         final message = Message()
-          ..from = Address('Info@techleadsolution.in', 'Techlead The Engineering Solution')
-          ..recipients.add('Info@techleadsolution.in')
+          ..from = Address('Deep6796@gmail.com', 'Techlead')
+          ..recipients.add('Deep6796@gmail.com')
           ..subject = 'Monthly Attendance Data'
           ..text = 'Please find the attached monthly attendance data Excel sheet.\n'
           ..attachments.add(
@@ -426,8 +426,8 @@ class _AttendanceState extends ConsumerState<Attendance> {
 
         final smtpServer = gmail(username, appSpecificPassword);
         final message = Message()
-          ..from = Address('Info@techleadsolution.in', 'Techlead')
-          ..recipients.add('Info@techleadsolution.in')
+          ..from = Address('Deep6796@gmail.com', 'Techlead')
+          ..recipients.add('Deep6796@gmail.com')
           ..subject = 'Attendance For Employee Data'
           ..text = 'Please find the attached attendance data Excel Sheet.\n'
           ..attachments.add(

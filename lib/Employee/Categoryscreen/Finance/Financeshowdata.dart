@@ -56,22 +56,10 @@ class _FinanceshowdataState extends State<Financeshowdata> {
             child: currentUserId == null
                 ? const Center(child: Text("User not logged in"))
                 : FutureBuilder<DocumentSnapshot>(
-                future: FirebaseFirestore.instance
-                    .collection('EmpProfile')
-                    .doc(currentUserId)
-                    .get(),
+                future: FirebaseFirestore.instance.collection('EmpProfile').doc(currentUserId).get(),
                 builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
                   if (!snapshot.hasData || !snapshot.data!.exists) {
-                    return const Center(
-                      child: Text(
-                        "User profile not found.",
-                        style: TextStyle(color: Colors.red),
-                      ),
-                    );
+                    return const Center(child: Text("User profile not found.", style: TextStyle(color: Colors.red)));
                   }
 
                   final empId = snapshot.data!.get('fullName');
@@ -83,80 +71,45 @@ class _FinanceshowdataState extends State<Financeshowdata> {
                         .where('employeeNames', arrayContains: empId)
                         .snapshots(),
                     builder: (context, taskSnapshot) {
-                      if (taskSnapshot.connectionState ==
-                          ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-
-                      if (!taskSnapshot.hasData ||
-                          taskSnapshot.data!.docs.isEmpty) {
+                      if (!taskSnapshot.hasData || taskSnapshot.data!.docs.isEmpty) {
                         return const Center(
-                          child: Text(
-                            "No tasks assigned.",
-                            style: TextStyle(color: Colors.black,
-                                fontSize: 16,
-                                fontFamily: "Times New Roman"),
-                          ),
-                        );
+                            child: Text("No tasks assigned.", style: TextStyle(fontSize: 16,fontFamily: "Times New Roman")));
                       }
 
-                      var assignedTasks = taskSnapshot.data!.docs.where((doc) {
-                        var task = doc.data() as Map<String, dynamic>;
+                      final assignedTasks = taskSnapshot.data!.docs.where((doc) {
+                        final task = doc.data() as Map<String, dynamic>;
                         final isUnread = task['isUnread'] == true;
+                        final name = task['projectName']?.toString().toLowerCase() ?? '';
+
                         if (searchQuery.isNotEmpty &&
-                            !task['projectName']
-                                .toString()
-                                .toLowerCase()
-                                .contains(searchQuery.toLowerCase())) {
-                          return false;
-                        }
+                            !name.contains(searchQuery.toLowerCase())) return false;
 
                         if (startDate != null && endDate != null) {
-                          DateTime assignedDate = DateFormat('dd MMMM yy')
-                              .parse(task['date']);
-                          DateTime normalizedStartDate = DateTime(
-                              startDate!.year, startDate!.month,
-                              startDate!.day);
-                          DateTime normalizedEndDate = DateTime(
-                              endDate!.year, endDate!.month, endDate!.day, 23,
-                              59, 59);
-                          return !assignedDate.isBefore(normalizedStartDate) &&
-                              !assignedDate.isAfter(normalizedEndDate);
+                          try {
+                            DateTime assignedDate = task['date'] is Timestamp
+                                ? (task['date'] as Timestamp).toDate()
+                                : DateFormat('dd MMMM yy').parse(task['date']);
+
+                            DateTime start = DateTime(
+                                startDate!.year, startDate!.month, startDate!.day);
+                            DateTime end = DateTime(
+                                endDate!.year, endDate!.month, endDate!.day, 23, 59, 59);
+
+                            if (assignedDate.isBefore(start) || assignedDate.isAfter(end)) {
+                              return false;
+                            }
+                          } catch (_) {
+                            return false;
+                          }
                         }
 
                         return true;
                       }).toList();
 
                       if (assignedTasks.isEmpty) {
-                        return const Center(child: Text("No tasks available between these dates.", style: TextStyle(fontSize: 16)));
+                        return const Center(child: Text("No tasks available between these dates.", style: TextStyle(fontSize: 16,fontFamily: "Times New Roman")));
+                        // return empty widget to avoid showing text
                       }
-
-                      if (assignedTasks.isEmpty) {
-                        return Center(
-                          child: Text(
-                            (widget.unreadCount ?? 0) > 0
-                                ? "You have unread tasks, but none match the filters."
-                                : "No tasks assigned.",
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 16,
-                              fontFamily: "Times New Roman",
-                            ),
-                          ),
-                        );
-                      }
-
-                      if (assignedTasks.isEmpty) {
-                        return const Center(
-                          child: Text(
-                            "No tasks available between these dates.",
-                            style: TextStyle(color: Colors.white,
-                                fontSize: 16,
-                                fontFamily: "Times New Roman"),
-                          ),
-                        );
-                      }
-
                       WidgetsBinding.instance.addPostFrameCallback((_) {
                         if (!scrolledToProject && widget.projectName != null) {
                         } else if (!scrolledToUnread && widget.highlightedTaskId != null) {
