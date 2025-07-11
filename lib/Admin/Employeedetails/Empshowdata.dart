@@ -24,13 +24,12 @@ class _EmpShowDataState extends ConsumerState<EmpShowData> {
   List<Map<String, dynamic>> filteredList = [];
 
   final TextEditingController searchController = TextEditingController();
-  @override
 
+  @override
   void initState() {
     super.initState();
     _loadProfileData();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-
       ref.read(customTitleWidgetProvider.notifier).state = Row(
         mainAxisSize: MainAxisSize.min,
         children: const [
@@ -38,12 +37,18 @@ class _EmpShowDataState extends ConsumerState<EmpShowData> {
           SizedBox(width: 8),
           Text(
             "Employee Profile Details",
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold,fontFamily: "Times New Roman",fontSize: 18),
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontFamily: "Times New Roman",
+              fontSize: 18,
+            ),
           ),
         ],
       );
     });
   }
+
   void _filterProfiles(String query) {
     final lowerQuery = query.toLowerCase();
     setState(() {
@@ -74,15 +79,14 @@ class _EmpShowDataState extends ConsumerState<EmpShowData> {
             bottom: MediaQuery.of(context).viewInsets.bottom + 24,
           ),
           decoration: BoxDecoration(
-            color: const Color(0xFF0A2A5A), // same as your card color
+            color: const Color(0xFF0A2A5A),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch, // stretch full width
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Close icon at top-right
                 Align(
                   alignment: Alignment.topRight,
                   child: IconButton(
@@ -90,8 +94,6 @@ class _EmpShowDataState extends ConsumerState<EmpShowData> {
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ),
-
-                // Centered Avatar
                 Center(
                   child: GestureDetector(
                     onTap: () {
@@ -127,17 +129,13 @@ class _EmpShowDataState extends ConsumerState<EmpShowData> {
                     ),
                   ),
                 ),
-
-
                 const SizedBox(height: 24),
-
-                // Edit button aligned right
                 Align(
                   alignment: Alignment.centerRight,
                   child: IconButton(
                     icon: const Icon(Icons.edit, color: Colors.white),
                     onPressed: () {
-                      Navigator.of(context).pop(); // close bottom sheet
+                      Navigator.of(context).pop();
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -150,10 +148,7 @@ class _EmpShowDataState extends ConsumerState<EmpShowData> {
                     },
                   ),
                 ),
-
                 const SizedBox(height: 8),
-
-                // Info rows with padding
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Column(
@@ -163,10 +158,8 @@ class _EmpShowDataState extends ConsumerState<EmpShowData> {
                       _buildInfoRow("Employee ID", profile['empId'] ?? ''),
                       _buildInfoRow("DOB", profile['dob'] ?? ''),
                       _buildInfoRow("Qualification", profile['qualification'] ?? ''),
-                      _buildInfoRow(
-                        "Department",
-                        (profile['categories'] as List<dynamic>?)?.join(', ') ?? 'N/A',
-                      ),
+                      _buildInfoRow("Department",
+                          (profile['categories'] as List<dynamic>?)?.join(', ') ?? 'N/A'),
                       _buildInfoRow("Address", profile['address'] ?? ''),
                       _buildInfoRow("Mobile", profile['mobile'] ?? ''),
                       _buildInfoRow("Email", profile['email'] ?? ''),
@@ -182,13 +175,10 @@ class _EmpShowDataState extends ConsumerState<EmpShowData> {
     );
   }
 
-
-
   Future<void> _loadProfileData() async {
     try {
       QuerySnapshot snapshot =
       await FirebaseFirestore.instance.collection('EmpProfile').get();
-
       setState(() {
         profileList = snapshot.docs
             .map((doc) => {
@@ -203,12 +193,10 @@ class _EmpShowDataState extends ConsumerState<EmpShowData> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFCDD5F6),
-
       appBar: CustomAppBar(),
       body: profileList.isEmpty
           ? _buildShimmerList()
@@ -222,7 +210,10 @@ class _EmpShowDataState extends ConsumerState<EmpShowData> {
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 hintText: 'Search by name, ID, department, or mobile',
-                hintStyle: const TextStyle(color: Colors.white,fontWeight: FontWeight.bold),
+                hintStyle: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'Times New Roman'),
                 prefixIcon: const Icon(Icons.search, color: Colors.white),
                 filled: true,
                 fillColor: Colors.blue.shade900,
@@ -233,77 +224,105 @@ class _EmpShowDataState extends ConsumerState<EmpShowData> {
               ),
             ),
           ),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: filteredList.length,
-              itemBuilder: (context, index) {
-                final profile = filteredList[index];
-                return GestureDetector(
-                  onTap: () => _showEmployeeDetails(profile),
-                  child: Card(
-                    elevation: 4,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Color(0xFF0A2A5A),
-                            Color(0xFF15489C),
-                            Color(0xFF1E64D8),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
+          if (filteredList.isEmpty)
+            Expanded(
+              child: Center(
+                child: Text(
+                  'No matching employee found!',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'Times New Roman',
+                    color: Colors.black54,
+                  ),
+                ),
+              ),
+            )
+          else
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(12),
+                itemCount: filteredList.length,
+                itemBuilder: (context, index) {
+                  final profile = filteredList[index];
+                  return GestureDetector(
+                    onTap: () => _showEmployeeDetails(profile),
+                    child: Card(
+                      elevation: 4,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
+                      margin: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Color(0xFF0A2A5A),
+                              Color(0xFF15489C),
+                              Color(0xFF1E64D8),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius:
+                          BorderRadius.all(Radius.circular(16)),
                         ),
-                        borderRadius: BorderRadius.all(Radius.circular(16)),
-                      ),
-                      child: Row(
-                        children: [
-                          // Info (Name, ID, Dept)
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(profile['fullName'] ?? '',
-                                    style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white)),
-                                const SizedBox(height: 4),
-                                Text("ID: ${profile['empId']}", style: const TextStyle(color: Colors.white70,fontWeight: FontWeight.bold)),
-                                Text("Department: ${(profile['categories'] as List<dynamic>?)?.join(', ') ?? ''}",
-                                    style: const TextStyle(color: Colors.white70,fontWeight: FontWeight.bold)),
-                              ],
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment:
+                                CrossAxisAlignment.start,
+                                children: [
+                                  Text(profile['fullName'] ?? '',
+                                      style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                          fontFamily: 'Times New Roman')),
+                                  const SizedBox(height: 4),
+                                  Text("ID: ${profile['empId']}",
+                                      style: const TextStyle(
+                                          color: Colors.white70,
+                                          fontWeight: FontWeight.bold,
+                                          fontFamily: 'Times New Roman')),
+                                  Text(
+                                      "Department: ${(profile['categories'] as List<dynamic>?)?.join(', ') ?? ''}",
+                                      style: const TextStyle(
+                                          color: Colors.white70,
+                                          fontWeight: FontWeight.bold,
+                                          fontFamily: 'Times New Roman')),
+                                ],
+                              ),
                             ),
-                          ),
-                          // Avatar
-                          CircleAvatar(
-                            radius: 30,
-                            backgroundColor: Colors.white,
-                            backgroundImage: profile['profileImage'] != null
-                                ? NetworkImage(profile['profileImage'])
-                                : null,
-                            child: (profile['profileImage'] == null || profile['profileImage'].isEmpty)
-                                ? const Icon(Icons.person, size: 30, color: Colors.grey)
-                                : null,
-                          ),
-                        ],
+                            CircleAvatar(
+                              radius: 30,
+                              backgroundColor: Colors.white,
+                              backgroundImage:
+                              profile['profileImage'] != null
+                                  ? NetworkImage(
+                                  profile['profileImage'])
+                                  : null,
+                              child: (profile['profileImage'] == null ||
+                                  profile['profileImage'].isEmpty)
+                                  ? const Icon(Icons.person,
+                                  size: 30, color: Colors.grey)
+                                  : null,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                );
-
-              },
-
+                  );
+                },
+              ),
             ),
-          ),
         ],
       ),
     );
   }
-}
+
   Widget _buildInfoRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
@@ -331,82 +350,81 @@ class _EmpShowDataState extends ConsumerState<EmpShowData> {
     );
   }
 
-Widget _buildShimmerList() {
-  return ListView.builder(
-    itemCount: 6, // Show 6 shimmer cards
-    padding: const EdgeInsets.all(12),
-    itemBuilder: (context, index) {
-      return Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Color(0xFF0A2A5A),
-                Color(0xFF15489C),
-                Color(0xFF1E64D8),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+  Widget _buildShimmerList() {
+    return ListView.builder(
+      itemCount: 6,
+      padding: const EdgeInsets.all(12),
+      itemBuilder: (context, index) {
+        return Card(
+          elevation: 4,
+          shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFF0A2A5A),
+                  Color(0xFF15489C),
+                  Color(0xFF1E64D8),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.all(Radius.circular(16)),
             ),
-            borderRadius: BorderRadius.all(Radius.circular(16)),
-          ),
-          child: Row(
-            children: [
-              // Text placeholders
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Shimmer.fromColors(
-                      baseColor: Colors.white54,
-                      highlightColor: Colors.white,
-                      child: Container(
-                        width: 150,
-                        height: 14,
-                        color: Colors.white,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Shimmer.fromColors(
+                        baseColor: Colors.white54,
+                        highlightColor: Colors.white,
+                        child: Container(
+                          width: 150,
+                          height: 14,
+                          color: Colors.white,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Shimmer.fromColors(
-                      baseColor: Colors.white54,
-                      highlightColor: Colors.white,
-                      child: Container(
-                        width: 100,
-                        height: 12,
-                        color: Colors.white,
+                      const SizedBox(height: 8),
+                      Shimmer.fromColors(
+                        baseColor: Colors.white54,
+                        highlightColor: Colors.white,
+                        child: Container(
+                          width: 100,
+                          height: 12,
+                          color: Colors.white,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Shimmer.fromColors(
-                      baseColor: Colors.white54,
-                      highlightColor: Colors.white,
-                      child: Container(
-                        width: 80,
-                        height: 12,
-                        color: Colors.white,
+                      const SizedBox(height: 4),
+                      Shimmer.fromColors(
+                        baseColor: Colors.white54,
+                        highlightColor: Colors.white,
+                        child: Container(
+                          width: 80,
+                          height: 12,
+                          color: Colors.white,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              // Avatar shimmer
-              Shimmer.fromColors(
-                baseColor: Colors.white54,
-                highlightColor: Colors.white,
-                child: const CircleAvatar(
-                  radius: 30,
-                  backgroundColor: Colors.white,
+                Shimmer.fromColors(
+                  baseColor: Colors.white54,
+                  highlightColor: Colors.white,
+                  child: const CircleAvatar(
+                    radius: 30,
+                    backgroundColor: Colors.white,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      );
-    },
-  );
+        );
+      },
+    );
+  }
 }
-

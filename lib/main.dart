@@ -7,7 +7,6 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' as riverpod;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
-
 import 'Employee/Authentication/Splashscreen.dart';
 import 'Employee/Categoryscreen/categoryscreen.dart';
 import 'Default/Themeprovider.dart';
