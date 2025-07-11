@@ -78,9 +78,9 @@ class _EmpShowDataState extends ConsumerState<EmpShowData> {
             right: 24,
             bottom: MediaQuery.of(context).viewInsets.bottom + 24,
           ),
-          decoration: BoxDecoration(
-            color: const Color(0xFF0A2A5A),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          decoration: const BoxDecoration(
+            color: Color(0xFF0A2A5A),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: SingleChildScrollView(
             child: Column(
@@ -111,7 +111,8 @@ class _EmpShowDataState extends ConsumerState<EmpShowData> {
                       child: CircleAvatar(
                         radius: 50,
                         backgroundColor: Colors.white,
-                        child: profile['profileImage'] != null && profile['profileImage'].isNotEmpty
+                        child: profile['profileImage'] != null &&
+                            profile['profileImage'].isNotEmpty
                             ? ClipOval(
                           child: CachedNetworkImage(
                             imageUrl: profile['profileImage'],
@@ -167,6 +168,17 @@ class _EmpShowDataState extends ConsumerState<EmpShowData> {
                     ],
                   ),
                 ),
+                const SizedBox(height: 20),
+                const Text(
+                  "Note: Click the pencil icon to edit this profile.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.redAccent,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'Times New Roman',
+                    fontSize: 14,
+                  ),
+                ),
               ],
             ),
           ),
@@ -211,15 +223,31 @@ class _EmpShowDataState extends ConsumerState<EmpShowData> {
               decoration: InputDecoration(
                 hintText: 'Search by name, ID, department, or mobile',
                 hintStyle: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Times New Roman'),
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Times New Roman',
+                ),
                 prefixIcon: const Icon(Icons.search, color: Colors.white),
                 filled: true,
                 fillColor: Colors.blue.shade900,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                "Note: Click on a card to view and edit employee profile.",
+                style: TextStyle(
+                  color: Colors.redAccent,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Times New Roman',
+                  fontSize: 14,
                 ),
               ),
             ),
@@ -251,8 +279,7 @@ class _EmpShowDataState extends ConsumerState<EmpShowData> {
                       elevation: 4,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16)),
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
+                      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       child: Container(
                         padding: const EdgeInsets.all(16),
                         decoration: const BoxDecoration(
@@ -265,15 +292,13 @@ class _EmpShowDataState extends ConsumerState<EmpShowData> {
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
-                          borderRadius:
-                          BorderRadius.all(Radius.circular(16)),
+                          borderRadius: BorderRadius.all(Radius.circular(16)),
                         ),
                         child: Row(
                           children: [
                             Expanded(
                               child: Column(
-                                crossAxisAlignment:
-                                CrossAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(profile['fullName'] ?? '',
                                       style: const TextStyle(
@@ -299,15 +324,12 @@ class _EmpShowDataState extends ConsumerState<EmpShowData> {
                             CircleAvatar(
                               radius: 30,
                               backgroundColor: Colors.white,
-                              backgroundImage:
-                              profile['profileImage'] != null
-                                  ? NetworkImage(
-                                  profile['profileImage'])
+                              backgroundImage: profile['profileImage'] != null
+                                  ? NetworkImage(profile['profileImage'])
                                   : null,
                               child: (profile['profileImage'] == null ||
                                   profile['profileImage'].isEmpty)
-                                  ? const Icon(Icons.person,
-                                  size: 30, color: Colors.grey)
+                                  ? const Icon(Icons.person, size: 30, color: Colors.grey)
                                   : null,
                             ),
                           ],
@@ -357,8 +379,7 @@ class _EmpShowDataState extends ConsumerState<EmpShowData> {
       itemBuilder: (context, index) {
         return Card(
           elevation: 4,
-          shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Container(
             padding: const EdgeInsets.all(16),
