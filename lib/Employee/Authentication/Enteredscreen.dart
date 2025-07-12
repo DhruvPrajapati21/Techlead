@@ -192,155 +192,17 @@ class _EnteredscreenState extends State<Enteredscreen> with TickerProviderStateM
                   // Image with border and gradient background
                   Padding(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 20),
+                        horizontal: 10, vertical: 10),
                     child: Center(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.25),
-                              blurRadius: 15,
-                              offset: const Offset(0, 8),
-                            ),
-                          ],
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(20),
-                          child: Image.asset(
-                            "assets/images/ppo.jpg",
-                            height: 170,
-                            width: 350,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
+                      child: Image.asset(
+                        "assets/images/enteredscreen.png",
+                        height: 170,
+                        width: 300,
+                        fit: BoxFit.fill,
                       ),
                     ),
                   ),
 
-                  const SizedBox(height: 10),
-
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      // Top Row: Techlead
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          AnimatedBuilder(
-                            animation: _techleadAnimation,
-                            builder: (context, child) {
-                              return Transform.translate(
-                                offset: Offset(_techleadAnimation.value, 0),
-                                child: child,
-                              );
-                            },
-                            child: Text(
-                              "Techlead",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 24,
-                                letterSpacing: 1.5,
-                                color: Colors.cyanAccent,
-                                shadows: [
-                                  Shadow(
-                                    color: Colors.black.withOpacity(0.1),
-                                    offset: Offset(1, 1),
-                                    blurRadius: 2,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      // Bottom Row: The Engineering Solution (in one line)
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          AnimatedBuilder(
-                            animation: _theAnimation,
-                            builder: (context, child) {
-                              return Transform.translate(
-                                offset: Offset(_theAnimation.value, 0),
-                                child: child,
-                              );
-                            },
-                            child: Text(
-                              "The ",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 22,
-                                letterSpacing: 1.5,
-                                color: Colors.cyanAccent,
-                                shadows: [
-                                  Shadow(
-                                    color: Colors.black.withOpacity(0.1),
-                                    offset: Offset(1, 1),
-                                    blurRadius: 2,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          AnimatedBuilder(
-                            animation: _engineeringAnimation,
-                            builder: (context, child) {
-                              return Transform.translate(
-                                offset: Offset(0, _engineeringAnimation.value),
-                                child: child,
-                              );
-                            },
-                            child: Text(
-                              "Engineering ",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 24,
-                                letterSpacing: 1.5,
-                                color: Colors.cyanAccent,
-                                shadows: [
-                                  Shadow(
-                                    color: Colors.black.withOpacity(0.1),
-                                    offset: Offset(1, 1),
-                                    blurRadius: 2,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          AnimatedBuilder(
-                            animation: _solutionAnimation,
-                            builder: (context, child) {
-                              return Transform.translate(
-                                offset: Offset(0, _solutionAnimation.value),
-                                child: child,
-                              );
-                            },
-                            child: Text(
-                              "Solution",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 22,
-                                letterSpacing: 1.5,
-                                color: Colors.cyanAccent,
-                                shadows: [
-                                  Shadow(
-                                    color: Colors.black.withOpacity(0.1),
-                                    offset: Offset(1, 1),
-                                    blurRadius: 2,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
 
                   const SizedBox(height: 30),
 
@@ -409,7 +271,7 @@ class _EnteredscreenState extends State<Enteredscreen> with TickerProviderStateM
                     ],
                   ),
 
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 70),
                   Padding(
                     padding: const EdgeInsets.only(bottom: 20.0),
                     child: Wrap(
@@ -478,17 +340,7 @@ class SocialButton extends StatelessWidget {
             height: 50,
             width: 50,
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 4,
-                  offset: Offset(2, 2),
-                ),
-              ],
-            ),
+
             child: rotationAnimation != null
                 ? RotationTransition(
               turns: rotationAnimation!,

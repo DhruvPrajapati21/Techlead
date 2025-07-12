@@ -13,18 +13,25 @@ class SplashScreen extends StatefulWidget {
   _SplashScreenState createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
-  @override
+class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+  double _opacity = 0.0;
+
   @override
   void initState() {
     super.initState();
-    Timer(const Duration(seconds: 4), () => checkingTheSavedData(context));
+
+    Future.delayed(const Duration(milliseconds: 300), () {
+      setState(() {
+        _opacity = 1.0;
+      });
+    });
+
+    Timer(const Duration(seconds: 5), () => checkingTheSavedData(context));
   }
 
   void checkingTheSavedData(BuildContext context) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
-
     User? user = FirebaseAuth.instance.currentUser;
 
     if (isLoggedIn) {
@@ -41,28 +48,37 @@ class _SplashScreenState extends State<SplashScreen> {
     } else {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) =>  HomeScreen()),
+        MaterialPageRoute(builder: (context) => HomeScreen()),
       );
     }
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
-      body: Center(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SizedBox(
-              width: 350,
-              height: 750,
+      body: Stack(
+        children: [
+          // ✅ Fullscreen GIF Background (Image 2)
+          SizedBox.expand(
+            child: Image.asset(
+              'assets/images/28.gif',
+              fit: BoxFit.cover,
+            ),
+          ),
+
+          Align(
+            alignment: Alignment.topCenter,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 50),
               child: Image.asset(
-                'assets/images/test.gif',
-                fit: BoxFit.contain,
+                'assets/images/enteredscreen.png',
+                height: 150,
+                fit: BoxFit.fill,
               ),
-            );
-          },
-        ),
+            ),
+          ),
+        ],
       ),
     );
   }
