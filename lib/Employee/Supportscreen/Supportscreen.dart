@@ -75,10 +75,10 @@ class _ContactUsState extends State<ContactUs> with SingleTickerProviderStateMix
               ),
             ),
             Positioned(
-              top: 90.0,
+              top: 115.0,
               left: MediaQuery.of(context).size.width / 2 - 40,
               child: Image.asset(
-                'assets/images/ios.jpg',
+                'assets/images/enteredscreen.png',
                 width: 100,
                 fit: BoxFit.contain,
               ),

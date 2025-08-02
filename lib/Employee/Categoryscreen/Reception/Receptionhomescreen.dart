@@ -85,7 +85,7 @@ class _ReceptionhomescreenState extends ConsumerState<Receptionhomescreen> {
                 ShiningCardWrapper(
                   child: MenuCard(
                     icon: Icons.admin_panel_settings_sharp,
-                    label: "Admin Report",
+                    label: "Admin Task Report",
                     height: 160,
                     width: 400,
                     borderRadius: const BorderRadius.only(

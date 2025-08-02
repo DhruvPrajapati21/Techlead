@@ -76,7 +76,7 @@ class _SmhomescreenState extends ConsumerState<Smhomescreen> {
               MenuCard(
                 color: Colors.blue.shade900,
                 icon: Icons.assignment,
-                label: "Task Report",
+                label: "Admin Task Report",
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => Socialmediamarketingshowdata()),

@@ -88,7 +88,7 @@ class _HrhomescreenState extends ConsumerState<Hrhomescreen> {
                   child: MenuCard(
                     color: Colors.blue.shade900,
                     icon: Icons.assignment,
-                    label: "Task Report",
+                    label: "Admin Task Report",
                     height: 160,
                     width: 400,
                     borderRadius: const BorderRadius.only(

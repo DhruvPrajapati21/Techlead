@@ -27,7 +27,6 @@ class _AccounthomescreenState extends ConsumerState<Accounthomescreen> {
   @override
   void initState() {
     super.initState();
-    // Set the title for the custom app bar
     Future.microtask(() {
       ref.read(appBarTitleProvider.notifier).state = "Account Section Task";
       ref.read(appBarGradientColorsProvider.notifier).state = [
@@ -94,7 +93,7 @@ class _AccounthomescreenState extends ConsumerState<Accounthomescreen> {
                   child: MenuCard(
                     color: Colors.blue.shade900,
                     icon: Icons.assignment,
-                    label: "Task Report",
+                    label: "Admin Task Report",
                     height: 160,
                     width: 400,
                     borderRadius: const BorderRadius.only(

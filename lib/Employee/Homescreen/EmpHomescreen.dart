@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart' as legacy_provider;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:techlead/Employee/Homescreen/Admintasksummury.dart';
 import 'package:techlead/Employee/Homescreen/taskreportpage.dart';
 import 'package:techlead/Widgeets/custom_app_bar.dart';
 import '../../core/app_bar_provider.dart';
@@ -16,6 +17,7 @@ import 'Calendarscreen.dart';
 import '../Categoryscreen/Categoryscreen.dart';
 import 'Home_Screen_Bottom_code/home_screen_bottom_code.dart';
 import 'Leavescreen.dart';
+import 'Leavesummary.dart';
 import 'Taskdeatils.dart';
 import '../Profilescreen/Profilescreen.dart';
 import '../Supportscreen/Supportscreen.dart';
@@ -33,8 +35,9 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen>
     with TickerProviderStateMixin {
-  final int cardCount = 6;
-
+  final int cardCount = 8;
+  int monthlyLeaveCount = 0;
+  int monthlyTaskCount = 0;
   late final List<AnimationController> _controllers;
   late final List<Animation<double>> _animations;
 
@@ -64,6 +67,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   bool _isNavigating = false;
   StreamSubscription? _taskSubscription;
   StreamSubscription? _attendanceSubscription;
+  StreamSubscription? _monthyreportSubscription;
+  StreamSubscription? _leaveSubscription;
   StreamSubscription? _empProfileSubscription;
   List<String> userDepartments = [];
   String todayWorkingStatus = "No Attendance Today";
@@ -77,8 +82,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   void initState() {
     super.initState();
     _initializeStats();
+    _fetchMonthlyTaskCount();
+    _setupRealtimeListeners();
     _setupRealtimeListeners();
     _loadProfile();
+    _fetchMonthlyLeaveCount();
     _listenToUnreadNotifications();
 
     _controllers = List.generate(
@@ -219,22 +227,38 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   void _setupRealtimeListeners() async {
     await _fetchUserDepartments();
 
-    _taskSubscription =
-        _firestore.collection('DailyTaskReport').snapshots().listen((snapshot) {
+    // 🔁 Listen to Daily Task Report changes
+    _taskSubscription = _firestore
+        .collection('DailyTaskReport')
+        .snapshots()
+        .listen((snapshot) {
       _fetchDepartmentStats(userDepartments);
       _fetchOverallStats();
     });
 
+    // 🔁 Listen to Attendance changes
     _attendanceSubscription =
         _firestore.collection('Attendance').snapshots().listen((snapshot) {
-      _fetchOverallStats();
-    });
+          _fetchOverallStats();
+        });
 
+    // 🔁 Listen to EmpProfile changes
     _empProfileSubscription =
         _firestore.collection('EmpProfile').snapshots().listen((snapshot) {
-      _listenToUnreadNotifications();
-    });
+          _listenToUnreadNotifications();
+        });
+
+    // ✅ 🔁 New: Listen to Empleave changes and update monthly leave count
+    _leaveSubscription =
+        _firestore.collection('Empleave').snapshots().listen((snapshot) {
+          _fetchMonthlyLeaveCount(); // 👈 real-time update
+        });
+     _monthyreportSubscription =
+        _firestore.collection('TaskAssign').snapshots().listen((snapshot) {
+          _fetchMonthlyTaskCount(); // 👈 real-time update
+        });
   }
+
 
   Future<void> _fetchUserDepartments() async {
     if (userId == null) return;
@@ -409,6 +433,92 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           'Completed: $completed, Pending: $pending, In Progress: $inProgressCount');
     } catch (e) {
       print('❌ Error fetching department stats: $e');
+    }
+  }
+
+
+  Future<void> _fetchMonthlyTaskCount() async {
+    try {
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId == null) return;
+
+      // Current month date range
+      DateTime now = DateTime.now();
+      DateTime startOfMonth = DateTime(now.year, now.month, 1);
+      DateTime startOfNextMonth = DateTime(now.year, now.month + 1, 1);
+
+      // Step 1: Get user's full name from EmpProfile
+      final profileSnapshot = await FirebaseFirestore.instance
+          .collection('EmpProfile')
+          .doc(userId)
+          .get();
+
+      if (!profileSnapshot.exists) {
+        print('❌ Employee profile not found');
+        return;
+      }
+
+      final fullName = profileSnapshot.get('fullName');
+
+      // Step 2: Query TaskAssign (all tasks) — no filters in Firestore
+      final allTasksSnapshot = await FirebaseFirestore.instance
+          .collection('TaskAssign')
+          .get();
+
+      // Step 3: Filter by current user (taskAssigned == fullName) and current month date
+      final userTasksThisMonth = allTasksSnapshot.docs.where((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+
+        // Check if task is assigned to the current user
+
+        // Check if the date is within this month
+        try {
+          final date = data['date'] is Timestamp
+              ? (data['date'] as Timestamp).toDate()
+              : DateFormat('dd MMMM yy').parse(data['date']);
+
+          return date.isAfter(startOfMonth.subtract(const Duration(seconds: 1))) &&
+              date.isBefore(startOfNextMonth);
+        } catch (e) {
+          return false;
+        }
+      }).toList();
+
+      setState(() {
+        monthlyTaskCount = userTasksThisMonth.length;
+      });
+
+      print('✅ Tasks assigned this month to $fullName: $monthlyTaskCount');
+    } catch (e) {
+      print('❌ Error fetching monthly task count: $e');
+    }
+  }
+
+
+
+  Future<void> _fetchMonthlyLeaveCount() async {
+    try {
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId == null) return;
+
+      DateTime now = DateTime.now();
+      DateTime startOfMonth = DateTime(now.year, now.month, 1);
+      DateTime startOfNextMonth = DateTime(now.year, now.month + 1, 1);
+
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('Empleave')
+          .where('userId', isEqualTo: userId)
+          .where('reportedDateTime', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
+          .where('reportedDateTime', isLessThan: Timestamp.fromDate(startOfNextMonth))
+          .get();
+
+      setState(() {
+        monthlyLeaveCount = querySnapshot.docs.length;
+      });
+
+      print('✅ Total leave records this month: $monthlyLeaveCount');
+    } catch (e) {
+      print('❌ Error fetching leave count: $e');
     }
   }
 
@@ -759,6 +869,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           builder: (_) => TeamMembersScreen(userDepartments: userDepartments),
         ),
       );
+    } else if (label == "Leave Summary") {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => LeaveSummaryScreen(),
+        ),
+      );
+    } else if (label == "Admin Task Summary") {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => (Admintasksummury()),
+        ),
+      );
     }
   }
 
@@ -1009,13 +1133,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     _buildAnimatedCard(
                         4,
                         _buildDashboardCard(
+                          icon: Icons.report,
+                          label: "Admin Task Summary",
+                          value: "$monthlyTaskCount",
+                          onTap: () => _onCardTapped("Admin Task Summary"),
+                        )),
+                    _buildAnimatedCard(
+                      5,
+                      _buildDashboardCard(
+                        icon: Icons.event_note, // or any leave-related icon
+                        label: "Leave Summary",
+                        value: "$monthlyLeaveCount", // 👈 use fetched count
+                        onTap: () => _onCardTapped("Leave Summary"),
+                      ),
+                    ),
+
+                    _buildAnimatedCard(
+                        6,
+                        _buildDashboardCard(
                           icon: Icons.group,
                           label: "Team Members",
                           value: "$totalEmployees",
                           onTap: () => _onCardTapped("Team Members"),
                         )),
                     _buildAnimatedCard(
-                        5,
+                        7,
                         _buildDashboardCard(
                           icon: Icons.thumb_up,
                           label: "Performance Rating",
@@ -1190,7 +1332,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                         ? 'Dark mode enabled!'
                                         : 'Light mode enabled!',
                                     style: const TextStyle(
-                                      color: Colors.white, // ✅ White text
+                                      color: Colors.white,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),

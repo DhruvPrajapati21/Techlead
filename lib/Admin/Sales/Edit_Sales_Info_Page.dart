@@ -24,6 +24,13 @@ class _EditSalesInfoPageState extends State<EditSalesInfoPage> {
   final FocusNode currentHomeAutomationFocus = FocusNode();
   final FocusNode budgetRangeFocus = FocusNode();
 
+  var gradientColors = [
+    Color(0xFF000F89), // Royal Blue
+    Color(0xFF0F52BA), // Cobalt Blue
+    Color(0xFF002147), // Navy Blue
+  ];
+
+
 
   @override
   void dispose() {
@@ -69,6 +76,11 @@ class _EditSalesInfoPageState extends State<EditSalesInfoPage> {
     {'text': 'New Inquiry', 'icon': FontAwesomeIcons.userPlus},
     {'text': 'Returning Customer', 'icon': FontAwesomeIcons.recycle},
     {'text': 'Referral', 'icon': FontAwesomeIcons.peopleArrows},
+    {'text': 'Contacted', 'icon': FontAwesomeIcons.phone,},
+    {'text': 'Nurture', 'icon': FontAwesomeIcons.seedling,},
+    {'text': 'Qualified', 'icon': FontAwesomeIcons.checkCircle,},
+    {'text': 'Unqualified', 'icon': FontAwesomeIcons.timesCircle,},
+    {'text': 'Junk', 'icon': FontAwesomeIcons.trash,},
   ];
 
   // List of property types with text and icons
@@ -88,10 +100,18 @@ class _EditSalesInfoPageState extends State<EditSalesInfoPage> {
 
   // List of budget range options with text and icons
   final List<Map<String, dynamic>> budgetRanges = [
-    {'text': 'Below 1 Lac', 'icon': FontAwesomeIcons.wallet},
-    {'text': '1 Lac to 5 Lac', 'icon': FontAwesomeIcons.wallet},
-    {'text': '5 Lac to 10 Lac', 'icon': FontAwesomeIcons.wallet},
-    {'text': 'Above 10 Lac', 'icon': FontAwesomeIcons.wallet},
+    {
+      'text': 'Below \$1,000',
+      'icon': FontAwesomeIcons.dollarSign
+    },
+    {
+      'text': '\$1,000 - \$5,000',
+      'icon': FontAwesomeIcons.dollarSign
+    },
+    {
+      'text': 'Above \$5,000',
+      'icon': FontAwesomeIcons.dollarSign
+    },
   ];
 
   @override
@@ -133,7 +153,7 @@ class _EditSalesInfoPageState extends State<EditSalesInfoPage> {
               "Edit Sales Page",
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                fontSize: 24,
+                fontSize: 15,
                 letterSpacing: 1.5,
                 color: Colors.white,
                 fontFamily: 'Roboto',
@@ -513,6 +533,7 @@ class _EditSalesInfoPageState extends State<EditSalesInfoPage> {
           'currentHomeAutomation': currentHomeAutomation,
           'budgetRange': budgetRange,
           'additionalDetails': additionalDetails,
+          'reportedDateTime': FieldValue.serverTimestamp(),
         });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

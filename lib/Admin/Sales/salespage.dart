@@ -1,19 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../../../Default/customwidget.dart';
 
-class SalesPage extends StatefulWidget {
-  const SalesPage({super.key});
+class AdminSalesPage extends StatefulWidget {
+  const AdminSalesPage({super.key});
 
   @override
-  State<SalesPage> createState() => _SalesPageState();
+  State<AdminSalesPage> createState() => _AdminSalesPageState();
 }
 
-class _SalesPageState extends State<SalesPage> {
+class _AdminSalesPageState extends State<AdminSalesPage> {
   final _formKey = GlobalKey<FormState>();
   FocusNode checkbox1Focus = FocusNode();
   FocusNode checkbox2Focus = FocusNode();
@@ -31,10 +30,10 @@ class _SalesPageState extends State<SalesPage> {
   final TextEditingController _executivenameController = TextEditingController();
   final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _contactNumberController =
-      TextEditingController();
+  TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _additionalDetailsController =
-      TextEditingController();
+  TextEditingController();
   final TextEditingController _propertySizeController = TextEditingController();
 
   String? _preferredContactMethod;
@@ -98,11 +97,11 @@ class _SalesPageState extends State<SalesPage> {
                     buildTextField(
                       context: context,
                       controller: _executivenameController,
-                      labelText: 'Executive Name',
+                      labelText: 'Lead Owner Name',
                       icon: Icons.person_3_rounded,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter your executive name';
+                          return 'Please enter your Lead Owner name';
                         }
                         return null;
                       },
@@ -251,6 +250,26 @@ class _SalesPageState extends State<SalesPage> {
                         {
                           'text': 'Referral',
                           'icon': FontAwesomeIcons.peopleArrows
+                        },
+                        {
+                          'text': 'Contacted',
+                          'icon': FontAwesomeIcons.phone,
+                        },
+                        {
+                          'text': 'Nurture',
+                          'icon': FontAwesomeIcons.seedling,
+                        },
+                        {
+                          'text': 'Qualified',
+                          'icon': FontAwesomeIcons.checkCircle,
+                        },
+                        {
+                          'text': 'Unqualified',
+                          'icon': FontAwesomeIcons.timesCircle,
+                        },
+                        {
+                          'text': 'Junk',
+                          'icon': FontAwesomeIcons.trash,
                         },
                       ],
                       onChanged: (value) {
@@ -542,13 +561,13 @@ class _SalesPageState extends State<SalesPage> {
                           child: _isLoading
                               ? CircularProgressIndicator(color: Colors.white)
                               : Text(
-                                  'Submit',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 18,
-                                  ),
-                                ),
+                            'Submit',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -577,9 +596,8 @@ class _SalesPageState extends State<SalesPage> {
           !_others) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Please select at least one service'),
-            backgroundColor: Colors.red,
-          ),
+              content: Text('Please select at least one service'),
+              backgroundColor: Colors.red),
         );
         return;
       }
@@ -588,23 +606,8 @@ class _SalesPageState extends State<SalesPage> {
         _isLoading = true;
       });
 
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('User not logged in'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        setState(() {
-          _isLoading = false;
-        });
-        return;
-      }
-
       Map<String, dynamic> formData = {
-        'uid': user.uid,
-        'reportedDateTime': FieldValue.serverTimestamp(),
+        'uid': "null",
         'executivename': _executivenameController.text.trim(),
         'fullName': _fullNameController.text.trim(),
         'contactNumber': _contactNumberController.text.trim(),
@@ -617,6 +620,7 @@ class _SalesPageState extends State<SalesPage> {
         'currentHomeAutomation': _currentHomeAutomation,
         'budgetRange': _budgetRange,
         'additionalDetails': _additionalDetailsController.text.trim(),
+        'reportedDateTime': FieldValue.serverTimestamp(),
         'servicesInterestedIn': {
           'Touch Switchboard': _touchswitchboard,
           'Rf Remos': _rfremos,
@@ -666,7 +670,6 @@ class _SalesPageState extends State<SalesPage> {
       }
     }
   }
-
 
   void _resetForm() {
     _executivenameController.clear();

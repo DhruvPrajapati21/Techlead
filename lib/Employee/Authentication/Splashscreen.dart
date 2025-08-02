@@ -26,7 +26,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
       });
     });
 
-    Timer(const Duration(seconds: 5), () => checkingTheSavedData(context));
+    Timer(const Duration(seconds: 3), () => checkingTheSavedData(context));
   }
 
   void checkingTheSavedData(BuildContext context) async {

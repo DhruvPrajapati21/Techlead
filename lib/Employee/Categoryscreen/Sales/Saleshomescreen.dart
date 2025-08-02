@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:techlead/Employee/Categoryscreen/Sales/Showsalesleaddata.dart';
 import 'package:techlead/Employee/Categoryscreen/Sales/salespage.dart';
 import 'package:techlead/Employee/Categoryscreen/Sales/Receivesaleshdata.dart';
 import 'package:techlead/Employee/Categoryscreen/Sales/Salesdailytaskreport.dart';
@@ -112,7 +113,7 @@ class _SaleshomescreenState extends ConsumerState<Saleshomescreen> {
               ShiningCardWrapper(
                 child: MenuCard(
                   icon: Icons.report,
-                  label: "Sales Report",
+                  label: "Sales Admin Report",
                   height: 160,
                   width: 400,
                   borderRadius: const BorderRadius.only(
@@ -162,6 +163,34 @@ class _SaleshomescreenState extends ConsumerState<Saleshomescreen> {
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => DailyReportRecordOfSales()),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+              ShiningCardWrapper(
+                child: MenuCard(
+                  icon: Icons.report,
+                  label: "Sales Report",
+                  height: 160,
+                  width: 400,
+                  borderRadius: const BorderRadius.only(
+                    topRight: Radius.circular(10),
+                    topLeft: Radius.circular(40),
+                    bottomRight: Radius.circular(40),
+                    bottomLeft: Radius.circular(10),
+                  ),
+                  gradient: const LinearGradient(
+                    colors: [
+                      Color(0xFF004FF9),
+                      Color(0xFF000000),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => Showsalesleaddata()),
                   ),
                 ),
               ),

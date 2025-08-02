@@ -412,6 +412,7 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
       final taskData = {
         'adminName': adminName,
         'adminId': adminId,
+        'taskstatus': "Pending",
         'employeeNames': selectedEmployeeNames,
         'empIds': assignedEmpIds.join(','),
         "read": false,

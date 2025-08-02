@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:techlead/Employee/Authentication/EnLoginPage.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -14,7 +13,6 @@ class Enteredscreen extends StatefulWidget {
 }
 
 class _EnteredscreenState extends State<Enteredscreen> with TickerProviderStateMixin {
-
   late AnimationController _textController;
   late AnimationController _imageController;
 
@@ -61,10 +59,9 @@ class _EnteredscreenState extends State<Enteredscreen> with TickerProviderStateM
 
     _textController = AnimationController(
       vsync: this,
-      duration: Duration(seconds: 2),
+      duration: const Duration(seconds: 2),
     )..forward();
 
-    // Text Animations
     _techleadAnimation = Tween(begin: -200.0, end: 0.0).animate(
       CurvedAnimation(parent: _textController, curve: Curves.easeOut),
     );
@@ -81,27 +78,27 @@ class _EnteredscreenState extends State<Enteredscreen> with TickerProviderStateM
       CurvedAnimation(parent: _textController, curve: Curves.easeOut),
     );
 
-    // Flip Image Controller (repeats every 5 seconds)
     _imageController = AnimationController(
       vsync: this,
-      duration: Duration(seconds: 1), // 1 sec flip duration
+      duration: const Duration(seconds: 1),
     );
 
     _flipAnimation = Tween<double>(begin: 0.0, end: 3.1416).animate(
       CurvedAnimation(parent: _imageController, curve: Curves.easeInOut),
     );
 
-    Timer.periodic(Duration(seconds: 5), (timer) {
+    Timer.periodic(const Duration(seconds: 5), (timer) {
       if (_imageController.status == AnimationStatus.completed ||
           _imageController.status == AnimationStatus.dismissed) {
         _imageController.forward(from: 0.0);
       }
     });
+
     _iconControllers = List.generate(
       _socialButtons.length,
           (index) => AnimationController(
         vsync: this,
-        duration: Duration(milliseconds: 600),
+        duration: const Duration(milliseconds: 600),
       ),
     );
 
@@ -116,7 +113,6 @@ class _EnteredscreenState extends State<Enteredscreen> with TickerProviderStateM
         _iconControllers[i].forward();
       });
     }
-
   }
 
   @override
@@ -126,38 +122,34 @@ class _EnteredscreenState extends State<Enteredscreen> with TickerProviderStateM
     for (final controller in _iconControllers) {
       controller.dispose();
     }
-
     super.dispose();
   }
 
-  Widget _buildCard(Widget content, VoidCallback onTap) {
+  Widget _buildCard(Widget content, VoidCallback onTap, double width, double height) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 160,
-        width: 160,
+        width: width,
+        height: height,
         margin: const EdgeInsets.all(10.0),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
+          gradient: const LinearGradient(
             colors: [
-              Color(0xFF000F89), // Royal Blue
-              Color(0xFF0F52BA), // Cobalt Blue
-              Color(0xFF002147), // Midnight Blue
+              Color(0xFF000F89),
+              Color(0xFF0F52BA),
+              Color(0xFF002147),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(30.0),
-          border: Border.all(
-            color: Colors.white,
-            width: 2.5,
-          ),
+          border: Border.all(color: Colors.white, width: 2.5),
           boxShadow: [
             BoxShadow(
               color: Colors.grey.withOpacity(0.9),
               blurRadius: 20,
               spreadRadius: 2,
-              offset: const Offset(0, 0), // Shadow all around
+              offset: const Offset(0, 0),
             ),
           ],
         ),
@@ -169,15 +161,23 @@ class _EnteredscreenState extends State<Enteredscreen> with TickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmall = screenWidth < 400;
+    final double cardWidth = screenWidth * 0.4;
+    final double cardHeight = screenWidth * 0.45;
+    final double imageWidth = screenWidth * 0.3;
+    final double imageHeight = screenWidth * 0.2;
+    final double titleSize = isSmall ? 12 : 14;
+
     return Scaffold(
       body: SizedBox.expand(
         child: Container(
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                Color(0xFF000F89), // Royal Blue
-                Color(0xFF0F52BA), // Cobalt Blue
-                Color(0xFF002147), // Midnight Blue
+                Color(0xFF000F89),
+                Color(0xFF0F52BA),
+                Color(0xFF002147),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -189,88 +189,91 @@ class _EnteredscreenState extends State<Enteredscreen> with TickerProviderStateM
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Image with border and gradient background
                   Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                     child: Center(
                       child: Image.asset(
                         "assets/images/enteredscreen.png",
-                        height: 170,
-                        width: 300,
+                        height: screenWidth * 0.4,
+                        width: screenWidth * 0.8,
                         fit: BoxFit.fill,
                       ),
                     ),
                   ),
-
-
                   const SizedBox(height: 30),
-
-                  GridView.count(
-                    crossAxisCount: 2,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    children: [
-                      _buildCard(
-                        Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Image.asset(
-                              "assets/images/al.jpg",
-                              height: 100,
-                              width: 150,
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      return GridView.count(
+                        crossAxisCount: 2,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        childAspectRatio: 1,
+                        children: [
+                          _buildCard(
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Image.asset(
+                                  "assets/images/al.jpg",
+                                  height: imageHeight,
+                                  width: imageWidth,
+                                  fit: BoxFit.cover,
+                                ),
+                                const SizedBox(height: 15),
+                                Text(
+                                  "Admin Login",
+                                  style: TextStyle(
+                                    color: Colors.cyanAccent,
+                                    fontSize: titleSize,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 15),
-                            const Text(
-                              "Admin Login",
-                              style: TextStyle(
-                                color: Colors.cyanAccent,
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
+                                () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const AdminLoginScreen()),
+                              );
+                            },
+                            cardWidth,
+                            cardHeight,
+                          ),
+                          _buildCard(
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Image.asset(
+                                  "assets/images/ul.jpg",
+                                  height: imageHeight,
+                                  width: imageWidth,
+                                  fit: BoxFit.cover,
+                                ),
+                                const SizedBox(height: 15),
+                                Text(
+                                  "Employee Login",
+                                  style: TextStyle(
+                                    color: Colors.cyanAccent,
+                                    fontSize: titleSize,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                        () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const AdminLoginScreen()),
-                          );
-                        },
-                      ),
-                      _buildCard(
-                        Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Image.asset(
-                              "assets/images/ul.jpg",
-                              height: 100,
-                              width: 150,
-                            ),
-                            const SizedBox(height: 15),
-                            const Text(
-                              "Employee Login",
-                              style: TextStyle(
-                                color: Colors.cyanAccent,
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                        () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => LoginPage()),
-                          );
-                        },
-                      ),
-                    ],
+                                () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => LoginPage()),
+                              );
+                            },
+                            cardWidth,
+                            cardHeight,
+                          ),
+                        ],
+                      );
+                    },
                   ),
-
                   const SizedBox(height: 70),
                   Padding(
                     padding: const EdgeInsets.only(bottom: 20.0),
@@ -291,7 +294,6 @@ class _EnteredscreenState extends State<Enteredscreen> with TickerProviderStateM
                       }),
                     ),
                   ),
-
                 ],
               ),
             ),
@@ -306,14 +308,12 @@ class SocialButton extends StatelessWidget {
   final String assetPath;
   final String label;
   final String url;
-  final Animation<double>? rotationAnimation;
 
   const SocialButton({
     Key? key,
     required this.assetPath,
     required this.label,
     required this.url,
-    this.rotationAnimation, // <-- Now nullable
   }) : super(key: key);
 
   Future<void> _launchURL(BuildContext context) async {
@@ -340,13 +340,7 @@ class SocialButton extends StatelessWidget {
             height: 50,
             width: 50,
             padding: const EdgeInsets.all(8),
-
-            child: rotationAnimation != null
-                ? RotationTransition(
-              turns: rotationAnimation!,
-              child: Image.asset(assetPath, fit: BoxFit.contain),
-            )
-                : Image.asset(assetPath, fit: BoxFit.contain),
+            child: Image.asset(assetPath, fit: BoxFit.contain),
           ),
           const SizedBox(height: 6),
           Text(

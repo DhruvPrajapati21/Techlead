@@ -27,8 +27,8 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isLoggedIn', true);
     await prefs.setBool('isAdmin', true);
+    await prefs.setBool('useFirebaseHandler', false);
 
-    // Store actual admin name and ID instead of email/password
     await prefs.setString('name', userData['name'] ?? '');
     await prefs.setString('id', userData['id'] ?? '');
 

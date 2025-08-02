@@ -121,7 +121,7 @@ class _InhomescreenState extends ConsumerState<Inhomescreen> {
                   child: MenuCard(
                     color: Colors.green.shade800,
                     icon: Icons.report,
-                    label: "Task Report",
+                    label: "Admin Task Report",
                     height: 160,
                     width: 400,
                     borderRadius: const BorderRadius.only(
