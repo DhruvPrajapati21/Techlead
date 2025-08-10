@@ -49,9 +49,11 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
       final password = _passwordController.text.trim();
 
       final userData = LoginController.verifyCredentials(email, password);
+
       if (userData != null) {
         loginUser(userData); // Pass correct name/id
       } else {
+        if (!mounted) return; // ✅ Prevents "deactivated widget" error
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Invalid email or password"),
@@ -61,7 +63,6 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
       }
     }
   }
-
 
 
 

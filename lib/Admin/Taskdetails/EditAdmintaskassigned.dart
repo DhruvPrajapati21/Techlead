@@ -430,8 +430,7 @@ class _EditTaskPageState extends State<EditTaskPage> {
     if (isLocal) {
       await OpenFile.open(pathOrUrl);
     } else {
-      // Download to temp, then open (optional enhancement)
-      await OpenFile.open(pathOrUrl); // Will try to open via browser or app
+      await OpenFile.open(pathOrUrl);
     }
   }
 
@@ -1107,7 +1106,6 @@ class _EditTaskPageState extends State<EditTaskPage> {
 
                   const SizedBox(height: 10),
 
-                  const SizedBox(height: 4),
                   const Text(
                     "🔴 Note:\nNeed extra files?\nTap the any Attached FIles to add any file!",
                     textAlign: TextAlign.center,
@@ -1119,10 +1117,8 @@ class _EditTaskPageState extends State<EditTaskPage> {
                     ),
                   ),
 
-                  // Show detail panel only when a file is selected
-                  // Don't forget to import this!
+                  const SizedBox(height: 10),
 
-// Inside your build method
                   if (selectedFileIndex != null)
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,

@@ -687,7 +687,6 @@ class _SalesPageState extends State<SalesPage> {
     }
   }
 
-
   void _resetForm() {
     _executivenameController.clear();
     _fullNameController.clear();

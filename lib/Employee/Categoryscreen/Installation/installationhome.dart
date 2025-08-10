@@ -10,6 +10,7 @@ import '../../../core/app_bar_provider.dart';
 import '../A_Shining_Cooper_Animation/shining_cooper.dart';
 import '../All_Home_Screen_Card_Ui/All_Home_Screen_Card_Ui.dart';
 import 'Installationdailytaskreport.dart';
+import 'Showinstallationdata.dart';
 
 class Inhomescreen extends ConsumerStatefulWidget {
   const Inhomescreen({super.key});
@@ -91,7 +92,7 @@ class _InhomescreenState extends ConsumerState<Inhomescreen> {
                   child: MenuCard(
                     color: Colors.blue.shade900,
                     icon: Icons.assignment,
-                    label: "Task Assign",
+                    label: "Installation Site",
                     height: 160,
                     width: 400,
                     borderRadius: const BorderRadius.only(
@@ -116,6 +117,36 @@ class _InhomescreenState extends ConsumerState<Inhomescreen> {
                 ),
 
                 SizedBox(height: 20),
+
+                ShiningCardWrapper(
+                  child: MenuCard(
+                    color: Colors.amber.shade700,
+                    icon: Icons.report_rounded,
+                    label: "Show Installation Site",
+                    height: 160,
+                    width: 400,
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(40),
+                      topRight: Radius.circular(40),
+                      bottomRight: Radius.circular(10),
+                      topLeft: Radius.circular(10),
+                    ),
+                    gradient: const LinearGradient(
+                      colors: [
+                        Color(0xFF004FF9),
+                        Color(0xFF000000),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => ShowEmployeeinstallationdata()),
+                    ),
+                  ),
+                ),
+
+                SizedBox(height: 20,),
 
                 ShiningCardWrapper(
                   child: MenuCard(

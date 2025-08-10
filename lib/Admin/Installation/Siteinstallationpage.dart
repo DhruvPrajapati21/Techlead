@@ -9,16 +9,16 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:open_file/open_file.dart';
-import '../../../Default/customwidget.dart';
+import '../../Default/customwidget.dart';
 
-class InstallationPage extends StatefulWidget {
-  const InstallationPage({super.key});
+class Siteinstallationpage extends StatefulWidget {
+  const Siteinstallationpage({super.key});
 
   @override
-  State<InstallationPage> createState() => _InstallationPageState();
+  State<Siteinstallationpage> createState() => _SiteinstallationpageState();
 }
 
-class _InstallationPageState extends State<InstallationPage> {
+class _SiteinstallationpageState extends State<Siteinstallationpage> {
   final _formKey = GlobalKey<FormState>();
   final FirebaseStorage _storage = FirebaseStorage.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -39,7 +39,6 @@ class _InstallationPageState extends State<InstallationPage> {
   String? selectedProduct;
   String? selectedServiceStatus;
   String? selectedMaterial;
-
   bool _isSubmitting = false;
 
   final Map<String, IconData> products = {
@@ -164,8 +163,6 @@ class _InstallationPageState extends State<InstallationPage> {
     }
   }
 
-
-  // Time Picker
   Future<void> _selectTime(BuildContext context) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
@@ -191,6 +188,7 @@ class _InstallationPageState extends State<InstallationPage> {
     }
     return null;
   }
+
 
   void pickFiles() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(allowMultiple: true);
@@ -219,6 +217,47 @@ class _InstallationPageState extends State<InstallationPage> {
       fileNameControllers[index].clear();
     });
   }
+
+
+  Future<void> replaceFile(int index) async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: [
+        'jpg',
+        'jpeg',
+        'png',
+        'mp4',
+        'mov',
+        'avi',
+        'mkv',
+        'gif'
+      ],
+    );
+
+    if (result != null) {
+      PlatformFile file = result.files.first;
+
+      setState(() {
+        selectedFiles[index] = File(file.path!);
+        fileNames[index] = file.name;
+        fileTypes[index] = file.extension ?? 'unknown';
+      });
+    } else {
+      print("No file selected.");
+    }
+  }
+
+
+  void closeFile(int index) {
+    setState(() {
+      selectedFiles.removeAt(index);
+      fileNames.removeAt(index);
+      fileTypes.removeAt(index);
+      fileNameControllers.removeAt(index);
+    });
+  }
+
+
 
   Future<void> uploadFiles() async {
     setState(() {
@@ -295,22 +334,9 @@ class _InstallationPageState extends State<InstallationPage> {
         _isSubmitting = true;
       });
 
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('User not logged in'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        setState(() {
-          _isSubmitting = false;
-        });
-        return;
-      }
 
       final formData = {
-        'uid': user.uid,
+        'uid': "null",
         'technician_name': technicianNameController.text.trim(),
         'installation_site': installationSiteController.text.trim(),
         'customer_name': customerNameController.text.trim(),
@@ -327,7 +353,7 @@ class _InstallationPageState extends State<InstallationPage> {
       };
 
       try {
-        // Upload files first
+
         List<Map<String, String>> uploadedFiles = [];
 
         for (int index = 0; index < selectedFiles.length; index++) {
@@ -380,30 +406,6 @@ class _InstallationPageState extends State<InstallationPage> {
     }
   }
 
-  Future<void> _deleteRecord(String docId) async {
-    try {
-      await _firestore.collection('ReceptionPage').doc(docId).delete();
-      _scaffoldMessengerKey.currentState?.showSnackBar(
-        SnackBar(
-          content: Text(
-            'Reception Record deleted successfully',
-            style: TextStyle(fontFamily: "Times New Roman", color: Colors.white),
-          ),
-          backgroundColor: Colors.green,
-        ),
-      );
-    } catch (e) {
-      _scaffoldMessengerKey.currentState?.showSnackBar(
-        SnackBar(
-          content: Text(
-            'Error deleting record: $e',
-            style: TextStyle(fontFamily: "Times New Roman", color: Colors.white),
-          ),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
 
   void _clearFormFields() {
     technicianNameController.clear();
@@ -423,44 +425,6 @@ class _InstallationPageState extends State<InstallationPage> {
       fileNames.clear();
       fileTypes.clear();
       fileNameControllers.clear();
-    });
-  }
-
-  Future<void> replaceFile(int index) async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: [
-        'jpg',
-        'jpeg',
-        'png',
-        'mp4',
-        'mov',
-        'avi',
-        'mkv',
-        'gif'
-      ],
-    );
-
-    if (result != null) {
-      PlatformFile file = result.files.first;
-
-      setState(() {
-        selectedFiles[index] = File(file.path!);
-        fileNames[index] = file.name;
-        fileTypes[index] = file.extension ?? 'unknown';
-      });
-    } else {
-      print("No file selected.");
-    }
-  }
-
-
-  void closeFile(int index) {
-    setState(() {
-      selectedFiles.removeAt(index);
-      fileNames.removeAt(index);
-      fileTypes.removeAt(index);
-      fileNameControllers.removeAt(index);
     });
   }
 
@@ -811,7 +775,6 @@ class _InstallationPageState extends State<InstallationPage> {
                         ),
                       )
                           : Text("No files selected yet."),
-
                       SizedBox(height: 16),
                       buildDropdownField(
                         labelText: "Service Status",

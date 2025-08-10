@@ -1,10 +1,13 @@
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:open_file/open_file.dart';
 import '../../../Employee/Homescreen/Date_And_Time_Code/Customize_Date_001.dart';
 import '../../../Employee/Homescreen/Date_And_Time_Code/Customize_Time_001.dart';
 
@@ -21,6 +24,10 @@ class Editinstallationpage extends StatefulWidget {
 class _EditinstallationpageState extends State<Editinstallationpage> {
   final _formKey = GlobalKey<FormState>();
   FocusNode dropdownFocus = FocusNode();
+  List<TextEditingController> fileNameControllers = [];
+  List<Map<String, dynamic>> files = [];
+  List<File?> selectedFiles = [];
+  int? selectedFileIndex;
   FocusNode nextFieldFocus = FocusNode();
   late String fullName,
       contactNumber,
@@ -40,13 +47,11 @@ class _EditinstallationpageState extends State<Editinstallationpage> {
   List<String> serviceStatusOptions = ["Pending", "In Progress", "Completed"];
   late String selectedServiceStatus;
 
-
   late TextEditingController _dateController;
   late TextEditingController _timeController;
 
   late DateTime _selectedDate;
   late TimeOfDay _selectedTime;
-
 
   final Map<String, IconData> products = {
     'Smart Lights': FontAwesomeIcons.lightbulb,
@@ -101,6 +106,8 @@ class _EditinstallationpageState extends State<Editinstallationpage> {
     'Home Automation \n Controller Systems': FontAwesomeIcons.server,
   };
 
+  List<String> fileNames = [];
+  List<String> fileTypes = [];
   @override
   void initState() {
     super.initState();
@@ -115,6 +122,21 @@ class _EditinstallationpageState extends State<Editinstallationpage> {
     taskstatus = widget.initialData['customer_contact'] ?? '';
     meetingcstatus = widget.initialData['service_description'] ?? '';
     remarks = widget.initialData['remarks'] ?? '';
+    files = (widget.initialData['files'] as List? ?? []).map((e) {
+      return {
+        'fileName': e['fileName'],
+        'fileType': e['fileType'],
+        'downloadUrl': e['downloadUrl'],
+        'isLocal': false,
+      };
+    }).toList();
+
+    fileNameControllers = files
+        .map((f) => TextEditingController(text: f['fileName'] ?? ''))
+        .toList();
+    selectedFiles = List<File?>.filled(files.length, null, growable: true);
+    fileNames = files.map((f) => f['fileName'] as String).toList();
+    fileTypes = files.map((f) => f['fileType'] as String).toList();
 
     _selectedDate = email.isNotEmpty
         ? DateTime.tryParse(email) ?? DateTime.now()
@@ -122,12 +144,89 @@ class _EditinstallationpageState extends State<Editinstallationpage> {
 
     _selectedTime = preferredContactMethod.isNotEmpty
         ? TimeOfDay(
-        hour: int.tryParse(preferredContactMethod.split(':')[0]) ?? 0,
-        minute: int.tryParse(preferredContactMethod.split(':')[1]) ?? 0)
+            hour: int.tryParse(preferredContactMethod.split(':')[0]) ?? 0,
+            minute: int.tryParse(preferredContactMethod.split(':')[1]) ?? 0)
         : TimeOfDay.now();
 
     _dateController = TextEditingController();
     _timeController = TextEditingController();
+  }
+
+  Future<void> replaceFile(int index) async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: [
+        'jpg',
+        'jpeg',
+        'png',
+        'mp4',
+        'mov',
+        'avi',
+        'mkv',
+        'gif'
+      ],
+    );
+
+    if (result != null) {
+      PlatformFile file = result.files.first;
+
+      setState(() {
+        // Replace the file entry in `files` list
+        files[index] = {
+          'fileName': file.name,
+          'fileType': file.extension ?? 'unknown',
+          'downloadUrl': file.path!, // Local file path
+          'isLocal': true, // Mark as local file
+        };
+
+        // Optional: Also update controller text if you're using it
+        if (index < fileNameControllers.length) {
+          fileNameControllers[index].text = file.name;
+        } else {
+          fileNameControllers.add(TextEditingController(text: file.name));
+        }
+      });
+    } else {
+      print("No file selected.");
+    }
+  }
+
+  void renameFile(int index) {
+    final newName = fileNameControllers[index].text.trim();
+
+    if (newName.isNotEmpty) {
+      setState(() {
+        files[index]['fileName'] = newName;
+        fileNameControllers[index].clear();
+      });
+    }
+  }
+
+  void closeFile(int index) {
+    setState(() {
+      files.removeAt(index);
+      fileNameControllers.removeAt(index);
+
+      if (selectedFileIndex == index) {
+        selectedFileIndex = null;
+      } else if (selectedFileIndex != null && selectedFileIndex! > index) {
+        selectedFileIndex = selectedFileIndex! - 1;
+      }
+    });
+  }
+
+  void openFile(String pathOrUrl, bool isLocal) async {
+    if (isLocal) {
+      await OpenFile.open(pathOrUrl);
+    } else {
+      await OpenFile.open(pathOrUrl);
+    }
+  }
+
+  void closeDetailPanel(int index) {
+    setState(() {
+      selectedFileIndex = null;
+    });
   }
 
   @override
@@ -220,7 +319,6 @@ class _EditinstallationpageState extends State<Editinstallationpage> {
                       key: _formKey,
                       child: Column(
                         children: [
-
                           buildTextFormField('Technician Name', fullName,
                               Icons.person, (value) => fullName = value),
 
@@ -242,27 +340,24 @@ class _EditinstallationpageState extends State<Editinstallationpage> {
                                 ),
                                 const SizedBox(height: 6),
                                 GestureDetector(
-                                  onTap: () =>
-                                      showModalBottomSheet(
-                                        context: context,
-                                        backgroundColor: Colors.transparent,
-                                        builder: (context) =>
-                                            buildGradientCalendar(
-                                              context,
-                                              _selectedDate,
-                                                  (pickedDate) {
-                                                setState(() {
-                                                  _selectedDate = pickedDate;
-                                                  email = pickedDate
-                                                      .toIso8601String(); // Save for Firestore
-                                                  _dateController.text =
-                                                      DateFormat('dd MMMM yyyy')
-                                                          .format(
-                                                          pickedDate); // Display format
-                                                });
-                                              },
-                                            ),
-                                      ),
+                                  onTap: () => showModalBottomSheet(
+                                    context: context,
+                                    backgroundColor: Colors.transparent,
+                                    builder: (context) => buildGradientCalendar(
+                                      context,
+                                      _selectedDate,
+                                      (pickedDate) {
+                                        setState(() {
+                                          _selectedDate = pickedDate;
+                                          email = pickedDate
+                                              .toIso8601String(); // Save for Firestore
+                                          _dateController.text =
+                                              DateFormat('dd MMMM yyyy').format(
+                                                  pickedDate); // Display format
+                                        });
+                                      },
+                                    ),
+                                  ),
                                   child: AbsorbPointer(
                                     child: Container(
                                       decoration: BoxDecoration(
@@ -311,28 +406,24 @@ class _EditinstallationpageState extends State<Editinstallationpage> {
                                 ),
                                 const SizedBox(height: 6),
                                 GestureDetector(
-                                  onTap: () =>
-                                      showModalBottomSheet(
-                                        context: context,
-                                        backgroundColor: Colors.transparent,
-                                        builder: (context) =>
-                                            buildGradientTimePicker(
-                                              context,
-                                              _selectedTime,
-                                                  (pickedTime) {
-                                                setState(() {
-                                                  _selectedTime = pickedTime;
-                                                  preferredContactMethod =
-                                                  "${pickedTime
-                                                      .hour}:${pickedTime
-                                                      .minute}";
-                                                  _timeController.text =
-                                                      pickedTime.format(
-                                                          context);
-                                                });
-                                              },
-                                            ),
-                                      ),
+                                  onTap: () => showModalBottomSheet(
+                                    context: context,
+                                    backgroundColor: Colors.transparent,
+                                    builder: (context) =>
+                                        buildGradientTimePicker(
+                                      context,
+                                      _selectedTime,
+                                      (pickedTime) {
+                                        setState(() {
+                                          _selectedTime = pickedTime;
+                                          preferredContactMethod =
+                                              "${pickedTime.hour}:${pickedTime.minute}";
+                                          _timeController.text =
+                                              pickedTime.format(context);
+                                        });
+                                      },
+                                    ),
+                                  ),
                                   child: AbsorbPointer(
                                     child: Container(
                                       decoration: BoxDecoration(
@@ -373,29 +464,24 @@ class _EditinstallationpageState extends State<Editinstallationpage> {
                             FontAwesomeIcons.user,
                             products.entries
                                 .map((entry) =>
-                            {
-                              'text': entry.key,
-                              'icon': entry.value
-                            })
+                                    {'text': entry.key, 'icon': entry.value})
                                 .toList(),
-                                (newValue) =>
+                            (newValue) =>
                                 setState(() => leadSource = newValue!),
                             currentFocus: dropdownFocus,
                             nextFocus: nextFieldFocus,
                           ),
 
                           buildDropdownField(
-                              'Service Status',
-                              selectedServiceStatus,
-                              Icons.info,
-                              serviceStatusOptions
-                                  .map((status) =>
-                              {'text': status, 'icon': Icons.info})
-                                  .toList(),
-                                  (newValue) =>
-                                  setState(
-                                          () =>
-                                      selectedServiceStatus = newValue!),
+                            'Service Status',
+                            selectedServiceStatus,
+                            Icons.info,
+                            serviceStatusOptions
+                                .map((status) =>
+                                    {'text': status, 'icon': Icons.info})
+                                .toList(),
+                            (newValue) => setState(
+                                () => selectedServiceStatus = newValue!),
                             currentFocus: dropdownFocus,
                             nextFocus: nextFieldFocus,
                           ),
@@ -404,13 +490,13 @@ class _EditinstallationpageState extends State<Editinstallationpage> {
                               'Customer Name',
                               additionalDetails,
                               Icons.details,
-                                  (value) => additionalDetails = value),
+                              (value) => additionalDetails = value),
 
                           buildTextFormField(
                             'Customer Contact',
                             taskstatus,
                             Icons.details,
-                                (val) => taskstatus = val,
+                            (val) => taskstatus = val,
                             validator: (value) {
                               if (value == null || value.isEmpty)
                                 return 'Please enter contact number';
@@ -426,17 +512,473 @@ class _EditinstallationpageState extends State<Editinstallationpage> {
                             ],
                           ),
 
-
                           buildTextFormField(
                               'Service Description',
                               meetingcstatus,
                               Icons.details,
-                                  (value) => meetingcstatus = value),
+                              (value) => meetingcstatus = value),
 
                           buildTextFormField('Remarks', remarks, Icons.details,
-                                  (value) => remarks = value),
+                              (value) => remarks = value),
 
                           SizedBox(height: 20),
+
+                          // Existing attached files (uploaded files from Firebase)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Text(
+                              'Attached Files:',
+                              style: TextStyle(
+                                color: Colors.black87,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: 'Roboto',
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 8),
+
+                          SizedBox(
+                            height: 130,
+                            child: ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
+                              itemCount: files.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(width: 10),
+                              itemBuilder: (context, index) {
+                                final file = files[index];
+                                final url = file['downloadUrl'] ?? '';
+                                final fileName = file['fileName'] ?? '';
+                                final ext = (file['fileType'] ?? '')
+                                    .toString()
+                                    .toLowerCase();
+                                final isLocal = file['isLocal'] == true;
+                                Widget iconWidget;
+
+                                if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp']
+                                    .contains(ext)) {
+                                  iconWidget = isLocal
+                                      ? Image.file(
+                                          File(url),
+                                          width: 100,
+                                          height: 80,
+                                          fit: BoxFit.cover,
+                                        )
+                                      : Image.network(
+                                          url,
+                                          width: 100,
+                                          height: 80,
+                                          fit: BoxFit.cover,
+                                          errorBuilder:
+                                              (context, error, stackTrace) {
+                                            return const Icon(
+                                                Icons.broken_image,
+                                                size: 50,
+                                                color: Colors.grey);
+                                          },
+                                        );
+                                } else if (['mp4', 'mov', 'avi']
+                                    .contains(ext)) {
+                                  iconWidget = const Icon(Icons.videocam,
+                                      size: 50, color: Colors.blue);
+                                } else if (ext == 'pdf') {
+                                  iconWidget = const Icon(Icons.picture_as_pdf,
+                                      size: 50, color: Colors.red);
+                                } else {
+                                  iconWidget = const Icon(
+                                      Icons.insert_drive_file,
+                                      size: 50,
+                                      color: Colors.grey);
+                                }
+
+                                return GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      selectedFileIndex = index;
+                                    });
+                                  },
+                                  child: Stack(
+                                    children: [
+                                      Container(
+                                        width: 120,
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey.shade200,
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          border: Border.all(
+                                              color: Colors.blue.shade400,
+                                              width: 1),
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              child: iconWidget,
+                                            ),
+                                            const SizedBox(height: 6),
+                                            Text(
+                                              fileName,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.bold),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Positioned(
+                                        top: 2,
+                                        right: 2,
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            setState(() {
+                                              files.removeAt(index);
+                                              fileNameControllers
+                                                  .removeAt(index);
+
+                                              if (files.isEmpty) {
+                                                selectedFileIndex =
+                                                    null; // reset if no files
+                                              } else if (selectedFileIndex ==
+                                                  index) {
+                                                selectedFileIndex =
+                                                    null; // close panel if removed selected file
+                                              } else if (selectedFileIndex !=
+                                                      null &&
+                                                  selectedFileIndex! > index) {
+                                                selectedFileIndex =
+                                                    selectedFileIndex! -
+                                                        1; // adjust index if needed
+                                              }
+                                            });
+                                          },
+                                          child: const CircleAvatar(
+                                            radius: 14,
+                                            backgroundColor: Colors.red,
+                                            child: Icon(Icons.close,
+                                                size: 16, color: Colors.white),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+
+                          const SizedBox(height: 10),
+
+                          const Text(
+                            "🔴 Note:\nNeed extra files?\nTap the any Attached FIles to add any file!",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.red,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              fontFamily: "Times New Roman",
+                            ),
+                          ),
+
+                          const SizedBox(height: 10),
+
+                          if (selectedFileIndex != null)
+                            SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[200],
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                          color: Colors.blue, width: 2),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        ...List.generate(files.length, (index) {
+                                          final info = files[index];
+                                          final ext =
+                                              (info['fileType'] as String? ??
+                                                      '')
+                                                  .toLowerCase();
+                                          final isLocal =
+                                              info['isLocal'] == true;
+                                          final url = info['downloadUrl'];
+
+                                          Widget preview;
+                                          if (['jpg', 'jpeg', 'png', 'gif']
+                                              .contains(ext)) {
+                                            preview = isLocal
+                                                ? Image.file(
+                                                    File(url),
+                                                    width: 120,
+                                                    height: 90,
+                                                    fit: BoxFit.cover,
+                                                  )
+                                                : Image.network(
+                                                    url,
+                                                    width: 120,
+                                                    height: 90,
+                                                    fit: BoxFit.cover,
+                                                    errorBuilder: (_, __,
+                                                            ___) =>
+                                                        const Icon(
+                                                            Icons.broken_image,
+                                                            size: 50,
+                                                            color: Colors.grey),
+                                                  );
+                                          } else if ([
+                                            'mp4',
+                                            'mov',
+                                            'avi',
+                                            'mkv'
+                                          ].contains(ext)) {
+                                            preview = const Icon(Icons.videocam,
+                                                size: 50, color: Colors.blue);
+                                          } else if (ext == 'pdf') {
+                                            preview = const Icon(
+                                                Icons.picture_as_pdf,
+                                                size: 50,
+                                                color: Colors.red);
+                                          } else {
+                                            preview = const Icon(
+                                                Icons.insert_drive_file,
+                                                size: 50,
+                                                color: Colors.grey);
+                                          }
+
+                                          return Container(
+                                            margin: const EdgeInsets.all(10),
+                                            padding: const EdgeInsets.all(8),
+                                            decoration: BoxDecoration(
+                                              color: Colors.grey[100],
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              border: Border.all(
+                                                  color: Colors.blue, width: 1),
+                                            ),
+                                            width: 140,
+                                            child: Stack(
+                                              children: [
+                                                Column(
+                                                  children: [
+                                                    preview,
+                                                    const SizedBox(height: 10),
+                                                    Text(
+                                                      info['fileName'] ?? '',
+                                                      style: const TextStyle(
+                                                          fontSize: 14,
+                                                          fontWeight:
+                                                              FontWeight.bold),
+                                                      maxLines: 1,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                    ),
+                                                    const SizedBox(height: 5),
+                                                    SizedBox(
+                                                      width: 120,
+                                                      child: TextField(
+                                                        controller:
+                                                            fileNameControllers[
+                                                                index],
+                                                        decoration:
+                                                            InputDecoration(
+                                                          labelText: 'Rename',
+                                                          border:
+                                                              OutlineInputBorder(
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        10),
+                                                          ),
+                                                          filled: true,
+                                                          fillColor: Colors
+                                                              .blue.shade50,
+                                                        ),
+                                                        style: const TextStyle(
+                                                            fontSize: 12),
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 5),
+                                                    ElevatedButton(
+                                                      onPressed: () =>
+                                                          renameFile(index),
+                                                      style: ElevatedButton
+                                                          .styleFrom(
+                                                        minimumSize:
+                                                            const Size(120, 30),
+                                                        backgroundColor: Colors
+                                                            .blue.shade900,
+                                                        shape:
+                                                            RoundedRectangleBorder(
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(8),
+                                                        ),
+                                                      ),
+                                                      child: const Text(
+                                                          "Rename",
+                                                          style: TextStyle(
+                                                              fontSize: 12,
+                                                              color: Colors
+                                                                  .white)),
+                                                    ),
+                                                    const SizedBox(height: 5),
+                                                    ElevatedButton(
+                                                      onPressed: () =>
+                                                          replaceFile(index),
+                                                      style: ElevatedButton
+                                                          .styleFrom(
+                                                        minimumSize:
+                                                            const Size(120, 30),
+                                                        backgroundColor: Colors
+                                                            .blue.shade900,
+                                                        shape:
+                                                            RoundedRectangleBorder(
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(8),
+                                                        ),
+                                                      ),
+                                                      child: const Text(
+                                                          "Replace",
+                                                          style: TextStyle(
+                                                              fontSize: 12,
+                                                              color: Colors
+                                                                  .white)),
+                                                    ),
+                                                    const SizedBox(height: 5),
+                                                    ElevatedButton(
+                                                      onPressed: () {
+                                                        openFile(url, isLocal);
+                                                      },
+                                                      style: ElevatedButton
+                                                          .styleFrom(
+                                                        minimumSize:
+                                                            const Size(120, 30),
+                                                        backgroundColor: Colors
+                                                            .blue.shade900,
+                                                        shape:
+                                                            RoundedRectangleBorder(
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(8),
+                                                        ),
+                                                      ),
+                                                      child: const Text("Open",
+                                                          style: TextStyle(
+                                                              fontSize: 12,
+                                                              color: Colors
+                                                                  .white)),
+                                                    ),
+                                                  ],
+                                                ),
+                                                Positioned(
+                                                  top: -8,
+                                                  right: -5,
+                                                  child: CircleAvatar(
+                                                    radius: 16,
+                                                    backgroundColor:
+                                                        Colors.white,
+                                                    child: IconButton(
+                                                      icon: const Icon(
+                                                          Icons.close,
+                                                          color: Colors.red,
+                                                          size: 19),
+                                                      onPressed: () =>
+                                                          closeDetailPanel(
+                                                              index),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        }),
+
+                                        // 👇 ADD FILE BUTTON HERE
+                                        GestureDetector(
+                                          onTap: () async {
+                                            FilePickerResult? result =
+                                                await FilePicker.platform
+                                                    .pickFiles(
+                                              type: FileType.any,
+                                              allowMultiple: false,
+                                            );
+
+                                            if (result != null &&
+                                                result.files.isNotEmpty) {
+                                              final file = result.files.first;
+                                              final filePath = file.path!;
+                                              final fileName = file.name;
+                                              final ext = file.extension ?? '';
+
+                                              final newFile = {
+                                                'fileName': fileName,
+                                                'fileType': ext,
+                                                'isLocal': true,
+                                                'downloadUrl': filePath,
+                                              };
+
+                                              final newController =
+                                                  TextEditingController(
+                                                      text: fileName);
+
+                                              // 👇 Insert right after selected index
+                                              final insertIndex =
+                                                  selectedFileIndex! + 1;
+
+                                              setState(() {
+                                                files.insert(
+                                                    insertIndex, newFile);
+                                                fileNameControllers.insert(
+                                                    insertIndex, newController);
+
+                                                // Optionally, update the selected index to highlight new file
+                                                selectedFileIndex = insertIndex;
+                                              });
+
+                                              // Optional: Scroll to new item here if you're using a ScrollController
+                                            }
+                                          },
+                                          child: Container(
+                                            width: 140,
+                                            height: 220,
+                                            margin: const EdgeInsets.all(10),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              border: Border.all(
+                                                  color: Colors.grey,
+                                                  width: 2,
+                                                  style: BorderStyle.solid),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                            child: const Center(
+                                              child: Icon(Icons.add,
+                                                  size: 40, color: Colors.blue),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                          SizedBox(
+                            height: 20,
+                          ),
 
                           Container(
                             decoration: BoxDecoration(
@@ -494,15 +1036,15 @@ class _EditinstallationpageState extends State<Editinstallationpage> {
 
   // Dropdown field with icons
   Widget buildDropdownField(
-      String label,
-      String value,
-      IconData icon,
-      List<Map<String, dynamic>> items,
-      ValueChanged<String?> onChanged, {
-        String? Function(String?)? validator,
-        required FocusNode currentFocus,
-        FocusNode? nextFocus,
-      }) {
+    String label,
+    String value,
+    IconData icon,
+    List<Map<String, dynamic>> items,
+    ValueChanged<String?> onChanged, {
+    String? Function(String?)? validator,
+    required FocusNode currentFocus,
+    FocusNode? nextFocus,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Column(
@@ -536,9 +1078,11 @@ class _EditinstallationpageState extends State<Editinstallationpage> {
               focusNode: currentFocus,
               child: DropdownButtonFormField<String>(
                 isExpanded: true,
-                value: items.any((item) => item['text'] == value) ? value : null,
+                value:
+                    items.any((item) => item['text'] == value) ? value : null,
                 decoration: const InputDecoration(
-                  prefixIcon: Icon(Icons.arrow_drop_down, color: Colors.cyanAccent),
+                  prefixIcon:
+                      Icon(Icons.arrow_drop_down, color: Colors.cyanAccent),
                   border: InputBorder.none,
                   errorStyle: TextStyle(color: Colors.cyanAccent),
                 ),
@@ -549,7 +1093,8 @@ class _EditinstallationpageState extends State<Editinstallationpage> {
                   onChanged(val);
                   // Move focus to next field if specified
                   if (nextFocus != null) {
-                    FocusScope.of(currentFocus.context!).requestFocus(nextFocus);
+                    FocusScope.of(currentFocus.context!)
+                        .requestFocus(nextFocus);
                   }
                 },
                 validator: validator,
@@ -581,16 +1126,16 @@ class _EditinstallationpageState extends State<Editinstallationpage> {
     );
   }
 
-
   // Text form field
-  Widget buildTextFormField(String label,
-      String initialValue,
-      IconData icon,
-      Function(String) onChanged, {
-        String? Function(String?)? validator,
-        List<TextInputFormatter>? inputFormatters,
-        bool readOnly = false,
-      }) {
+  Widget buildTextFormField(
+    String label,
+    String initialValue,
+    IconData icon,
+    Function(String) onChanged, {
+    String? Function(String?)? validator,
+    List<TextInputFormatter>? inputFormatters,
+    bool readOnly = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Column(
@@ -626,12 +1171,11 @@ class _EditinstallationpageState extends State<Editinstallationpage> {
               decoration: InputDecoration(
                 prefixIcon: Icon(icon, color: Colors.cyanAccent),
                 border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 14),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 errorStyle: const TextStyle(
                     color: Colors.cyanAccent), // ✅ Error text color
               ),
-
               onChanged: readOnly ? null : onChanged,
               validator: validator,
               inputFormatters: inputFormatters,
@@ -664,6 +1208,7 @@ class _EditinstallationpageState extends State<Editinstallationpage> {
           'customer_contact': taskstatus,
           'service_description': meetingcstatus,
           'remarks': remarks,
+          'files': files,
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -691,8 +1236,8 @@ class _EditinstallationpageState extends State<Editinstallationpage> {
               ),
               child: Row(
                 children: const [
-                  Icon(Icons.check_circle_outline, color: Colors.white,
-                      size: 26),
+                  Icon(Icons.check_circle_outline,
+                      color: Colors.white, size: 26),
                   SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -740,8 +1285,8 @@ class _EditinstallationpageState extends State<Editinstallationpage> {
               ),
               child: Row(
                 children: [
-                  const Icon(
-                      Icons.error_outline, color: Colors.white, size: 26),
+                  const Icon(Icons.error_outline,
+                      color: Colors.white, size: 26),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(

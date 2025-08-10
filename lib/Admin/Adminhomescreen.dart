@@ -18,6 +18,7 @@ import 'package:techlead/Admin/Taskdetails/reportsendtoadminside.dart';
 import 'package:techlead/Admin/Meetingsection/showreceptiondata.dart';
 import 'package:techlead/Admin/Taskdetails/taskassignpage.dart';
 import '../Calendar_Ui/Task_Report_Model/SyncFunction_Task.dart';
+import 'Installation/Siteinstallationpage.dart';
 import '../Employee/Categoryscreen/Installation/serviceinstallationpage.dart';
 import '../Employee/Categoryscreen/Sales/salespage.dart';
 import 'Employeedetails/Empshowdata.dart';
@@ -393,7 +394,7 @@ class _NewPieShowState extends State<NewPieShow>
                         _buildDrawerItem(
                             icon: Icons.install_desktop,
                             text: 'Site Installation',
-                            onTap: () => _navigate(context, InstallationPage())),
+                            onTap: () => _navigate(context, Siteinstallationpage())),
                         _buildDrawerItem(
                             icon: Icons.settings_applications,
                             text: 'Installation Reports',

@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 
+import '../../Employee/Categoryscreen/FileViwerscreen.dart';
 import 'Edit_Installation_Page/edit_installation_page.dart';
 
 class Showinstallationdata extends StatefulWidget {
@@ -353,6 +354,129 @@ class _ShowinstallationdataState extends State<Showinstallationdata> {
                               buildFormField('Service Description: ',
                                   doc['service_description']),
                               buildFormField('Remarks: ', doc['remarks']),
+                              if (doc['files'] != null &&
+                                  doc['files'] is List &&
+                                  (doc['files'] as List).isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 10),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        "Attached Files:",
+                                        style: TextStyle(
+                                          color: Colors.tealAccent,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      SizedBox(
+                                        height: 120,
+                                        child: ListView.builder(
+                                          scrollDirection: Axis.horizontal,
+                                          itemCount:
+                                          (doc['files'] as List).length,
+                                          itemBuilder: (context, fileIndex) {
+                                            var file =
+                                            (doc['files'] as List)[fileIndex];
+                                            final String url =
+                                                file['downloadUrl'] ?? '';
+                                            final String fileType =
+                                            (file['fileType'] ?? '')
+                                                .toLowerCase();
+                                            final String fileName =
+                                                file['fileName'] ?? 'Unnamed';
+
+                                            bool isImage = [
+                                              'jpg',
+                                              'jpeg',
+                                              'png',
+                                              'gif',
+                                              'bmp',
+                                              'webp'
+                                            ].contains(fileType);
+
+                                            return GestureDetector(
+                                              onTap: () {
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (context) =>
+                                                        FileViewerScreen(
+                                                          url: url,
+                                                          fileType: fileType,
+                                                        ),
+                                                  ),
+                                                );
+                                              },
+                                              child: Container(
+                                                width: 120,
+                                                margin: const EdgeInsets.only(
+                                                    right: 10),
+                                                padding:
+                                                const EdgeInsets.all(6),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.white
+                                                      .withOpacity(0.1),
+                                                  border: Border.all(
+                                                      color: Colors.tealAccent),
+                                                  borderRadius:
+                                                  BorderRadius.circular(10),
+                                                ),
+                                                child: Column(
+                                                  children: [
+                                                    ClipRRect(
+                                                      borderRadius:
+                                                      BorderRadius.circular(
+                                                          6),
+                                                      child: isImage
+                                                          ? Image.network(
+                                                        url,
+                                                        width: 100,
+                                                        height: 70,
+                                                        fit: BoxFit.cover,
+                                                        errorBuilder: (context,
+                                                            error,
+                                                            stackTrace) =>
+                                                        const Icon(
+                                                          Icons
+                                                              .broken_image,
+                                                          color:
+                                                          Colors.white,
+                                                        ),
+                                                      )
+                                                          : Icon(
+                                                        fileType == 'pdf'
+                                                            ? Icons
+                                                            .picture_as_pdf
+                                                            : Icons
+                                                            .insert_drive_file,
+                                                        color: Colors.white,
+                                                        size: 50,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 5),
+                                                    Text(
+                                                      fileName,
+                                                      maxLines: 1,
+                                                      overflow:
+                                                      TextOverflow.ellipsis,
+                                                      style: const TextStyle(
+                                                          color: Colors.white,
+                                                          fontSize: 12),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
                               SizedBox(height: 10),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
