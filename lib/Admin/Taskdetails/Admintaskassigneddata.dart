@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -32,16 +33,27 @@ class _AdmintaskassigneddataState extends State<Admintaskassigneddata> {
   DateTime? startDate;
   DateTime? endDate;
 
+  String? selectedFilterType;
+
   final TextEditingController searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+
+  final List<String> filterTypes = [
+    'Department',
+    'Project',
+    'Project Status',
+    'Employee Name',
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
-          gradient:
-          LinearGradient(colors: [Colors.white, Colors.grey], begin: Alignment.topLeft, end: Alignment.bottomRight),
+          gradient: LinearGradient(
+              colors: [Colors.white, Colors.grey],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight),
         ),
         child: Column(
           children: [
@@ -49,7 +61,10 @@ class _AdmintaskassigneddataState extends State<Admintaskassigneddata> {
               title: const Text(
                 "Assigned Tasks From Admin",
                 style: TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14, fontFamily: "Times New Roman"),
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    fontFamily: "Times New Roman"),
               ),
               centerTitle: true,
               backgroundColor: Colors.blue.shade900,
@@ -64,48 +79,62 @@ class _AdmintaskassigneddataState extends State<Admintaskassigneddata> {
                   child: Text(
                     '🔔You have ${widget.unreadCount} unread task(s)',
                     style: const TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.bold, fontFamily: "Times New Roman"),
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: "Times New Roman"),
                   ),
                 ),
               ),
-            SizedBox(height: 20,),
+            const SizedBox(height: 20),
             _buildDropdownFilters(),
             _buildDateFilters(),
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance.collection('TaskAssign').snapshots(),
+                stream: FirebaseFirestore.instance
+                    .collection('TaskAssign')
+                    .snapshots(),
                 builder: (context, snap) {
                   if (!snap.hasData || snap.data!.docs.isEmpty) {
                     return _noRecordsWidget("No tasks assigned.");
                   }
 
                   List<QueryDocumentSnapshot> docs = snap.data!.docs;
-                  final allDepartments = docs
-                      .map((d) => (d.data() as Map<String, dynamic>)['department']?.toString() ?? '')
-                      .toSet()
-                      .where((s) => s.isNotEmpty)
-                      .toList();
-                  final allProjects = docs
-                      .map((d) => (d.data() as Map<String, dynamic>)['projectName']?.toString() ?? '')
-                      .toSet()
-                      .where((s) => s.isNotEmpty)
-                      .toList();
-                  final allEmployees = docs
-                      .expand((d) => (d.data() as Map<String, dynamic>)['employeeNames'] as List)
-                      .map((e) => e.toString())
-                      .toSet()
-                      .toList();
 
                   final filtered = docs.where((doc) {
                     final t = doc.data() as Map<String, dynamic>;
                     final dep = t['department']?.toString() ?? '';
                     final proj = t['projectName']?.toString() ?? '';
-                    final empNames = t['taskstatus']?.toString() ?? '';
+                    final empStatus = t['taskstatus']?.toString() ?? '';
+                    final employeeField = t['employeeNames'];
 
-                    if (searchQuery.isNotEmpty && !proj.toLowerCase().contains(searchQuery.toLowerCase())) return false;
-                    if (filterDepartment != null && filterDepartment != dep) return false;
-                    if (filterProject != null && filterProject != proj) return false;
-                    if (filterEmployee != null && filterEmployee != empNames) return false;
+                    if (searchQuery.isNotEmpty &&
+                        !proj.toLowerCase().contains(searchQuery.toLowerCase()))
+                      return false;
+
+                    if (filterDepartment != null &&
+                        filterDepartment!.isNotEmpty &&
+                        dep.toLowerCase() != filterDepartment!.toLowerCase())
+                      return false;
+
+                    if (filterProject != null &&
+                        filterProject!.isNotEmpty &&
+                        proj.toLowerCase() != filterProject!.toLowerCase())
+                      return false;
+
+                    if (filterEmployee != null &&
+                        filterEmployee!.isNotEmpty &&
+                        empStatus.toLowerCase() != filterEmployee!.toLowerCase())
+                      return false;
+
+                    if (employeename != null && employeename!.isNotEmpty) {
+                      bool matches = false;
+                      if (employeeField is List) {
+                        matches = employeeField.contains(employeename);
+                      } else if (employeeField is String) {
+                        matches = employeeField == employeename;
+                      }
+                      if (!matches) return false;
+                    }
 
                     if (startDate != null && endDate != null) {
                       DateTime assigned;
@@ -116,16 +145,20 @@ class _AdmintaskassigneddataState extends State<Admintaskassigneddata> {
                       } catch (_) {
                         return false;
                       }
-                      final start = DateTime(startDate!.year, startDate!.month, startDate!.day);
-                      final end = DateTime(endDate!.year, endDate!.month, endDate!.day, 23, 59, 59);
-                      if (assigned.isBefore(start) || assigned.isAfter(end)) return false;
+                      final start = DateTime(
+                          startDate!.year, startDate!.month, startDate!.day);
+                      final end = DateTime(endDate!.year, endDate!.month,
+                          endDate!.day, 23, 59, 59);
+                      if (assigned.isBefore(start) ||
+                          assigned.isAfter(end)) return false;
                     }
 
                     return true;
                   }).toList();
 
                   if (filtered.isEmpty) {
-                    return _noRecordsWidget("No records match selected filters.");
+                    return _noRecordsWidget(
+                        "No records match selected filters.");
                   }
 
                   return ListView.builder(
@@ -156,96 +189,173 @@ class _AdmintaskassigneddataState extends State<Admintaskassigneddata> {
   }
 
   Widget _buildDropdownFilters() {
+    final cobaltBlueWithOpacity = const Color(0xFF0F52BA).withOpacity(0.3);
+
+    final filterLabelTextStyle = TextStyle(
+      fontFamily: "Times New Roman",
+      color: const Color(0xFF002147), // Oxford Blue
+      fontWeight: FontWeight.w700,
+      fontSize: 16,
+      letterSpacing: 0.8,
+      shadows: [
+        Shadow(
+          offset: const Offset(0, 1),
+          blurRadius: 1.5,
+          color: cobaltBlueWithOpacity,
+        ),
+      ],
+    );
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      child: Wrap(
-        spacing: 12,
-        runSpacing: 12,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: MediaQuery.of(context).size.width / 1.1,
-            child: _buildFilterDropdown(
-              "Department",
-              filterDepartment,
-                  (val) => setState(() => filterDepartment = val),
-              getOptions: () {
-                return FirebaseFirestore.instance
-                    .collection('TaskAssign')
-                    .snapshots()
-                    .map((snap) => snap.docs
-                    .map((d) => (d.data() as Map<String, dynamic>)['department']?.toString() ?? '')
-                    .toSet()
-                    .toList());
+          Row(
+            children: [
+              const Icon(
+                Icons.filter_list,
+                color: Color(0xFF0F52BA), // Cobalt Blue
+                size: 20,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                "Filter by...",
+                style: filterLabelTextStyle,
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [
+                  Color(0xFF000F89),
+                  Color(0xFF0F52BA),
+                  Color(0xFF002147),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: DropdownButtonFormField<String>(
+              value: selectedFilterType,
+              onChanged: (val) {
+                setState(() => selectedFilterType = val);
               },
+              decoration: const InputDecoration(
+                hintText: "Select filter type",
+                hintStyle: TextStyle(
+                  fontFamily: "Times New Roman",
+                  color: Colors.white70,
+                  fontSize: 13,
+                ),
+                border: InputBorder.none,
+              ),
+              dropdownColor: const Color(0xFF223D64),
+              iconEnabledColor: Colors.white,
+              style: const TextStyle(color: Colors.white),
+              items: [null, ...filterTypes].map((val) {
+                return DropdownMenuItem<String>(
+                  value: val,
+                  child: Text(
+                    val ?? 'None',
+                    style: const TextStyle(
+                      fontFamily: "Times New Roman",
+                      color: Colors.white,
+                    ),
+                  ),
+                );
+              }).toList(),
             ),
           ),
-          SizedBox(
-            width: MediaQuery.of(context).size.width / 1.1,
-            child: _buildFilterDropdown(
-              "Project",
-              filterProject,
-                  (val) => setState(() => filterProject = val),
-              getOptions: () {
-                return FirebaseFirestore.instance
-                    .collection('TaskAssign')
-                    .snapshots()
-                    .map((snap) => snap.docs
-                    .map((d) => (d.data() as Map<String, dynamic>)['projectName']?.toString() ?? '')
-                    .toSet()
-                    .toList());
-              },
-            ),
-          ),
-          SizedBox(
-            width: MediaQuery.of(context).size.width / 1.1,
-            child: _buildFilterDropdown(
-              "Project Status",
-              filterEmployee,
-                  (val) => setState(() => filterEmployee = val),
-              getOptions: () {
-                return FirebaseFirestore.instance
-                    .collection('TaskAssign')
-                    .snapshots()
-                    .map((snap) => snap.docs
-                    .map((d) => (d.data() as Map<String, dynamic>)['taskstatus']?.toString() ?? '')
-                    .toSet()
-                    .toList());
-              },
-            ),
-          ),
-          SizedBox(
-            width: MediaQuery.of(context).size.width / 1.1,
-            child: _buildFilterDropdown(
-              "Employee Name",
-              employeename,
-                  (val) => setState(() => employeename = val),
-              getOptions: () {
-                return FirebaseFirestore.instance
-                    .collection('TaskAssign')
-                    .snapshots()
-                    .map((snap) {
-                  final names = <String>{};
-                  for (var doc in snap.docs) {
-                    final data = doc.data() as Map<String, dynamic>;
-                    final field = data['employeeNames'];
-
-                    if (field is List) {
-                      names.addAll(field.map((e) => e.toString()));
-                    } else if (field is String) {
-                      names.add(field);
-                    }
-                  }
-                  return names.toList();
-                });
-              },
-
-            ),
-          ),
+          const SizedBox(height: 10),
+          if (selectedFilterType != null)
+            _buildDynamicFilterDropdown(selectedFilterType!),
         ],
       ),
     );
   }
 
+
+
+  Widget _buildDynamicFilterDropdown(String type) {
+    switch (type) {
+      case 'Department':
+        return _buildFilterDropdown(
+          "Department",
+          filterDepartment,
+              (val) => setState(() => filterDepartment = val),
+          getOptions: () {
+            return FirebaseFirestore.instance
+                .collection('TaskAssign')
+                .snapshots()
+                .map((snap) => snap.docs
+                .map((d) => (d.data())['department']?.toString() ?? '')
+                .toSet()
+                .toList());
+          },
+        );
+      case 'Project':
+        return _buildFilterDropdown(
+          "Project",
+          filterProject,
+              (val) => setState(() => filterProject = val),
+          getOptions: () {
+            return FirebaseFirestore.instance
+                .collection('TaskAssign')
+                .snapshots()
+                .map((snap) => snap.docs
+                .map((d) => (d.data())['projectName']?.toString() ?? '')
+                .toSet()
+                .toList());
+          },
+        );
+      case 'Project Status':
+        return _buildFilterDropdown(
+          "Project Status",
+          filterEmployee,
+              (val) => setState(() => filterEmployee = val),
+          getOptions: () {
+            return FirebaseFirestore.instance
+                .collection('TaskAssign')
+                .snapshots()
+                .map((snap) => snap.docs
+                .map((d) => (d.data())['taskstatus']?.toString() ?? '')
+                .toSet()
+                .toList());
+          },
+        );
+      case 'Employee Name':
+        return _buildFilterDropdown(
+          "Employee Name",
+          employeename,
+              (val) => setState(() => employeename = val),
+          getOptions: () {
+            return FirebaseFirestore.instance
+                .collection('TaskAssign')
+                .snapshots()
+                .map((snap) {
+              final names = <String>{};
+              for (var doc in snap.docs) {
+                final data = doc.data();
+                final field = data['employeeNames'];
+                if (field is List) {
+                  names.addAll(field.map((e) => e.toString()));
+                } else if (field is String) {
+                  names.add(field);
+                }
+              }
+              return names.toList();
+            });
+          },
+        );
+      default:
+        return const SizedBox();
+    }
+  }
 
   Widget _buildFilterDropdown(
       String label,
@@ -253,87 +363,176 @@ class _AdmintaskassigneddataState extends State<Admintaskassigneddata> {
       ValueChanged<String?> onChanged, {
         required Stream<List<String>> Function() getOptions,
       }) {
-    return StreamBuilder<List<String>>(
-      stream: getOptions(),
-      builder: (context, snap) {
-        final options = snap.hasData ? (List<String>.from(snap.data!)..sort()) : <String>[];
-        return DropdownButtonFormField<String>(
-          decoration: InputDecoration(
-            labelText: label,
-            labelStyle: const TextStyle(
-              fontFamily: "Times New Roman",
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-              shadows: [
-                Shadow(color: Colors.black26, blurRadius: 1, offset: Offset(0.5, 0.5)),
-              ],
+    final cobaltBlueWithOpacity = const Color(0xFF0F52BA).withOpacity(0.3);
+
+    final filterLabelTextStyle = TextStyle(
+      fontFamily: "Times New Roman",
+      color: const Color(0xFF002147), // Oxford Blue
+      fontWeight: FontWeight.w700,
+      fontSize: 16,
+      letterSpacing: 0.8,
+      shadows: [
+        Shadow(
+          offset: const Offset(0, 1),
+          blurRadius: 1.5,
+          color: cobaltBlueWithOpacity,
+        ),
+      ],
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(
+              Icons.filter_alt_outlined,
+              color: Color(0xFF0F52BA), // Cobalt Blue
+              size: 18,
             ),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            filled: true,
-            fillColor: Color(0xFF1E3A5F), // Blueish background
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: filterLabelTextStyle,
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Container(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [
+                Color(0xFF000F89), // Royal Blue
+                Color(0xFF0F52BA), // Cobalt Blue
+                Color(0xFF002147), // Oxford Blue
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(12),
           ),
-          dropdownColor: Color(0xFF223D64), // Dropdown list background
-          iconEnabledColor: Colors.white,
-          style: const TextStyle(
-            fontFamily: "Times New Roman",
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-            fontSize: 14,
-            shadows: [
-              Shadow(color: Colors.black26, blurRadius: 1, offset: Offset(0.5, 0.5)),
-            ],
-          ),
-          isDense: true,
-          value: currentValue,
-          items: [null, ...options].map<DropdownMenuItem<String>>((val) {
-            final v = val as String?;
-            return DropdownMenuItem<String>(
-              value: v,
-              child: Text(
-                v ?? 'Any',
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: StreamBuilder<List<String>>(
+            stream: getOptions(),
+            builder: (context, snap) {
+              final options = snap.hasData
+                  ? (List<String>.from(snap.data!)..removeWhere((e) => e.trim().isEmpty)..sort())
+                  : <String>[];
+              return DropdownButtonFormField<String>(
+                decoration: const InputDecoration(
+                  hintText: "Select value",
+                  hintStyle: TextStyle(
+                    fontFamily: "Times New Roman",
+                    color: Colors.white70,
+                    fontSize: 13,
+                  ),
+                  border: InputBorder.none,
+                ),
+                dropdownColor: const Color(0xFF223D64),
+                iconEnabledColor: Colors.white,
                 style: const TextStyle(
                   fontFamily: "Times New Roman",
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
+                  fontSize: 14,
                 ),
-              ),
-            );
-          }).toList(),
-          onChanged: onChanged,
-        );
-      },
+                isDense: true,
+                value: currentValue,
+                items: [null, ...options].map<DropdownMenuItem<String>>((val) {
+                  final v = val;
+                  return DropdownMenuItem<String>(
+                    value: v,
+                    child: Text(
+                      v ?? 'Any',
+                      style: const TextStyle(
+                        fontFamily: "Times New Roman",
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  );
+                }).toList(),
+                onChanged: onChanged,
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
+
+
   Widget _buildDateFilters() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _buildDateButton("Start Date", startDate, (d) => setState(() => startDate = d)),
-          _buildDateButton("End Date", endDate, (d) => setState(() => endDate = d)),
+          Expanded(
+            child: _buildDateButton(
+              "Start Date",
+              startDate,
+                  (d) => setState(() => startDate = d),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildDateButton(
+              "End Date",
+              endDate,
+                  (d) => setState(() => endDate = d),
+            ),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildDateButton(String label, DateTime? date, ValueChanged<DateTime> onDateSelected) {
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(backgroundColor: Colors.blue.shade700),
-      onPressed: () async {
-        final pick = await showDatePicker(
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: () async {
+        final picked = await showDatePicker(
           context: context,
           initialDate: date ?? DateTime.now(),
           firstDate: DateTime(2000),
           lastDate: DateTime(2100),
         );
-        if (pick != null) onDateSelected(pick);
+        if (picked != null) onDateSelected(picked);
       },
-      child: Text(
-        date != null ? DateFormat('dd-MMMM-yy').format(date) : label,
-        style: const TextStyle(color: Colors.white, fontFamily: "Times New Roman"),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          gradient: const LinearGradient(
+            colors: [
+              Color(0xFF000F89), // Royal Blue
+              Color(0xFF0F52BA), // Cobalt Blue
+              Color(0xFF002147), // Oxford Blue
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.25),
+              offset: const Offset(0, 3),
+              blurRadius: 6,
+            ),
+          ],
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          date != null ? DateFormat('dd-MMMM-yy').format(date) : label,
+          style: const TextStyle(
+            fontFamily: 'Roboto',
+            fontSize: 16,
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.5,
+          ),
+        ),
       ),
     );
   }
@@ -342,13 +541,56 @@ class _AdmintaskassigneddataState extends State<Admintaskassigneddata> {
     final task = doc.data() as Map<String, dynamic>;
     final isDeprecated = (widget.highlightedTaskId != null && task['taskId'] == widget.highlightedTaskId);
 
+    TextStyle labelStyle = const TextStyle(
+      fontFamily: 'Roboto',
+      color: Colors.white70,
+      fontWeight: FontWeight.w600,
+      fontSize: 13,
+    );
+
+    TextStyle valueStyle = const TextStyle(
+      fontFamily: 'Roboto',
+      color: Colors.white,
+      fontWeight: FontWeight.w500,
+      fontSize: 15,
+    );
+
+    Widget buildDetailRow(IconData icon, String label, String? value) {
+      if (value == null || value.trim().isEmpty) return const SizedBox.shrink();
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: Colors.white70, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: RichText(
+                text: TextSpan(
+                  text: '$label: ',
+                  style: labelStyle,
+                  children: [
+                    TextSpan(text: value, style: valueStyle),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Dismissible(
       key: Key(task['taskId'] ?? doc.id),
       direction: DismissDirection.endToStart,
       confirmDismiss: (_) => _confirmDelete(task['taskId']),
       onDismissed: (_) async {
         await FirebaseFirestore.instance.collection('TaskAssign').doc(doc.id).delete();
-        Fluttertoast.showToast(msg: "Task deleted successfully!", backgroundColor: Colors.green, textColor: Colors.white);
+        Fluttertoast.showToast(
+          msg: "Task deleted successfully!",
+          backgroundColor: Colors.green,
+          textColor: Colors.white,
+        );
       },
       background: Container(
         alignment: Alignment.centerRight,
@@ -360,92 +602,195 @@ class _AdmintaskassigneddataState extends State<Admintaskassigneddata> {
         elevation: 8,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            gradient: LinearGradient(
-              colors: isDeprecated ? [Colors.green.shade800, Colors.green.shade600] : [Colors.blue.shade900, Colors.blue.shade700],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+        child: Stack(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                gradient: LinearGradient(
+                  colors: isDeprecated
+                      ? [
+                    Colors.green.shade800,
+                    Colors.green.shade600,
+                  ]
+                      : const [
+                    Color(0xFF000F89), // Royal Blue
+                    Color(0xFF0F52BA), // Cobalt Blue
+                    Color(0xFF002147), // Oxford Blue
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  buildDetailRow(Icons.admin_panel_settings, 'Admin Name', task['adminName']),
+                  buildDetailRow(Icons.badge, 'Employee Id', task['empIds']),
+                  buildDetailRow(Icons.person, 'Employee Name', (task['employeeNames'] as List).join(', ')),
+                  buildDetailRow(Icons.work, 'Project Name', task['projectName']),
+                  buildDetailRow(Icons.business, 'Department', task['department']),
+
+                  if (['Installation', 'Sales', 'Reception', 'Social Media'].contains(task['department']) &&
+                      task['siteLocation'] != null) ...[
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.orangeAccent.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        "Note: Please tap the location to view it on the map.",
+                        style: TextStyle(color: Colors.orangeAccent, fontSize: 14, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    buildDetailRow(Icons.location_on, 'Site Location', task['siteLocation']),
+                  ],
+
+                  if (task['files'] != null && task['files'] is List && task['files'].isNotEmpty) ...[
+                    const SizedBox(height: 18),
+                    const Text(
+                      "Attached Files:",
+                      style: TextStyle(
+                        color: Colors.tealAccent,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'Roboto',
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      height: 120,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: task['files'].length,
+                        itemBuilder: (context, fileIndex) {
+                          var file = task['files'][fileIndex];
+                          final String url = file['downloadUrl'] ?? '';
+                          final String fileType = (file['fileType'] ?? '').toLowerCase();
+                          final String fileName = file['fileName'] ?? 'Unnamed';
+                          final bool isLocal = file['isLocal'] == true;
+
+                          bool isImage = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].contains(fileType);
+
+                          Widget filePreview;
+                          if (isImage) {
+                            if (isLocal) {
+                              // Show local file image
+                              filePreview = Image.file(
+                                File(url),
+                                width: 100,
+                                height: 70,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                const Icon(Icons.broken_image, color: Colors.white),
+                              );
+                            } else {
+                              // Show network image
+                              filePreview = Image.network(
+                                url,
+                                width: 100,
+                                height: 70,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                const Icon(Icons.broken_image, color: Colors.white),
+                              );
+                            }
+                          } else {
+                            filePreview = Icon(
+                              fileType == 'pdf' ? Icons.picture_as_pdf : Icons.insert_drive_file,
+                              color: Colors.white,
+                              size: 50,
+                            );
+                          }
+
+                          return GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => FileViewerScreen(
+                                    url: url,
+                                    fileType: fileType, // pass if needed
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              width: 120,
+                              margin: const EdgeInsets.only(right: 10),
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.1),
+                                border: Border.all(color: Colors.tealAccent),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Column(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(6),
+                                    child: filePreview,
+                                  ),
+                                  const SizedBox(height: 5),
+                                  Text(
+                                    fileName,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(color: Colors.white, fontSize: 12, fontFamily: 'Roboto'),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+
+                  ],
+
+                  const SizedBox(height: 20),
+
+                  buildDetailRow(Icons.description, 'Task Description', task['taskDescription']),
+                  buildDetailRow(Icons.calendar_today, 'Assigned Date', task['date']),
+                  buildDetailRow(Icons.event_busy, 'Deadline Date', task['deadlineDate']),
+                  buildDetailRow(Icons.access_time, 'Time', task['time']),
+                  buildDetailRow(Icons.task, 'Task Status', task['taskstatus']),
+                  buildDetailRow(Icons.note_alt, 'Employees Description', task['employeeDescription']),
+                ],
+              ),
             ),
-          ),
-          padding: const EdgeInsets.all(16),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Align(
-              alignment: Alignment.topRight,
+
+            // Edit button on top right
+            Positioned(
+              top: 8,
+              right: 8,
               child: IconButton(
-                icon: const Icon(Icons.edit, color: Colors.white),
+                icon: const Icon(Icons.edit, color: Colors.white70),
+                tooltip: 'Edit Task',
                 onPressed: () async {
-                  final changed = await Navigator.push(context, MaterialPageRoute(builder: (_) => EditTaskScreen(taskData: task)));
-                  if (changed == true) setState(() {});
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => EditTaskPage(taskDoc: doc),
+                    ),
+                  );
+
+                  if (result == true) {
+                    // Refresh UI or reload tasks
+                    setState(() {});
+                  }
                 },
               ),
             ),
-            _buildTaskDetail('Admin Name', task['adminName']),
-            _buildTaskDetail('Employee Id', task['empIds']),
-            _buildTaskDetail('Employee Name', (task['employeeNames'] as List).join(', ')),
-            _buildTaskDetail('Project Name', task['projectName']),
-            _buildTaskDetail('Department', task['department']),
-            if (['Installation', 'Sales', 'Reception', 'Social Media'].contains(task['department']) && task['siteLocation'] != null)
-              ...[
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12.0),
-                  child: Text(
-                    "Note: Please tap the location to view it on the map.",
-                    style: TextStyle(color: Colors.orangeAccent, fontSize: 14),
-                  ),
-                ),
-                _buildTaskDetail('Site Location', task['siteLocation']),
-              ],
-            _buildTaskDetail('Task Description', task['taskDescription']),
-            _buildTaskDetail('Assigned Date', task['date']),
-            _buildTaskDetail('Deadline Date', task['deadlineDate']),
-            _buildTaskDetail('Time', task['time']),
-            _buildTaskDetail('Task Status', task['taskstatus']),
-            _buildTaskDetail('Employees Description', task['employeeDescription']),
-            // files viewer omitted for brevity...
-          ]),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildTaskDetail(String label, dynamic value) {
-    final isLocation = label == 'Site Location';
-    final text = value != null ? value.toString() : 'N/A';
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-      child: GestureDetector(
-        onTap: isLocation && value != null
-            ? () async {
-          final loc = Uri.encodeComponent(value.toString());
-          final url = 'https://www.google.com/maps/search/?api=1&query=$loc';
-          if (await canLaunchUrl(Uri.parse(url))) {
-            launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-          }
-        }
-            : null,
-        child: RichText(
-          text: TextSpan(
-            text: "$label: ",
-            style: const TextStyle(
-                color: Colors.tealAccent, fontSize: 16, fontWeight: FontWeight.bold, fontFamily: "Times New Roman"),
-            children: [
-              TextSpan(
-                text: text,
-                style: TextStyle(
-                    color: isLocation ? Colors.lightBlueAccent : Colors.white,
-                    decoration: isLocation ? TextDecoration.underline : TextDecoration.none,
-                    fontFamily: "Times New Roman",
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
   Future<bool?> _confirmDelete(String? taskId) {
     return showDialog<bool>(

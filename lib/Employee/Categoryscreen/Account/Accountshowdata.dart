@@ -166,7 +166,7 @@ class _AccountshowdataState extends State<Accountshowdata> {
 
                     await sendNotification(tokens, taskData, targetEmpIds.join(','), department);
 
-                    Navigator.pop(context);
+                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context)=>Accountshowdata()));
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text("Task updated successfully!", style: TextStyle(color: Colors.white)),
@@ -174,7 +174,7 @@ class _AccountshowdataState extends State<Accountshowdata> {
                       ),
                     );
                   } catch (e) {
-                    Navigator.pop(context);
+                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context)=>Accountshowdata()));
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text("Error updating task: $e", style: const TextStyle(color: Colors.white)),
@@ -501,8 +501,6 @@ class _AccountshowdataState extends State<Accountshowdata> {
                                           ],
                                         ),
                                       ),
-
-                                    // 🛠️ This block is now unconditional (always show the edit button)
                                     Align(
                                       alignment: Alignment.centerRight,
                                       child: IconButton(

@@ -6,7 +6,7 @@ class FileViewerScreen extends StatelessWidget {
   final String url;
   final String fileType;
 
-  const FileViewerScreen({super.key, required this.url, required this.fileType});
+  const FileViewerScreen({super.key, required this.url, required this.fileType,});
 
   @override
   Widget build(BuildContext context) {

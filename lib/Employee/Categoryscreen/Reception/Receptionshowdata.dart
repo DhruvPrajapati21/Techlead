@@ -1,6 +1,11 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:googleapis_auth/auth_io.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../FileViwerscreen.dart';
@@ -27,6 +32,222 @@ class _ReceptionshowdataState extends State<Receptionshowdata> {
   String? get currentUserId => FirebaseAuth.instance.currentUser?.uid;
   bool scrolledToProject = false;
   bool scrolledToUnread = false;
+
+  void _showEditDialog(Map<String, dynamic> task, String docId) {
+    String currentStatus = task['taskstatus'] ?? 'Pending';
+    final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+    final TextEditingController descriptionController = TextEditingController(
+      text: task['employeeDescription'] ?? '',
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          backgroundColor: Colors.blue.shade900,
+          title: const Text(
+            "Update Task",
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          content: SingleChildScrollView(
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("Project Name", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 5),
+                  TextField(
+                    controller: TextEditingController(text: task['projectName'] ?? ''),
+                    enabled: false,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: Colors.blue.shade800,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+                  const Text("Task Status", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 5),
+                  DropdownButtonFormField<String>(
+                    value: currentStatus,
+                    items: ['Pending', 'In Progress', 'Completed'].map((status) => DropdownMenuItem<String>(
+                      value: status,
+                      child: Text(status),
+                    )).toList(),
+                    onChanged: (newValue) => currentStatus = newValue ?? currentStatus,
+                    dropdownColor: Colors.white,
+                    style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+                  const Text("Employee Description", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 5),
+                  TextFormField(
+                    controller: descriptionController,
+                    maxLines: 4,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: Colors.blue.shade800,
+                      hintText: "Enter your Employee description",
+                      hintStyle: const TextStyle(color: Colors.white70),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    validator: (value) => (value == null || value.trim().isEmpty) ? 'Description cannot be empty' : null,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel", style: TextStyle(color: Colors.white)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.tealAccent.shade700),
+              onPressed: () async {
+                if (_formKey.currentState!.validate()) {
+                  try {
+                    final String projectName = task['projectName'] ?? '';
+                    final String department = task['department'] ?? '';
+                    final empIdsRaw = task['empIds'];
+                    List<String> targetEmpIds = [];
+
+                    if (empIdsRaw is List) {
+                      targetEmpIds = List<String>.from(empIdsRaw);
+                    } else if (empIdsRaw is String && empIdsRaw.isNotEmpty) {
+                      targetEmpIds = [empIdsRaw];
+                    }
+
+                    // 1. Update Firestore
+                    await FirebaseFirestore.instance.collection('TaskAssign').doc(docId).update({
+                      'taskstatus': currentStatus,
+                      'employeeDescription': descriptionController.text.trim(),
+                    });
+
+                    // 3. Fetch target FCM tokens
+                    List<String> tokens = [];
+
+                    if (targetEmpIds.isNotEmpty) {
+                      final snapshot = await FirebaseFirestore.instance
+                          .collection('EmpProfile')
+                          .where('empId', whereIn: targetEmpIds)
+                          .get();
+
+                      for (final doc in snapshot.docs) {
+                        final token = doc['fcmToken'] ?? '';
+                        if (token.isNotEmpty) tokens.add(token);
+                      }
+                    } else if (department.isNotEmpty) {
+                      final snapshot = await FirebaseFirestore.instance
+                          .collection('EmpProfile')
+                          .where('categories', arrayContains: department)
+                          .get();
+
+                      for (final doc in snapshot.docs) {
+                        final token = doc['fcmToken'] ?? '';
+                        if (token.isNotEmpty) tokens.add(token);
+                      }
+                    }
+
+                    final taskData = {
+                      'taskId': docId,
+                      'projectName': projectName,
+                      'taskDescription': task['taskDescription'] ?? '',
+                      'deadlineDate': task['deadlineDate'] ?? '',
+                    };
+
+                    await sendNotification(tokens, taskData, targetEmpIds.join(','), department);
+
+                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context)=>Receptionshowdata()));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Task updated successfully!", style: TextStyle(color: Colors.white)),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  } catch (e) {
+                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context)=>Receptionshowdata()));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("Error updating task: $e", style: const TextStyle(color: Colors.white)),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text("Update", style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> sendNotification(
+      List<String> fcmTokens,
+      Map<String, dynamic> taskData,
+      String assignedEmpIds,
+      String department,
+      ) async {
+    final jsonStr = await rootBundle.loadString('assets/service-account.json');
+    final serviceAccount = ServiceAccountCredentials.fromJson(jsonStr);
+    final scopes = ['https://www.googleapis.com/auth/firebase.messaging'];
+    final authClient = await clientViaServiceAccount(serviceAccount, scopes);
+    final accessToken = authClient.credentials.accessToken.data;
+
+    const String projectId = 'techlead-57814';
+    final url = Uri.parse('https://fcm.googleapis.com/v1/projects/$projectId/messages:send');
+
+    for (final token in fcmTokens) {
+      final messagePayload = {
+        "message": {
+          "token": token,
+          "notification": {
+            "title": "${taskData['projectName'] ?? 'Unnamed Project'}",
+            "body": "New Task: ${taskData['taskDescription'] ?? 'Check your task'}",
+          },
+          "android": {"priority": "high"},
+          "data": {
+            "click_action": "FLUTTER_NOTIFICATION_CLICK",
+            "screen": "CategoryScreen",
+            "empIds": assignedEmpIds,
+            "department": department,
+            "taskId": taskData['taskId'],
+            "projectName": taskData['projectName'],
+            "taskDescription": taskData['taskDescription'] ?? '',
+            "deadlineDate": taskData['deadlineDate'] ?? '',
+          }
+        }
+      };
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+        body: jsonEncode(messagePayload),
+      );
+
+      if (response.statusCode == 200) {
+        print('✅ Notification sent to $token');
+      } else {
+        print('❌ Error sending to $token: ${response.statusCode} ${response.body}');
+      }
+    }
+    authClient.close();
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -214,6 +435,7 @@ class _ReceptionshowdataState extends State<Receptionshowdata> {
                                   _buildTaskDetail('Deadline Date',
                                       task['deadlineDate']),
                                   _buildTaskDetail('Time', task['time']),
+                                  _buildTaskDetail('Employee Task Description', task['employeeDescription']),
 
                                   // 📂 Show Files If Present
                                   // 📂 Show Files If Present
@@ -361,6 +583,13 @@ class _ReceptionshowdataState extends State<Receptionshowdata> {
                                         ],
                                       ),
                                     ),
+                                  Align(
+                                    alignment: Alignment.centerRight,
+                                    child: IconButton(
+                                      icon: const Icon(Icons.edit, color: Colors.white),
+                                      onPressed: () => _showEditDialog(task, doc.id),
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),

@@ -115,7 +115,7 @@ class _TaskCalendarPageState extends State<TaskCalendarPage>
         subject: '${report.taskTitle} -  EmployeeName: ${report.employeeName}',
         notes:
             'Location: ${report.location}\n'
-            'Dept: ${report.serviceDepartment}\n'
+            'Department: ${report.serviceDepartment}\n'
             'Status: ${report.serviceStatus}\n'
             'Action Taken: $actionsTaken\n',
         color: report.serviceStatus.toLowerCase() == 'completed'

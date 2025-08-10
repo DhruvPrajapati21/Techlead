@@ -45,7 +45,7 @@ class _LeaveInfoState extends ConsumerState<LeaveInfo> {
   int selectedYear = DateTime.now().year;
   int selectedMonth = DateTime.now().month;
   String? selectedFilter = 'All';
-  final List<String> filters = ['All', 'Approved', 'Rejected', 'pending'];
+  final List<String> filters = ['All', 'Approved', 'Rejected', 'Pending'];
   bool isLoading = false;
   bool isLoading2 = false;
   bool isToastVisible = false;
@@ -278,7 +278,7 @@ class _LeaveInfoState extends ConsumerState<LeaveInfo> {
           record.reportedDateTime.toDate().toString(),
         ]);
 
-        if (record.status == 'pending') {
+        if (record.status == 'Pending') {
           sheet.cell(CellIndex.indexByString('H$rowIndex')).cellStyle = pendingStyle;
         } else if (record.status == 'Approved') {
           sheet.cell(CellIndex.indexByString('H$rowIndex')).cellStyle = approvedStyle;
@@ -437,7 +437,7 @@ class _LeaveInfoState extends ConsumerState<LeaveInfo> {
           record.reportedDateTime.toDate().toString(),
         ]);
 
-        if (record.status == 'pending') {
+        if (record.status == 'Pending') {
           sheet.cell(CellIndex.indexByString('H$rowIndex')).cellStyle = pendingStyle;
         } else if (record.status == 'Approved') {
           sheet.cell(CellIndex.indexByString('H$rowIndex')).cellStyle = approvedStyle;
@@ -770,7 +770,7 @@ class _LeaveInfoState extends ConsumerState<LeaveInfo> {
                           itemCount: leaveList.length,
                           itemBuilder: (BuildContext context, int index) {
                             var leaveModel = leaveList[index];
-                            var showButtons = (leaveModel.status == "pending" || leaveModel.status == null) && isAdmin;
+                            var showButtons = (leaveModel.status == "Pending" || leaveModel.status == null) && isAdmin;
                             var docId = leaveModel.documentId;
 
                             return Padding(
@@ -821,7 +821,7 @@ class _LeaveInfoState extends ConsumerState<LeaveInfo> {
                                     _buildRichTextCustom('EndDate: ', leaveModel.enddate),
                                     _buildRichTextCustom('Reason: ', leaveModel.reason),
                                     _buildStatusRichTextCustom('Status: ', leaveModel.status ?? 'Unknown'),
-                                    if (leaveModel.status == "pending") ...[
+                                    if (leaveModel.status == "Pending") ...[
                                       SizedBox(height: 10),
                                       Row(
                                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -961,7 +961,7 @@ class _LeaveInfoState extends ConsumerState<LeaveInfo> {
         statusColor = Colors.redAccent;
         break;
       case 'pending':
-        statusColor = Colors.yellowAccent;
+        statusColor = Colors.orangeAccent;
         break;
       default:
         statusColor = Colors.white;

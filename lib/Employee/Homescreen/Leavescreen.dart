@@ -141,7 +141,7 @@ class _LeavescreenState extends State<Leavescreen> {
             'startdate': _formatDate(startdate!),
             'enddate': _formatDate(enddate!),
             'reason': reasonController.text.trim(),
-            'status': 'pending',
+            'status': 'Pending',
             'reportedDateTime': FieldValue.serverTimestamp(),
             'userId': userId,
           });
@@ -715,7 +715,7 @@ class _LeavescreenState extends State<Leavescreen> {
                                       fontWeight: FontWeight.normal,
                                       color: status == 'Approved'
                                           ? Colors.greenAccent
-                                          : status == 'pending'
+                                          : status == 'Pending'
                                           ? Colors.orange
                                           : Colors.red,
 

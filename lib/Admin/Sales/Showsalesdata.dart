@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'Edit_Sales_Info_Page.dart';
 
 class SalesInfoPage extends StatefulWidget {
@@ -157,8 +158,10 @@ class _SalesInfoPageState extends State<SalesInfoPage> {
                           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                             _buildFormField('Lead Owner Name:', doc['executivename']),
                             _buildFormField('Full Name:', doc['fullName']),
-                            _buildFormField('Contact Number:', doc['contactNumber']),
-                            _buildFormField('Email Address:', doc['email']),
+                            buildTappableField('Contact Number:', doc['contactNumber'], _launchPhone),
+                            noteText(),
+                            buildTappableField('Email Address: ', doc['email'], _launchEmail),
+                            noteText(),
                             _buildFormField('Preferred Contact Method:', doc['preferredContactMethod']),
                             _buildFormField('Lead Source:', doc['leadSource']),
                             _buildFormField('Lead Type:', doc['leadType']),
@@ -166,7 +169,7 @@ class _SalesInfoPageState extends State<SalesInfoPage> {
                             _buildFormField('Property Size:', doc['propertySize']),
                             _buildFormField('Current Home Automation Setup:', doc['currentHomeAutomation']),
                             _buildFormField('Budget Range:', doc['budgetRange']),
-                            _buildFormField('Reported Date:', formatReportedDateTime(doc['reportedDateTime'])),
+                            _buildFormField('Reported Date&Time:', formatReportedDateTime(doc['reportedDateTime'])),
                             SizedBox(height: 10),
                             Align(alignment: Alignment.centerRight, child: FloatingActionButton(
                               onPressed: () => Navigator.of(context).push(MaterialPageRoute(
@@ -186,6 +189,28 @@ class _SalesInfoPageState extends State<SalesInfoPage> {
       ]),
     );
   }
+
+  Future<void> _launchPhone(String phoneNumber) async {
+    final Uri phoneUri = Uri(scheme: 'tel', path: phoneNumber);
+    if (await canLaunchUrl(phoneUri)) {
+      await launchUrl(phoneUri);
+    }
+  }
+
+  Future<void> _launchEmail(String email) async {
+    final Uri emailLaunchUri = Uri(scheme: 'mailto', path: email);
+    if (await canLaunch(emailLaunchUri.toString())) {
+      await launch(emailLaunchUri.toString());
+    }
+  }
+
+  Widget noteText() => Padding(
+    padding: const EdgeInsets.only(bottom: 10.0),
+    child: Text(
+      "Note: Please tap them",
+      style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 13),
+    ),
+  );
 
   Widget _buildDateSelector(String label, DateTime? date, ValueChanged<DateTime?> onPicked) {
     final gradientBg = LinearGradient(colors: [Colors.blue.shade900, Colors.blue.shade700], begin: Alignment.topLeft, end: Alignment.bottomRight);
@@ -219,6 +244,28 @@ class _SalesInfoPageState extends State<SalesInfoPage> {
       ]),
     );
   }
+
+  Widget buildTappableField(String title, String value, Function(String) onTap) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 1,
+            child: Text(title, style: TextStyle(fontFamily: 'Arial', fontSize: 16, fontWeight: FontWeight.bold, color: Colors.cyanAccent)),
+          ),
+          Expanded(
+            flex: 2,
+            child: InkWell(
+              onTap: () => onTap(value),
+              child: Text(value, style: TextStyle(decoration: TextDecoration.underline, fontFamily: 'Arial', fontSize: 16, color: Colors.white)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
 
   Future<bool?> _showDeleteConfirmationDialog() {
     return showDialog<bool>(

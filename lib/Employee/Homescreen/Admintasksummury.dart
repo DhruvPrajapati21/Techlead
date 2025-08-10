@@ -2,15 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../Categoryscreen/Account/Accountshowdata.dart';
-import '../Categoryscreen/Digital Marketing/Digitlmarketingshowdata.dart';
-import '../Categoryscreen/Finance/Financeshowdata.dart';
-import '../Categoryscreen/HR/hrreceivedscreen.dart';
-import '../Categoryscreen/Installation/Installtionemployeedata.dart';
-import '../Categoryscreen/Management/Managementshowdata.dart';
-import '../Categoryscreen/Reception/Receptionshowdata.dart';
-import '../Categoryscreen/Sales/Receivesaleshdata.dart';
-import '../Categoryscreen/Social Media/Socialmediamarketingshowdata.dart';
 
 class Admintasksummury extends StatefulWidget {
   const Admintasksummury({Key? key}) : super(key: key);
@@ -24,7 +15,7 @@ class _AdmintasksummuryState extends State<Admintasksummury> {
   DateTime? startDate;
   DateTime? endDate;
   String selectedStatus = 'All';
-
+  bool _isExpanded = false;
   final TextEditingController searchController = TextEditingController();
   String? get currentUserId => FirebaseAuth.instance.currentUser?.uid;
 
@@ -43,15 +34,22 @@ class _AdmintasksummuryState extends State<Admintasksummury> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("My Admin Tasks",
-            style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'Times New Roman')),
+        backgroundColor: const Color(0xFF002147), // Deep Navy Blue for a strong professional look
+        elevation: 6,
+        shadowColor: Colors.black.withOpacity(0.3),
         centerTitle: true,
-        backgroundColor: Colors.blue.shade900,
-        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text(
+          "My Admin Tasks",
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            fontFamily: 'Segoe UI', // More modern and widely used for clean UI
+            letterSpacing: 0.5,
+          ),
+        ),
       ),
+
       body: Column(
         children: [
           _buildSearchAndStatusRow(),
@@ -175,66 +173,66 @@ class _AdmintasksummuryState extends State<Admintasksummury> {
                           final task = filteredTasks[index].data() as Map<String, dynamic>;
 
                           void navigateToDepartmentPage(String department) {
-                            switch (department) {
-                              case 'Account':
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (context) => Accountshowdata()),
-                                );
-                                break;
-                              case 'Digital Marketing':
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (context) => Digitlmarketingshowdata()),
-                                );
-                                break;
-                              case 'Finance':
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (context) => Financeshowdata()),
-                                );
-                                break;
-                              case 'Human Resource':
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (context) => Hrreceiveddata()),
-                                );
-                                break;
-                              case 'Installation':
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (context) => AssignedTaskForInstallation()),
-                                );
-                                break;
-                              case 'Management':
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (context) => Managementshowdata()),
-                                );
-                                break;
-                              case 'Reception':
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (context) => Receptionshowdata()),
-                                );
-                                break;
-                              case 'Sales':
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (context) => Receivesalesdata()),
-                                );
-                                break;
-                              case 'Social Media':
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (context) => Socialmediamarketingshowdata()),
-                                );
-                                break;
-                              default:
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('No route defined for department: $department')),
-                                );
-                            }
+                            //   switch (department) {
+                            //     case 'Account':
+                            //       Navigator.push(
+                            //         context,
+                            //         MaterialPageRoute(builder: (context) => Accountshowdata()),
+                            //       );
+                            //       break;
+                            //     case 'Digital Marketing':
+                            //       Navigator.push(
+                            //         context,
+                            //         MaterialPageRoute(builder: (context) => Digitlmarketingshowdata()),
+                            //       );
+                            //       break;
+                            //     case 'Finance':
+                            //       Navigator.push(
+                            //         context,
+                            //         MaterialPageRoute(builder: (context) => Financeshowdata()),
+                            //       );
+                            //       break;
+                            //     case 'Human Resource':
+                            //       Navigator.push(
+                            //         context,
+                            //         MaterialPageRoute(builder: (context) => Hrreceiveddata()),
+                            //       );
+                            //       break;
+                            //     case 'Installation':
+                            //       Navigator.push(
+                            //         context,
+                            //         MaterialPageRoute(builder: (context) => AssignedTaskForInstallation()),
+                            //       );
+                            //       break;
+                            //     case 'Management':
+                            //       Navigator.push(
+                            //         context,
+                            //         MaterialPageRoute(builder: (context) => Managementshowdata()),
+                            //       );
+                            //       break;
+                            //     case 'Reception':
+                            //       Navigator.push(
+                            //         context,
+                            //         MaterialPageRoute(builder: (context) => Receptionshowdata()),
+                            //       );
+                            //       break;
+                            //     case 'Sales':
+                            //       Navigator.push(
+                            //         context,
+                            //         MaterialPageRoute(builder: (context) => Receivesalesdata()),
+                            //       );
+                            //       break;
+                            //     case 'Social Media':
+                            //       Navigator.push(
+                            //         context,
+                            //         MaterialPageRoute(builder: (context) => Socialmediamarketingshowdata()),
+                            //       );
+                            //       break;
+                            //     default:
+                            //       ScaffoldMessenger.of(context).showSnackBar(
+                            //         SnackBar(content: Text('No route defined for department: $department')),
+                            //       );
+                            //   }
                           }
 
                           return GestureDetector(
@@ -245,47 +243,85 @@ class _AdmintasksummuryState extends State<Admintasksummury> {
                             child: Card(
                               margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                               elevation: 6,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                               child: Container(
                                 decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(12),
-                                  gradient: LinearGradient(
-                                    colors: task['taskstatus'] == 'Approved'
-                                        ? [Colors.green.shade800, Colors.green.shade600]
-                                        : task['taskstatus'] == 'Rejected'
-                                        ? [Colors.red.shade800, Colors.red.shade600]
-                                        : [Colors.blue.shade900, Colors.blue.shade700],
+                                  borderRadius: BorderRadius.circular(14),
+                                  gradient: const LinearGradient(
+                                    colors: [Color(0xFF000F89), Color(0xFF0F52BA), Color(0xFF002147)],
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
                                   ),
                                 ),
-                                padding: const EdgeInsets.all(16.0),
+                                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 18.0),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    _buildTaskDetail('Admin Name', task['adminName']),
-                                    _buildTaskDetail('Department', task['department']),
-                                    _buildTaskDetail('Project Name', task['projectName']),
-                                    _buildTaskDetail('Description', task['taskDescription']),
-                                    _buildTaskDetail('Assigned Date', task['date']),
-                                    _buildTaskDetail('Deadline Date', task['deadlineDate']),
-                                    _buildTaskDetail('Assigned Time', task['time']),
-                                    _buildTaskDetail('Status', task['taskstatus']),
-                                    _buildTaskDetail('Employee Description', task['employeeDescription']),
+                                    // 📋 Header Row
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        const Text(
+                                          "Task Summary",
+                                          style: TextStyle(
+                                            fontSize: 17,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+
+                                      ],
+                                    ),
                                     const SizedBox(height: 10),
-                                    const Text(
-                                      'Note:- Tap to see detailed report.',
-                                      style: TextStyle(
-                                        color: Color(0xFFFF0038),
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
+                                    _buildTaskDetail(Icons.person, 'Admin', task['adminName']),
+                                    _buildTaskDetail(Icons.apartment, 'Department', task['department']),
+
+                                    const Divider(color: Colors.white24),
+                                    _buildTaskDetail(Icons.business, 'Project Name', task['projectName']),
+
+                                    // ⬇ Expandable Description
+                                    GestureDetector(
+                                      onTap: () {
+                                        setState(() => _isExpanded = !_isExpanded);
+                                      },
+                                      child: _buildTaskDetail(
+                                        Icons.description,
+                                        'Description',
+                                        _isExpanded
+                                            ? task['taskDescription']
+                                            : (task['taskDescription'] != null && task['taskDescription'].length > 50
+                                            ? '${task['taskDescription'].substring(0, 50)}... Tap to expand'
+                                            : task['taskDescription']),
                                       ),
                                     ),
+
+                                    const Divider(color: Colors.white24),
+                                    Row(
+                                      children: [
+                                        Expanded(child: _buildTaskDetail(Icons.calendar_today, 'Assigned', task['date'])),
+                                        const SizedBox(width: 12),
+                                        Expanded(child: _buildTaskDetail(Icons.event, 'Deadline', task['deadlineDate'])),
+                                      ],
+                                    ),
+                                    _buildTaskDetail(Icons.access_time, 'Time', task['time']),
+
+                                    const Divider(color: Colors.white24),
+
+                                    _buildTaskDetail(Icons.comment, 'Employee Feedback', task['employeeDescription']),
+
+                                    // 📈 Progress Bar
+                                    const SizedBox(height: 12),
+                                    _buildTaskDetail(Icons.info_outline, 'Status', task['taskstatus']),
+
+
+
                                   ],
                                 ),
                               ),
                             ),
+
                           );
+
                         },
                       );
                     },
@@ -297,174 +333,296 @@ class _AdmintasksummuryState extends State<Admintasksummury> {
     );
   }
 
+
   Widget _buildSearchAndStatusRow() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8),
-      child: Row(
-        children: [
-          // Search Field - 50% width
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(right: 4.0),
-              child: TextField(
-                controller: searchController,
-                decoration: InputDecoration(
-                  labelText: "Search by Project Name",
-                  labelStyle: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Times New Roman',
-                  ),
-                  prefixIcon: const Icon(Icons.search, color: Colors.white),
-                  filled: true,
-                  fillColor: Colors.blue.shade900,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                style: const TextStyle(color: Colors.white, fontFamily: 'Times New Roman'),
-                onChanged: (value) {
-                  setState(() {
-                    searchQuery = value;
-                  });
-                },
-              ),
-            ),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [
+              Color(0xFF000F89), // Royal Blue
+              Color(0xFF0F52BA), // Cobalt Blue
+              Color(0xFF002147), // Deep Navy
+            ],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
           ),
-
-          // Status Dropdown - 50% width
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(left: 4.0),
-              child: DropdownButtonFormField<String>(
-                value: selectedStatus,
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() {
-                      selectedStatus = value;
-                    });
-                  }
-                },
-                items: ['Pending', 'In Progress', 'Completed', 'All']
-                    .map((status) => DropdownMenuItem<String>(
-                  value: status,
-                  child: Text(status, style: const TextStyle(fontFamily: 'Times New Roman')),
-                ))
-                    .toList(),
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.blue.shade900,
-                  labelText: "Filter by Status",
-                  labelStyle: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Times New Roman',
-                  ),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-                dropdownColor: Colors.black,
-                style: const TextStyle(color: Colors.white, fontFamily: 'Times New Roman'),
-              ),
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-
-  Widget _buildDateFilters() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          _buildDateButton("Start Date", startDate, (date) {
-            setState(() {
-              startDate = date;
-            });
-          }),
-          _buildDateButton("End Date", endDate, (date) {
-            setState(() {
-              endDate = date;
-            });
-          }),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDateButton(String label, DateTime? date, Function(DateTime) onDateSelected) {
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(backgroundColor: Colors.blue.shade700),
-      onPressed: () async {
-        DateTime? picked = await showDatePicker(
-          context: context,
-          initialDate: date ?? DateTime.now(),
-          firstDate: DateTime(2000),
-          lastDate: DateTime(2100),
-        );
-        if (picked != null) {
-          onDateSelected(picked);
-        }
-      },
-      child: Text(
-        date != null ? DateFormat('dd-MMMM-yy').format(date) : label,
-        style: const TextStyle(color: Colors.white, fontFamily: 'Times New Roman'),
-      ),
-    );
-  }
-
-  Widget _buildStatusFilter() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-      child: DropdownButtonFormField<String>(
-        value: selectedStatus,
-        onChanged: (value) {
-          if (value != null) {
-            setState(() {
-              selectedStatus = value;
-            });
-          }
-        },
-        items: ['Pending', 'In Progress', 'Completed', 'All']
-            .map((status) => DropdownMenuItem<String>(
-          value: status,
-          child: Text(status, style: const TextStyle(fontFamily: 'Times New Roman')),
-        ))
-            .toList(),
-        decoration: InputDecoration(
-          filled: true,
-          fillColor: Colors.blue.shade900,
-          labelText: "Filter by Status",
-          labelStyle: const TextStyle(
-              color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Times New Roman'),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+          ],
         ),
-        dropdownColor: Colors.black,
-        style: const TextStyle(color: Colors.white, fontFamily: 'Times New Roman'),
-      ),
-    );
-  }
-
-  Widget _buildTaskDetail(String label, dynamic value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6.0),
-      child: RichText(
-        text: TextSpan(
-          text: "$label: ",
-          style: const TextStyle(
-              color: Colors.tealAccent,
-              fontWeight: FontWeight.bold,
-              fontFamily: 'Times New Roman'),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+        child: Row(
           children: [
-            TextSpan(
-              text: value != null ? value.toString() : 'N/A',
-              style: const TextStyle(color: Colors.white, fontFamily: 'Times New Roman'),
+            // 🔍 Search Field
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: TextField(
+                  controller: searchController,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    fontFamily: 'Roboto',
+                    color: Colors.black87,
+                  ),
+                  onChanged: (value) {
+                    setState(() {
+                      searchQuery = value;
+                    });
+                  },
+                  decoration: InputDecoration(
+                    hintText: "Search by Project Name",
+                    hintStyle:  TextStyle(
+                      color: Colors.blue.shade900,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Roboto',
+                    ),
+                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: Color(0xFFD6DDEB)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 1.5),
+                    ),
+                  ),
+                ),
+              ),
             ),
+
+            // 🔽 Status Dropdown
+// 🔽 Status Dropdown
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 8.0),
+                child: DropdownButtonFormField<String>(
+                  value: selectedStatus,
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        selectedStatus = value;
+                      });
+                    }
+                  },
+                  items: [
+                    _buildDropdownItem('Pending', Icons.pending_actions, Colors.orange),
+                    _buildDropdownItem('In Progress', Icons.autorenew, Colors.blue),
+                    _buildDropdownItem('Completed', Icons.check_circle, Colors.green),
+                    _buildDropdownItem('All', Icons.all_inbox, Colors.grey),
+                  ],
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    fontFamily: 'Roboto',
+                    color: Colors.white,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: "Filter by Status",
+                    hintStyle: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      fontFamily: 'Roboto',
+                    ),
+                    filled: true,
+                    fillColor: const Color(0xFF0F52BA),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: Colors.white, width: 1.5), // White border
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: Colors.white, width: 2), // Slightly thicker on focus
+                    ),
+                  ),
+                  dropdownColor: const Color(0xFF0F52BA),
+                  iconEnabledColor: Colors.white,
+                ),
+
+
+
+
+
+              ),
+            ),
+
           ],
         ),
       ),
     );
   }
+
+  DropdownMenuItem<String> _buildDropdownItem(String value, IconData icon, Color iconColor) {
+    return DropdownMenuItem<String>(
+      value: value,
+      child: Row(
+        children: [
+          Icon(icon, color: iconColor, size: 20),
+          const SizedBox(width: 8),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,  // White text on blue dropdown list
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              fontFamily: 'Roboto',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+
+  Widget _buildDateFilters() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildDateButton(
+              context,
+              "Start Date",
+              startDate,
+                  (date) {
+                setState(() {
+                  startDate = date;
+                });
+              },
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: _buildDateButton(
+              context,
+              "End Date",
+              endDate,
+                  (date) {
+                setState(() {
+                  endDate = date;
+                });
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  Widget _buildDateButton(
+      BuildContext context,
+      String label,
+      DateTime? date,
+      Function(DateTime) onDateSelected,
+      ) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFF000F89), // Royal Blue
+            Color(0xFF0F52BA), // Cobalt Blue
+            Color(0xFF002147), // Deep Navy
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            offset: const Offset(0, 4),
+            blurRadius: 6,
+          ),
+        ],
+      ),
+      child: ElevatedButton.icon(
+        icon: const Icon(Icons.calendar_today_rounded, color: Colors.white),
+        label: Text(
+          date != null ? DateFormat('dd MMM yyyy').format(date) : label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.bold, // Bold font
+            fontFamily: 'Seogi Ui',
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+        onPressed: () async {
+          final picked = await showDatePicker(
+            context: context,
+            initialDate: date ?? DateTime.now(),
+            firstDate: DateTime(2000),
+            lastDate: DateTime(2100),
+          );
+          if (picked != null) {
+            onDateSelected(picked);
+          }
+        },
+      ),
+    );
+  }
+
+
+
+
+  Widget _buildTaskDetail(IconData icon, String label, dynamic value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 20, color: Colors.tealAccent),
+          const SizedBox(width: 10),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                style: const TextStyle(fontFamily: 'Roboto'),
+                children: [
+                  TextSpan(
+                    text: "$label: ",
+                    style: const TextStyle(
+                      color: Colors.tealAccent,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                    ),
+                  ),
+                  TextSpan(
+                    text: value != null && value.toString().isNotEmpty ? value.toString() : 'N/A',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w400,
+                      fontSize: 15,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
 }

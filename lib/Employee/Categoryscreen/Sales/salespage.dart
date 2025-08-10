@@ -98,11 +98,11 @@ class _SalesPageState extends State<SalesPage> {
                     buildTextField(
                       context: context,
                       controller: _executivenameController,
-                      labelText: 'Executive Name',
+                      labelText: 'Lead Owner Name',
                       icon: Icons.person_3_rounded,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter your executive name';
+                          return 'Please enter your lead owner name';
                         }
                         return null;
                       },
@@ -251,6 +251,26 @@ class _SalesPageState extends State<SalesPage> {
                         {
                           'text': 'Referral',
                           'icon': FontAwesomeIcons.peopleArrows
+                        },
+                        {
+                          'text': 'Contacted',
+                          'icon': FontAwesomeIcons.phone,
+                        },
+                        {
+                          'text': 'Nurture',
+                          'icon': FontAwesomeIcons.seedling,
+                        },
+                        {
+                          'text': 'Qualified',
+                          'icon': FontAwesomeIcons.checkCircle,
+                        },
+                        {
+                          'text': 'Unqualified',
+                          'icon': FontAwesomeIcons.timesCircle,
+                        },
+                        {
+                          'text': 'Junk',
+                          'icon': FontAwesomeIcons.trash,
                         },
                       ],
                       onChanged: (value) {

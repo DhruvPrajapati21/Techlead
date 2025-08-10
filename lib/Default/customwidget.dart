@@ -145,15 +145,23 @@ Widget buildLeaveField({
 }
 
 Widget buildDropdownField({
-  required BuildContext context, // 👈 Needed for focus
+  required BuildContext context,
   required String labelText,
   required IconData icon,
   required String? value,
   required List<Map<String, dynamic>> items,
   required ValueChanged<String?> onChanged,
   FormFieldValidator<String>? validator,
-  FocusNode? focusNode, // 👈 Optional focus control
+  FocusNode? focusNode,
 }) {
+  // Extract all dropdown values
+  final dropdownValues = items.map((e) => e['text'] as String).toSet();
+
+  // ✅ Defensive: Ensure the currently selected value is valid
+  final dropdownValue = (value != null && dropdownValues.contains(value))
+      ? value
+      : null; // <- Avoids assertion error
+
   return Container(
     decoration: BoxDecoration(
       gradient: const LinearGradient(
@@ -177,11 +185,8 @@ Widget buildDropdownField({
     padding: const EdgeInsets.symmetric(horizontal: 8),
     child: Focus(
       focusNode: focusNode,
-      onFocusChange: (hasFocus) {
-        // Optional debug or logic here
-      },
       child: DropdownButtonFormField<String>(
-        value: value,
+        value: dropdownValue,
         iconEnabledColor: Colors.white,
         style: const TextStyle(fontSize: 16, color: Colors.white),
         decoration: InputDecoration(
@@ -215,7 +220,6 @@ Widget buildDropdownField({
         }).toList(),
         onChanged: (val) {
           onChanged(val);
-          // Move to next focus node manually
           FocusScope.of(context).nextFocus();
         },
         validator: validator,
@@ -223,8 +227,6 @@ Widget buildDropdownField({
     ),
   );
 }
-
-
 Widget buildMultiSelectDropdownField({
   required BuildContext context,
   required String labelText,

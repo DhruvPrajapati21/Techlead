@@ -441,11 +441,11 @@ class _NewPieShowState extends State<NewPieShow>
                             icon: Icons.leave_bags_at_home,
                             text: 'Leave Reports',
                             onTap: () => _navigate(context, LeaveInfo())),
-                        _buildDrawerItem(
-                            icon: Icons.add_box,
-                            text: 'Add Project Graph',
-                            onTap: () =>
-                                _navigate(context, AdminFetchDataPiePage())),
+                        // _buildDrawerItem(
+                        //     icon: Icons.add_box,
+                        //     text: 'Add Project Graph',
+                        //     onTap: () =>
+                        //         _navigate(context, AdminFetchDataPiePage())),
                         _buildDrawerItem(
                             icon: Icons.support_agent,
                             text: 'Services',

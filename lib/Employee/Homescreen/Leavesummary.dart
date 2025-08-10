@@ -53,11 +53,14 @@ class _LeaveSummaryScreenState extends State<LeaveSummaryScreen> with SingleTick
         .orderBy('reportedDateTime', descending: true);
 
     if (statusFilter.toLowerCase() != 'all') {
-      query = query.where('status', isEqualTo: statusFilter.toLowerCase());
+      final normalized = toBeginningOfSentenceCase(statusFilter.trim()); // ✅ Title Case
+      query = query.where('status', isEqualTo: normalized);
     }
 
     return query.snapshots();
   }
+
+
 
   bool _isInSelectedMonth(DateTime date) {
     return date.year == selectedDate.year && date.month == selectedDate.month;
@@ -85,25 +88,35 @@ class _LeaveSummaryScreenState extends State<LeaveSummaryScreen> with SingleTick
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
       child: Card(
-        elevation: 5,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        elevation: 6,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         child: Container(
           decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
             gradient: LinearGradient(
               colors: [Colors.blue.shade900, Colors.blue.shade600],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            borderRadius: BorderRadius.circular(12),
           ),
-          padding: const EdgeInsets.all(15),
-          child: ListTile(
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Align(
-                  alignment: Alignment.topRight,
-                  child: Text(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 18.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 📋 Header Row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    "Leave Record",
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  Text(
                     'Record: ${index + 1}',
                     style: const TextStyle(
                       color: Colors.greenAccent,
@@ -111,66 +124,86 @@ class _LeaveSummaryScreenState extends State<LeaveSummaryScreen> with SingleTick
                       fontFamily: 'Times New Roman',
                     ),
                   ),
+                ],
+              ),
+              const SizedBox(height: 10),
+
+              _buildLeaveDetail(Icons.badge, 'Emp ID', leave['empid']),
+              _buildLeaveDetail(Icons.person, 'Name', leave['name']),
+              _buildLeaveDetail(Icons.email, 'Email', leave['emailid']),
+              _buildLeaveDetail(Icons.category, 'Leave Type', leave['leavetype']),
+
+              const Divider(color: Colors.white24),
+
+              Row(
+                children: [
+                  Expanded(child: _buildLeaveDetail(Icons.calendar_today, 'Start Date', leave['startdate'])),
+                  const SizedBox(width: 12),
+                  Expanded(child: _buildLeaveDetail(Icons.event, 'End Date', leave['enddate'])),
+                ],
+              ),
+
+              _buildLeaveDetail(Icons.info_outline, 'Status', statusFormatted, color: statusColor),
+              _buildLeaveDetail(Icons.note, 'Reason', leave['reason']),
+
+              const Divider(color: Colors.white24),
+
+              Text(
+                'Reported On: ${DateFormat('dd/MM/yyyy HH:mm:ss').format(reportedDate)}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Times New Roman',
                 ),
-                const SizedBox(height: 8),
-                _buildRichText('EmpId: ', leave['empid']),
-                _buildRichText('Name: ', leave['name']),
-              ],
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildRichText('EmailId: ', leave['emailid']),
-                _buildRichText('Leave Type: ', leave['leavetype']),
-                _buildRichText('Start Date: ', leave['startdate']),
-                _buildRichText('End Date: ', leave['enddate']),
-                _buildRichText('Status: ', statusFormatted, color: statusColor),
-                _buildRichText('Reason: ', leave['reason']),
-                const SizedBox(height: 6),
-                Text(
-                  'Reported On: ${DateFormat('dd/MM/yyyy HH:mm:ss').format(reportedDate)}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Times New Roman',
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
+      ),
+
+    );
+  }
+  Widget _buildLeaveDetail(IconData icon, String label, String value, {Color color = Colors.white}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                children: [
+                  TextSpan(
+                    text: '$label: ',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      foreground: Paint()
+                        ..shader = const LinearGradient(
+                          colors: [Colors.cyanAccent, Colors.lightBlueAccent, Colors.white],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ).createShader(const Rect.fromLTWH(0.0, 0.0, 200.0, 70.0)),
+                    ),
+                  ),
+                  TextSpan(
+                    text: value ?? '',
+                    style: TextStyle(
+                      color: color,
+                      fontWeight: FontWeight.normal,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildRichText(String label, String value, {Color color = Colors.white}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: RichText(
-        text: TextSpan(
-          children: [
-            TextSpan(
-              text: label,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.cyanAccent,
-                fontFamily: 'Times New Roman',
-              ),
-            ),
-            TextSpan(
-              text: value,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: color,
-                fontFamily: 'Times New Roman',
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildNoData(String status) {
     return Center(
@@ -194,50 +227,128 @@ class _LeaveSummaryScreenState extends State<LeaveSummaryScreen> with SingleTick
     return Scaffold(
       backgroundColor: Colors.grey[200],
       appBar: AppBar(
-        elevation: 0,
-        backgroundColor: const Color(0xFFe3f2fd),
-        title: const Text(
-          "Leave Summary",
-          style: TextStyle(
-            fontFamily: 'Times New Roman',
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
+        elevation: 8,
+        toolbarHeight: 70,
+        backgroundColor: Colors.transparent,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF0F2027), Color(0xFF203A43), Color(0xFF2C5364)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black45,
+                blurRadius: 12,
+                offset: Offset(0, 4),
+              ),
+            ],
           ),
         ),
+        title: ShaderMask(
+          shaderCallback: (bounds) => const LinearGradient(
+            colors: [Colors.cyanAccent, Colors.white],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ).createShader(bounds),
+          child: const Text(
+            "Leave Summary",
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              fontFamily: 'Montserrat',
+              color: Colors.white, // overridden by Shader
+              letterSpacing: 0.8,
+            ),
+          ),
+        ),
+        centerTitle: true,
         actions: [
           GestureDetector(
             onTap: _selectMonth,
             child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 12),
+              margin: const EdgeInsets.only(right: 16),
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Colors.blue.shade100,
-                borderRadius: BorderRadius.circular(10),
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF00C9FF), Color(0xFF92FE9D)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 6,
+                    offset: Offset(0, 3),
+                  ),
+                ],
               ),
-              child: const Icon(Icons.calendar_month_outlined, color: Colors.black),
+              child: const Icon(Icons.calendar_month_outlined, color: Colors.black, size: 24),
             ),
           ),
         ],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(50),
+          preferredSize: const Size.fromHeight(55),
           child: Container(
-            color: const Color(0xFFFFD700),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF0F2027), Color(0xFF203A43), Color(0xFF2C5364)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black38,
+                  blurRadius: 6,
+                  offset: Offset(0, -2),
+                ),
+              ],
+            ),
             child: TabBar(
               controller: _tabController,
               isScrollable: true,
-              indicatorColor: Colors.green,
-              indicatorWeight: 4,
-              labelStyle: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
+              indicator: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF00FFB4), Color(0xFF00C9FF)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(30),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.white30,
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
+                ],
               ),
-              labelColor: Colors.white,
-              unselectedLabelColor: Colors.black87,
-              tabs: tabs.map((tab) => Tab(text: tab)).toList(),
+              indicatorPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              labelStyle: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+                fontFamily: 'Montserrat',
+                letterSpacing: 0.5,
+              ),
+              labelColor: Colors.black,
+              unselectedLabelColor: Colors.white70,
+              splashFactory: NoSplash.splashFactory,
+              overlayColor: MaterialStateProperty.all(Colors.transparent),
+              tabs: tabs
+                  .map(
+                    (tab) => Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Tab(text: tab),
+                ),
+              )
+                  .toList(),
             ),
           ),
         ),
       ),
+
       body: TabBarView(
         controller: _tabController,
         children: tabs.map((status) {
