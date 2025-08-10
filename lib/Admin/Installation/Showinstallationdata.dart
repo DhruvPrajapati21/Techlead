@@ -4,6 +4,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../Employee/Categoryscreen/FileViwerscreen.dart';
 import 'Edit_Installation_Page/edit_installation_page.dart';
@@ -23,6 +24,13 @@ class _ShowinstallationdataState extends State<Showinstallationdata> {
       return DateFormat('dd MMMM yyyy').format(parsedDate);
     } catch (e) {
       return rawDate; // Fallback to original if parsing fails
+    }
+  }
+
+  Future<void> _launchPhone(String phoneNumber) async {
+    final Uri phoneUri = Uri(scheme: 'tel', path: phoneNumber);
+    if (await canLaunchUrl(phoneUri)) {
+      await launchUrl(phoneUri);
     }
   }
 
@@ -349,8 +357,17 @@ class _ShowinstallationdataState extends State<Showinstallationdata> {
                                   'Service Status: ', doc['service_status']),
                               buildFormField(
                                   'Customer Name: ', doc['customer_name']),
-                              buildFormField('Customer Contact: ',
-                                  doc['customer_contact']),
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                    bottom: 10.0),
+                                child: Text(
+                                  "Note: Tap the mobile number to call.",
+                                  style: TextStyle(
+                                      color: Colors.orangeAccent,
+                                      fontSize: 14),
+                                ),
+                              ),
+                              buildTappableField('Contact Number:', doc['customer_contact'], _launchPhone),
                               buildFormField('Service Description: ',
                                   doc['service_description']),
                               buildFormField('Remarks: ', doc['remarks']),
@@ -515,6 +532,29 @@ class _ShowinstallationdataState extends State<Showinstallationdata> {
       ),
     );
   }
+
+
+  Widget buildTappableField(String title, String value, Function(String) onTap) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 1,
+            child: Text(title, style: TextStyle(fontFamily: 'Arial', fontSize: 16, fontWeight: FontWeight.bold, color: Colors.cyanAccent)),
+          ),
+          Expanded(
+            flex: 2,
+            child: InkWell(
+              onTap: () => onTap(value),
+              child: Text(value, style: TextStyle(decoration: TextDecoration.underline, fontFamily: 'Arial', fontSize: 16, color: Colors.white)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
 
   Widget buildFormField(String title, String value) {
     return Padding(

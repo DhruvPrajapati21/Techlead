@@ -266,6 +266,16 @@ class _ShowsalesleaddataState extends State<Showsalesleaddata> {
             children: [
               buildFormField('Lead Owner Name: ', doc['executivename']),
               buildFormField('Full Name: ', doc['fullName']),
+              Padding(
+                padding: const EdgeInsets.only(
+                    bottom: 10.0),
+                child: Text(
+                  "Note: Tap the mobile number to call.",
+                  style: TextStyle(
+                      color: Colors.orangeAccent,
+                      fontSize: 14),
+                ),
+              ),
               buildTappableField('Contact Number:', doc['contactNumber'], _launchPhone),
               noteText(),
               buildTappableField('Email Address: ', doc['email'], _launchEmail),
