@@ -73,7 +73,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-
   Future<void> _checkProfile() async {
     User? user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -83,16 +82,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         .doc(user.uid)
         .get();
 
-    bool profileExists = doc.exists;
-
     setState(() {
-      _hasProfile = profileExists;
+      _hasProfile = doc.exists && (doc.data() != null && (doc.data() as Map).isNotEmpty);
+      _showAddIcon = !_hasProfile;
       _loading = false;
-      _showAddIcon = !profileExists;
     });
   }
-
-
 
   String userId = FirebaseAuth.instance.currentUser!.uid;
 
@@ -129,7 +124,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             : null,
       ),
 
-      body: StreamBuilder<DocumentSnapshot>(
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance
             .collection('EmpProfile')
             .doc(userId)
@@ -138,33 +135,80 @@ class _ProfileScreenState extends State<ProfileScreen> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (snapshot.hasError) {
-            return const Center(
-                child: Text('An error occurred. Please try again.'));
-          }
-          if (!snapshot.hasData || snapshot.data?.data() == null) {
-            return const Center(
-                child: Text(
-                  'No profile data available! You can add a profile by tapping the profile icon in the top bar!',
-                  style: TextStyle(
-                      fontFamily: "Times New Roman", fontWeight: FontWeight.bold),
-                ));
-          }
-          final profileData = snapshot.data!.data() as Map<String, dynamic>;
-          String empId = profileData['empId'];
-          List<String> categories =
-          List<String>.from(profileData['categories'] ?? []);
 
-          return _buildProfileContent(profileData);
+          if (snapshot.hasError) {
+            return const Center(child: Text('Error loading profile.'));
+          }
+
+          if (!snapshot.hasData || !snapshot.data!.exists || (snapshot.data!.data() as Map).isEmpty) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.person_off, size: 80, color: Colors.grey),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'No profile found!\nPlease add your profile!',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: "Times New Roman",
+                        color: Colors.black,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.person_add),
+                      label: const Text("Add Profile"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue.shade900,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      ),
+                      onPressed: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => AddProfilePage()),
+                        );
+                        _checkProfile();
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          final data = snapshot.data!.data() as Map<String, dynamic>;
+          return _buildProfileContent(data);
         },
       ),
+
+
     );
   }
-  Widget _buildProfileContent(Map<String, dynamic> profileData) {
+  Widget _buildProfileContent(Map<String, dynamic> data) {
+    final profileData = {
+      'fullName': data['fullName'] ?? 'N/A',
+      'empId': data['empId'] ?? 'N/A',
+      'email': data['email'] ?? 'N/A',
+      'mobile': data['mobile'] ?? 'N/A',
+      'categories': (data['categories'] as List?)?.cast<String>() ?? [],
+      'address': data['address'] ?? 'N/A',
+      'dob': data['dob'] ?? 'N/A',
+      'qualification': data['qualification'] ?? 'N/A',
+      'dateOfJoining': data['dateOfJoining'] ?? 'N/A',
+      'profileImage': data['profileImage'] ?? '',
+    };
+
     return SingleChildScrollView(
       child: Column(
         children: [
-          const SizedBox(height: 30),
+          const SizedBox(height: 20),
           _buildProfileCard(profileData),
           const SizedBox(height: 20),
           _buildInfoCards(profileData),
@@ -172,6 +216,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
+
 
   Widget _buildProfileCard(Map<String, dynamic> profileData) {
     return Container(

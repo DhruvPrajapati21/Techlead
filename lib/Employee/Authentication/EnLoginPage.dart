@@ -3,11 +3,9 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:techlead/Employee/Homescreen/EmpHomescreen.dart';
-
 import '../../Loginui/beizercontainer.dart';
 import '../../Loginui/beizercontainerbottom.dart';
 import '../../Loginui/beizercontainerleft.dart';
-
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key, this.title}) : super(key: key);

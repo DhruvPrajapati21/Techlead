@@ -44,7 +44,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-  List<Widget> get _screens => [
+  List<Widget> get _screens =>
+      [
         _buildHomeScreenContent(),
         Attendancescreen(),
         Categoryscreen(),
@@ -91,10 +92,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     _controllers = List.generate(
       cardCount,
-      (index) => AnimationController(
-        vsync: this,
-        duration: const Duration(milliseconds: 400),
-      ),
+          (index) =>
+          AnimationController(
+            vsync: this,
+            duration: const Duration(milliseconds: 400),
+          ),
     );
 
     _animations = _controllers.map((controller) {
@@ -107,9 +109,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     _startStaggeredAnimation();
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(appBarTitleProvider.notifier).state = "Your Task Dashboard";
+      ref
+          .read(appBarTitleProvider.notifier)
+          .state = "Your Task Dashboard";
 
-      ref.read(appBarGradientColorsProvider.notifier).state = [
+      ref
+          .read(appBarGradientColorsProvider.notifier)
+          .state = [
         const Color(0xFF283593),
         const Color(0xFF1E88E5), // Blue shade
       ];
@@ -126,55 +132,58 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Future<bool> _onWillPop(BuildContext context) async {
     final shouldExit = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: const [
-            Icon(Icons.exit_to_app, color: Colors.blueAccent),
-            SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'Exit Techlead App?',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontFamily: "Times New Roman",
-                  fontSize: 18,
+      builder: (_) =>
+          AlertDialog(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20)),
+            title: Row(
+              children: const [
+                Icon(Icons.exit_to_app, color: Colors.blueAccent),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Exit Techlead App?',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontFamily: "Times New Roman",
+                      fontSize: 18,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            content: const Text(
+              'Are you sure you want to exit?',
+              style: TextStyle(fontSize: 16, fontStyle: FontStyle.italic),
+            ),
+            actionsPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.grey[700],
+                  textStyle: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton.icon(
+                onPressed: () => Navigator.pop(context, true),
+                icon: const Icon(Icons.exit_to_app),
+                label: const Text('Exit'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blueAccent,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 12),
+                  textStyle: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
-            ),
-          ],
-        ),
-        content: const Text(
-          'Are you sure you want to exit?',
-          style: TextStyle(fontSize: 16, fontStyle: FontStyle.italic),
-        ),
-        actionsPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.grey[700],
-              textStyle: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-            child: const Text('Cancel'),
+            ],
           ),
-          ElevatedButton.icon(
-            onPressed: () => Navigator.pop(context, true),
-            icon: const Icon(Icons.exit_to_app),
-            label: const Text('Exit'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blueAccent,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              textStyle: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
-      ),
     );
     return shouldExit ?? false;
   }
@@ -253,7 +262,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         _firestore.collection('Empleave').snapshots().listen((snapshot) {
           _fetchMonthlyLeaveCount(); // 👈 real-time update
         });
-     _monthyreportSubscription =
+    _monthyreportSubscription =
         _firestore.collection('TaskAssign').snapshots().listen((snapshot) {
           _fetchMonthlyTaskCount(); // 👈 real-time update
         });
@@ -265,7 +274,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     try {
       DocumentSnapshot doc =
-          await _firestore.collection('EmpProfile').doc(userId).get();
+      await _firestore.collection('EmpProfile').doc(userId).get();
       if (doc.exists) {
         List<String> departments = List<String>.from(doc['categories'] ?? []);
         setState(() {
@@ -303,8 +312,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
       final empId = profileData['empId']?.toString().trim() ?? '';
       final department = (profileData['categories'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
+          ?.map((e) => e.toString())
+          .toList() ??
           [];
 
       print(
@@ -339,7 +348,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         }).toList();
 
         print(
-            "🔔 Total matched unread tasks (empId + department): ${unreadDocs.length}");
+            "🔔 Total matched unread tasks (empId + department): ${unreadDocs
+                .length}");
 
         if (mounted) {
           setState(() {
@@ -355,7 +365,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Future<void> _fetchDepartmentStats(List<String> departments) async {
     try {
       final profileDoc =
-          await _firestore.collection('EmpProfile').doc(currentUserId).get();
+      await _firestore.collection('EmpProfile').doc(currentUserId).get();
 
       if (!profileDoc.exists || profileDoc.data() == null) {
         print("⚠️ EmpProfile not found for user. Skipping department stats.");
@@ -377,7 +387,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       final DateTime monthStart = DateTime(now.year, now.month, 1);
       final DateTime monthEnd = DateTime(now.year, now.month + 1, 1);
 
-      int completed = 0, pending = 0, inProgressCount = 0;
+      int completed = 0,
+          pending = 0,
+          inProgressCount = 0;
 
       for (String status in ['Completed', 'Pending', 'In Progress']) {
         int totalCount = 0;
@@ -394,7 +406,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               .where('service_status', isEqualTo: status)
               .where('Service_department', whereIn: chunk)
               .where('date',
-                  isGreaterThanOrEqualTo: Timestamp.fromDate(monthStart))
+              isGreaterThanOrEqualTo: Timestamp.fromDate(monthStart))
               .where('date', isLessThan: Timestamp.fromDate(monthEnd))
               .get();
 
@@ -405,7 +417,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 .where('service_status', isEqualTo: status)
                 .where('Service_department', whereIn: chunk)
                 .where('date',
-                    isGreaterThanOrEqualTo: Timestamp.fromDate(monthStart))
+                isGreaterThanOrEqualTo: Timestamp.fromDate(monthStart))
                 .where('date', isLessThan: Timestamp.fromDate(monthEnd))
                 .get();
           }
@@ -429,8 +441,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       });
 
       print(
-          '📊 Stats for $empId (${DateFormat('MMMM yyyy').format(monthStart)}) → '
-          'Completed: $completed, Pending: $pending, In Progress: $inProgressCount');
+          '📊 Stats for $empId (${DateFormat('MMMM yyyy').format(
+              monthStart)}) → '
+              'Completed: $completed, Pending: $pending, In Progress: $inProgressCount');
     } catch (e) {
       print('❌ Error fetching department stats: $e');
     }
@@ -477,7 +490,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               ? (data['date'] as Timestamp).toDate()
               : DateFormat('dd MMMM yy').parse(data['date']);
 
-          return date.isAfter(startOfMonth.subtract(const Duration(seconds: 1))) &&
+          return date.isAfter(
+              startOfMonth.subtract(const Duration(seconds: 1))) &&
               date.isBefore(startOfNextMonth);
         } catch (e) {
           return false;
@@ -495,7 +509,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
 
-
   Future<void> _fetchMonthlyLeaveCount() async {
     try {
       final userId = FirebaseAuth.instance.currentUser?.uid;
@@ -508,8 +521,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       final querySnapshot = await FirebaseFirestore.instance
           .collection('Empleave')
           .where('userId', isEqualTo: userId)
-          .where('reportedDateTime', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
-          .where('reportedDateTime', isLessThan: Timestamp.fromDate(startOfNextMonth))
+          .where('reportedDateTime',
+          isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
+          .where(
+          'reportedDateTime', isLessThan: Timestamp.fromDate(startOfNextMonth))
           .get();
 
       setState(() {
@@ -556,13 +571,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       await _firestore.collection('EmpProfile').get();
       int employeeCount = empSnapshot.docs.length;
 
-      int completedTasks = 0, pendingTasksCount = 0, inProgressCount = 0;
+      int completedTasks = 0,
+          pendingTasksCount = 0,
+          inProgressCount = 0;
 
       final now = DateTime.now();
       int currentMonth = now.month;
       int currentYear = now.year;
       String todayStr =
-          "${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}";
+          "${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(
+          2, '0')}/${now.year}";
 
       // 🔄 Filter task reports for current month only
       if (userDepartments.isNotEmpty) {
@@ -615,7 +633,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         }
       }
 
-      int totalDays = 0, fullDays = 0, halfDays = 0, absentDays = 0;
+      int totalDays = 0,
+          fullDays = 0,
+          halfDays = 0,
+          absentDays = 0;
       double totalHours = 0;
 
       for (var doc in attendanceSnapshot.docs) {
@@ -703,7 +724,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       try {
         final today = DateTime.now();
         final String todayStr =
-            "${today.day.toString().padLeft(2, '0')}/${today.month.toString().padLeft(2, '0')}/${today.year}";
+            "${today.day.toString().padLeft(2, '0')}/${today.month
+            .toString()
+            .padLeft(2, '0')}/${today.year}";
 
         if (label == "Working Hours") {
           QuerySnapshot snapshot = await _firestore
@@ -759,11 +782,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               padding: EdgeInsets.all(12),
               child: Text(
                 "Performance is calculated as:\n"
-                "• Full Day = 100%\n"
-                "• Half Day = 50%\n"
-                "• Completed Task = 2 Points\n\n"
-                "Combined Score = Avg of all\n\n"
-                "Current Performance rating based on visits in the current month.",
+                    "• Full Day = 100%\n"
+                    "• Half Day = 50%\n"
+                    "• Completed Task = 2 Points\n\n"
+                    "Combined Score = Avg of all\n\n"
+                    "Current Performance rating based on visits in the current month.",
                 style: TextStyle(
                   fontFamily: 'Times New Roman',
                   fontSize: 16,
@@ -777,78 +800,79 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
         showDialog(
           context: context,
-          builder: (_) => Dialog(
-            shape:
+          builder: (_) =>
+              Dialog(
+                shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Color(0xFF000F89),
-                    Color(0xFF0F52BA),
-                    Color(0xFF002147)
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.all(Radius.circular(16)),
-              ),
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    label,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontFamily: 'Times New Roman',
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
-                      color: Colors.white,
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Color(0xFF000F89),
+                        Color(0xFF0F52BA),
+                        Color(0xFF002147)
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
+                    borderRadius: BorderRadius.all(Radius.circular(16)),
                   ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    height: 300,
-                    child: content.isNotEmpty
-                        ? ListView(children: content)
-                        : const Center(
-                            child: Text(
-                              "No data found",
-                              style: TextStyle(
-                                fontFamily: 'Times New Roman',
-                                fontSize: 16,
-                                color: Colors.white70,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                  ),
-                  const SizedBox(height: 20),
-                  Align(
-                    alignment: Alignment.bottomRight,
-                    child: TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
-                      ),
-                      child: const Text(
-                        "Close",
-                        style: TextStyle(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        label,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
                           fontFamily: 'Times New Roman',
                           fontWeight: FontWeight.bold,
+                          fontSize: 20,
                           color: Colors.white,
-                          fontSize: 16,
                         ),
                       ),
-                    ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        height: 300,
+                        child: content.isNotEmpty
+                            ? ListView(children: content)
+                            : const Center(
+                          child: Text(
+                            "No data found",
+                            style: TextStyle(
+                              fontFamily: 'Times New Roman',
+                              fontSize: 16,
+                              color: Colors.white70,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Align(
+                        alignment: Alignment.bottomRight,
+                        child: TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
+                          ),
+                          child: const Text(
+                            "Close",
+                            style: TextStyle(
+                              fontFamily: 'Times New Roman',
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
         );
       } catch (e) {
         print("Error loading dialog data for $label: $e");
@@ -886,21 +910,38 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     }
   }
 
+
   Widget _buildDashboardCard({
+    required BuildContext context,
     required IconData icon,
     required String label,
     required String value,
     VoidCallback? onTap,
   }) {
+    final screenWidth = MediaQuery
+        .of(context)
+        .size
+        .width;
+    final screenHeight = MediaQuery
+        .of(context)
+        .size
+        .height;
+
+    // 📌 Responsive sizes based on screen width
+    double iconSize = screenWidth * 0.08; // 8% of screen width
+    double labelFontSize = screenWidth * 0.025; // 2.5% of screen width
+    double valueFontSize = screenWidth * 0.03; // 3% of screen width
+    double paddingVertical = screenHeight * 0.025; // 2.5% height
+    double paddingHorizontal = screenWidth * 0.03; // 3% width
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
+          gradient: const LinearGradient(
             colors: [
               Color(0xFF000F89),
               Color(0xFF0F52BA),
-              Color(0xFF002147),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -908,40 +949,53 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           borderRadius: BorderRadius.circular(16),
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+          padding: EdgeInsets.symmetric(
+            vertical: paddingVertical,
+            horizontal: paddingHorizontal,
+          ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: EdgeInsets.all(screenWidth * 0.03),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(15),
                   color: Colors.white.withOpacity(0.1),
                   border: Border.all(color: Colors.white24, width: 1.5),
                 ),
-                child: Icon(icon, size: 32, color: Colors.white),
+                child: Icon(icon, size: iconSize, color: Colors.white),
               ),
-              const SizedBox(height: 14),
-              Text(
-                label.toUpperCase(),
-                style: const TextStyle(
-                  fontSize: 9,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                  fontFamily: "Times New Roman",
-                  letterSpacing: 1.1,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 6),
-              Text(
-                value,
-                style: const TextStyle(
-                    fontSize: 12,
+              SizedBox(height: screenHeight * 0.015),
+              Flexible(
+                child: Text(
+                  label.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: labelFontSize.clamp(8, 14),
+                    // min 8, max 14
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
-                    fontFamily: "Times New Roman"),
-                textAlign: TextAlign.center,
+                    fontFamily: "Times New Roman",
+                    letterSpacing: 1.1,
+                  ),
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis, // prevent overflow
+                  maxLines: 1,
+                ),
+              ),
+              SizedBox(height: screenHeight * 0.008),
+              Flexible(
+                child: Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: valueFontSize.clamp(10, 16), // min 10, max 16
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    fontFamily: "Times New Roman",
+                  ),
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
               ),
             ],
           ),
@@ -957,24 +1011,36 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     required int minutes,
     required String status,
     required VoidCallback onTap,
+    required BuildContext context,
   }) {
+    double screenWidth = MediaQuery.of(context).size.width;
+
+    // Adjust sizes based on device width
+    double iconSize = screenWidth < 400 ? 18 : screenWidth < 600 ? 24 : 30;
+    double labelFontSize = screenWidth < 400 ? 9 : screenWidth < 600 ? 12 : 14;
+    double timeFontSize = screenWidth < 400 ? 11 : screenWidth < 600 ? 13 : 15;
+    double statusFontSize = screenWidth < 400 ? 11 : screenWidth < 600 ? 13 : 15;
+    double paddingV = screenWidth < 400 ? 14 : screenWidth < 600 ? 18 : 22;
+    double paddingH = screenWidth < 400 ? 10 : screenWidth < 600 ? 14 : 18;
+
     Color valueColor;
     List<Color> gradientColors;
 
     if (status == "Full Day") {
       valueColor = Colors.green;
-      gradientColors = [Color(0xFF43A047), Color(0xFF66BB6A)];
+      gradientColors = [const Color(0xFF43A047), const Color(0xFF66BB6A)];
     } else if (status == "Half Day") {
       valueColor = Colors.orange;
-      gradientColors = [Color(0xFFF57C00), Color(0xFFFFA726)];
+      gradientColors = [const Color(0xFFF57C00), const Color(0xFFFFA726)];
     } else {
       valueColor = Colors.red;
-      gradientColors = [Color(0xFFD32F2F), Color(0xFFEF5350)];
+      gradientColors = [const Color(0xFFD32F2F), const Color(0xFFEF5350)];
     }
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
+        width: double.infinity,
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: gradientColors,
@@ -986,55 +1052,64 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             BoxShadow(
               color: valueColor.withOpacity(0.3),
               blurRadius: 10,
-              offset: Offset(0, 6),
+              offset: const Offset(0, 6),
             ),
           ],
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 14),
+          padding: EdgeInsets.symmetric(vertical: paddingV, horizontal: paddingH),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: EdgeInsets.all(screenWidth < 400 ? 8 : 12),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.15),
                   border: Border.all(color: Colors.white24, width: 1.2),
                   borderRadius: BorderRadius.circular(15),
                 ),
-                child: Icon(icon, size: 20, color: Colors.white),
+                child: Icon(icon, size: iconSize, color: Colors.white),
               ),
               const SizedBox(height: 12),
               Text(
                 label.toUpperCase(),
-                style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    letterSpacing: 1.0,
-                    fontFamily: "Times New Roman"),
+                style: TextStyle(
+                  fontSize: labelFontSize,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  letterSpacing: 1.0,
+                  fontFamily: "Times New Roman",
+                ),
                 textAlign: TextAlign.center,
+                softWrap: true,
+                overflow: TextOverflow.visible,
               ),
               const SizedBox(height: 3),
               Text(
                 "$hours Hrs $minutes Min",
-                style: const TextStyle(
-                  fontSize: 12,
+                style: TextStyle(
+                  fontSize: timeFontSize,
                   fontWeight: FontWeight.bold,
                   fontFamily: "Times New Roman",
                   color: Colors.white,
                 ),
                 textAlign: TextAlign.center,
+                softWrap: true,
               ),
               const SizedBox(height: 4),
-              Text(
-                status,
-                style: TextStyle(
-                    fontSize: 12,
+              Flexible( // <-- makes status wrap instead of overflowing
+                child: Text(
+                  status,
+                  style: TextStyle(
+                    fontSize: statusFontSize,
                     fontWeight: FontWeight.w500,
                     color: Colors.white.withOpacity(0.95),
-                    fontFamily: "Times New Roman"),
-                textAlign: TextAlign.center,
+                    fontFamily: "Times New Roman",
+                  ),
+                  textAlign: TextAlign.center,
+                  softWrap: true,
+                  overflow: TextOverflow.visible,
+                ),
               ),
             ],
           ),
@@ -1042,6 +1117,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       ),
     );
   }
+
 
   Widget _buildHomeScreenContent() {
     return Padding(
@@ -1062,33 +1138,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Builder(
-                      builder: (context) => IconButton(
-                        icon: const Icon(Icons.menu, color: Colors.white),
-                        onPressed: () => Scaffold.of(context).openDrawer(),
-                      ),
+              Row(
+                children: [
+                  Builder(
+                    builder: (context) => IconButton(
+                      icon: const Icon(Icons.menu, color: Colors.white),
+                      onPressed: () => Scaffold.of(context).openDrawer(),
                     ),
-                    SizedBox(
-                      width: 6,
-                    ),
-                    const Text(
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
                       'Dashboard Metrics',
                       style: TextStyle(
-                        fontSize: 20,
+                        fontSize: MediaQuery.of(context).size.width * 0.05, // responsive font
                         fontWeight: FontWeight.bold,
                         fontFamily: "Times New Roman",
                         color: Colors.white,
                       ),
+                      overflow: TextOverflow.ellipsis, // trim if too long
+                      maxLines: 1,
+                      softWrap: false,
                     ),
-                    const SizedBox(width: 45),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
+
+          const SizedBox(height: 8),
               Expanded(
                 child: GridView.count(
                   crossAxisCount:
@@ -1099,6 +1175,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     _buildAnimatedCard(
                         0,
                         _buildDashboardCard2(
+                          context: context,
                           icon: Icons.access_time,
                           label: "Working Hours",
                           hours: todayWorkingHours,
@@ -1109,6 +1186,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     _buildAnimatedCard(
                         1,
                         _buildDashboardCard(
+                          context: context,
                           icon: Icons.pending,
                           label: "Pending Tasks",
                           value: "$pendingTasks",
@@ -1117,6 +1195,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     _buildAnimatedCard(
                         2,
                         _buildDashboardCard(
+                          context: context,
                           icon: Icons.production_quantity_limits,
                           label: "InProgress Tasks",
                           value: "$inProgress",
@@ -1125,6 +1204,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     _buildAnimatedCard(
                         3,
                         _buildDashboardCard(
+                          context: context,
                           icon: Icons.task_alt,
                           label: "Completed Tasks",
                           value: "$totalTasks",
@@ -1133,6 +1213,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     _buildAnimatedCard(
                         4,
                         _buildDashboardCard(
+                          context: context,
                           icon: Icons.report,
                           label: "Admin Task Summary",
                           value: "$monthlyTaskCount",
@@ -1141,6 +1222,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     _buildAnimatedCard(
                       5,
                       _buildDashboardCard(
+                        context: context,
                         icon: Icons.event_note, // or any leave-related icon
                         label: "Leave Summary",
                         value: "$monthlyLeaveCount", // 👈 use fetched count
@@ -1151,6 +1233,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     _buildAnimatedCard(
                         6,
                         _buildDashboardCard(
+                          context: context,
                           icon: Icons.group,
                           label: "Team Members",
                           value: "$totalEmployees",
@@ -1159,6 +1242,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     _buildAnimatedCard(
                         7,
                         _buildDashboardCard(
+                          context: context,
                           icon: Icons.thumb_up,
                           label: "Performance Rating",
                           value: "${performancePercentage.toStringAsFixed(1)}%",
@@ -1218,9 +1302,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
                   if (!snapshot.hasData || !snapshot.data!.exists) {
                     return const Center(
-                      child: Text(
-                        "No profile found",
-                        style: TextStyle(color: Colors.white),
+                      child: Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: Text(
+                          "Please create your profile first from the ProfileScreen!",
+                          style: TextStyle(color: Colors.white,fontFamily: "Times New Roman"),
+                        ),
                       ),
                     );
                   }

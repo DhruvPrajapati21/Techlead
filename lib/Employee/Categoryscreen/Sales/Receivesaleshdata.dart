@@ -299,7 +299,7 @@ class _ReceivesalesdataState extends State<Receivesalesdata> {
                   builder: (context, taskSnapshot) {
                     if (!taskSnapshot.hasData || taskSnapshot.data!.docs.isEmpty) {
                       return const Center(
-                          child: Text("No tasks assigned.", style: TextStyle(fontSize: 16,fontFamily: "Times New Roman")));
+                          child: Text("No tasks assigned!", style: TextStyle(fontSize: 16,fontFamily: "Times New Roman")));
                     }
 
                     final assignedTasks = taskSnapshot.data!.docs.where((doc) {
