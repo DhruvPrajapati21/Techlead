@@ -264,6 +264,7 @@ class _LeaveSummaryScreenState extends State<LeaveSummaryScreen> with SingleTick
           ),
         ),
         centerTitle: true,
+        iconTheme: IconThemeData(color: Colors.white),
         actions: [
           GestureDetector(
             onTap: _selectMonth,

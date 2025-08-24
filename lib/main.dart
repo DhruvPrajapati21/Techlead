@@ -21,6 +21,10 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await _handleNotification(message, isFromBackground: true);
 }
 
+final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey =
+GlobalKey<ScaffoldMessengerState>();
+
+
 void main() async {
 
   WidgetsFlutterBinding.ensureInitialized();
@@ -163,6 +167,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      scaffoldMessengerKey: rootScaffoldMessengerKey,
       navigatorKey: navigatorKey,
       title: 'Techlead',
       theme: Provider.of<ThemeProvider>(context).currentTheme,

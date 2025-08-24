@@ -137,8 +137,12 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
 
   Future<void> _fetchEmployeeNames() async {
     try {
-      QuerySnapshot snapshot =
-      await FirebaseFirestore.instance.collection('EmpProfile').get();
+      QuerySnapshot snapshot = await FirebaseFirestore.instance.collection('EmpProfile').get();
+
+      print("📌 EmpProfile docs: ${snapshot.docs.length}");
+      for (var doc in snapshot.docs) {
+        print("➡️ ${doc.data()}");
+      }
 
       setState(() {
         employeeNameIdMap = {};
@@ -147,7 +151,7 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
         for (var doc in snapshot.docs) {
           final fullName = doc['fullName'];
           final empId = doc['empId'];
-          final categories = doc['categories']; // ✅ LIST
+          final categories = doc['categories'];
 
           if (fullName != null && empId != null && fullName.toString().isNotEmpty) {
             employeeNameIdMap[fullName] = empId;
@@ -165,6 +169,7 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
         }
 
         employeeNames = employeeNameIdMap.keys.where((name) => name.isNotEmpty).toList();
+        print("✅ Employee Names Loaded: $employeeNames");
       });
     } catch (e) {
       print("❌ Error fetching employee names and IDs: $e");
@@ -271,38 +276,30 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
     if (!mounted) return;
 
     List<String> errors = [];
-
     final adminName = adminNameController.text.trim();
     final adminId = adminIdController.text.trim();
 
     if (adminName.isEmpty || adminId.isEmpty) {
       errors.add('Admin credentials not set. Please login again.');
     }
-
     if (selectedEmployeeNames.isEmpty) {
       errors.add('Please select at least one employee');
     }
-
     if (empIdController.text.trim().isEmpty) {
       errors.add('Employee ID field is empty');
     }
-
     if (selectedDepartment == null || selectedDepartment!.trim().isEmpty) {
       errors.add('Department not selected');
     }
-
     if (dateController.text.trim().isEmpty) {
       errors.add('Date is not selected');
     }
-
     if (timeController.text.trim().isEmpty) {
       errors.add('Time is not selected');
     }
-
     if (projectNameController.text.trim().isEmpty) {
       errors.add('Project Name is missing');
     }
-
     if ((selectedDepartment == 'Installation' ||
         selectedDepartment == 'Sales' ||
         selectedDepartment == 'Services' ||
@@ -310,22 +307,18 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
         siteLocationController.text.trim().isEmpty) {
       errors.add('Site Location is required for this department');
     }
-
     if (taskDescriptionController.text.trim().isEmpty) {
       errors.add('Task Description is missing');
     }
-
     if (deadlineDateController.text.trim().isEmpty) {
       errors.add('Deadline Date is missing');
     }
-
     if (selectedFiles.isEmpty) {
       errors.add('At least one file must be selected');
     }
 
     if (errors.isNotEmpty) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      rootScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(
           backgroundColor: Colors.red,
           content: Text(
@@ -338,13 +331,10 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
     }
 
     if (!mounted) return;
-    setState(() {
-      isLoading = true;
-    });
+    setState(() => isLoading = true);
 
     try {
       final employeeSnapshot = await FirebaseFirestore.instance.collection('EmpProfile').get();
-
       Map<String, String> employeeTokens = {};
       Map<String, List<String>> departmentTokens = {};
 
@@ -390,23 +380,57 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
       matchedTokens = matchedTokens.toSet().toList();
 
       if (matchedTokens.isEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              backgroundColor: Colors.red,
-              content: const Text(
-                'Employee ID/Department not found! Task not assigned!',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-              ),
+        rootScaffoldMessengerKey.currentState?.showSnackBar(
+          const SnackBar(
+            backgroundColor: Colors.red,
+            content: Text(
+              'Employee ID/Department not found! Task not assigned!',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
             ),
-          );
-          setState(() {
-            isLoading = false;
-          });
-        }
+          ),
+        );
+        setState(() => isLoading = false);
         return;
       }
 
+      // ✅ Duplicate task check (today only)
+      final todayDate = DateFormat('dd MMMM yy').format(DateTime.now());
+      final projectName = projectNameController.text.trim();
+
+      final existingTasks = await FirebaseFirestore.instance
+          .collection('TaskAssign')
+          .where('projectName', isEqualTo: projectName)
+          .where('date', isEqualTo: todayDate)
+          .get();
+
+      bool alreadyAssigned = false;
+
+      for (var doc in existingTasks.docs) {
+        List<dynamic> assignedEmployees = doc['employeeNames'] ?? [];
+        for (var emp in selectedEmployeeNames) {
+          if (assignedEmployees.contains(emp)) {
+            alreadyAssigned = true;
+            break;
+          }
+        }
+        if (alreadyAssigned) break;
+      }
+
+      if (alreadyAssigned) {
+        rootScaffoldMessengerKey.currentState?.showSnackBar(
+          const SnackBar(
+            backgroundColor: Colors.orange,
+            content: Text(
+              '⚠️ One or more employees already assigned this task today!',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+          ),
+        );
+        setState(() => isLoading = false);
+        return;
+      }
+
+      // ✅ Fast file uploads (parallel)
       List<Map<String, String>> uploadedFiles = await _uploadFiles();
 
       final taskData = {
@@ -419,7 +443,7 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
         'department': selectedDepartment,
         'date': dateController.text.trim(),
         'time': timeController.text.trim(),
-        'projectName': projectNameController.text.trim(),
+        'projectName': projectName,
         'siteLocation': siteLocationController.text.trim(),
         'taskDescription': taskDescriptionController.text.trim(),
         'deadlineDate': deadlineDateController.text.trim(),
@@ -453,36 +477,30 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
         );
       }
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: Colors.green,
-            content: const Text(
-              'Task assigned and notifications sent successfully!',
-              style: TextStyle(color: Colors.white),
-            ),
+      rootScaffoldMessengerKey.currentState?.showSnackBar(
+        const SnackBar(
+          backgroundColor: Colors.green,
+          content: Text(
+            'Task assigned and notifications sent successfully!',
+            style: TextStyle(color: Colors.white),
           ),
-        );
-        _resetForm();
-      }
+        ),
+      );
+      _resetForm();
     } catch (e) {
       print('🔥 Error: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: Colors.red,
-            content: Text(
-              'Error: $e',
-              style: const TextStyle(color: Colors.white),
-            ),
+      rootScaffoldMessengerKey.currentState?.showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.red,
+          content: Text(
+            'Error: $e',
+            style: const TextStyle(color: Colors.white),
           ),
-        );
-      }
+        ),
+      );
     } finally {
       if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
+        setState(() => isLoading = false);
       }
     }
   }
@@ -491,6 +509,9 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
     List<Map<String, String>> uploadedFiles = [];
 
     try {
+      // ek sathe Future banavi daisu
+      List<Future<Map<String, String>>> uploadFutures = [];
+
       for (int index = 0; index < selectedFiles.length; index++) {
         String fileName = fileNames[index];
         File file = selectedFiles[index];
@@ -498,30 +519,37 @@ class _TaskAssignPageDEState extends State<TaskAssignPageDE> {
 
         Uint8List fileBytes = await file.readAsBytes();
         Reference storageRef = _storage.ref().child("TaskAssign/$fileName");
-        UploadTask uploadTask = storageRef.putData(
-            fileBytes,
-            SettableMetadata(
-              contentType: _getContentType(fileType),
-            ));
 
-        TaskSnapshot snapshot = await uploadTask;
-        String downloadUrl = await snapshot.ref.getDownloadURL();
-
-        uploadedFiles.add({
-          'fileName': fileName,
-          'fileType': fileType,
-          'downloadUrl': downloadUrl,
+        // upload future banavo
+        final uploadFuture = storageRef
+            .putData(
+          fileBytes,
+          SettableMetadata(contentType: _getContentType(fileType)),
+        )
+            .then((snapshot) async {
+          String downloadUrl = await snapshot.ref.getDownloadURL();
+          return {
+            'fileName': fileName,
+            'fileType': fileType,
+            'downloadUrl': downloadUrl,
+          };
         });
+
+        uploadFutures.add(uploadFuture);
       }
+
+      // 👇 badha parallel run thase
+      uploadedFiles = await Future.wait(uploadFutures);
     } catch (e) {
-      print("Error uploading files: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
+      print("⚠️ Error uploading files: $e");
+      rootScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text('Error uploading files: $e')),
       );
     }
 
     return uploadedFiles;
   }
+
 
   void _resetForm() {
     projectNameController.clear();

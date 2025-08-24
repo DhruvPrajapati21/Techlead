@@ -455,12 +455,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       final userId = FirebaseAuth.instance.currentUser?.uid;
       if (userId == null) return;
 
-      // Current month date range
+      // Current month range
       DateTime now = DateTime.now();
       DateTime startOfMonth = DateTime(now.year, now.month, 1);
-      DateTime startOfNextMonth = DateTime(now.year, now.month + 1, 1);
+      DateTime endOfMonth = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
 
-      // Step 1: Get user's full name from EmpProfile
+      // Step 1: Get employee fullName
       final profileSnapshot = await FirebaseFirestore.instance
           .collection('EmpProfile')
           .doc(userId)
@@ -472,42 +472,70 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       }
 
       final fullName = profileSnapshot.get('fullName');
+      print("👤 Logged-in employee fullName: $fullName");
 
-      // Step 2: Query TaskAssign (all tasks) — no filters in Firestore
-      final allTasksSnapshot = await FirebaseFirestore.instance
-          .collection('TaskAssign')
-          .get();
+      // Step 2: Fetch all tasks
+      final allTasksSnapshot =
+      await FirebaseFirestore.instance.collection('TaskAssign').get();
 
-      // Step 3: Filter by current user (taskAssigned == fullName) and current month date
-      final userTasksThisMonth = allTasksSnapshot.docs.where((doc) {
+      int count = 0;
+
+      for (var doc in allTasksSnapshot.docs) {
         final data = doc.data() as Map<String, dynamic>;
 
-        // Check if task is assigned to the current user
-
-        // Check if the date is within this month
-        try {
-          final date = data['date'] is Timestamp
-              ? (data['date'] as Timestamp).toDate()
-              : DateFormat('dd MMMM yy').parse(data['date']);
-
-          return date.isAfter(
-              startOfMonth.subtract(const Duration(seconds: 1))) &&
-              date.isBefore(startOfNextMonth);
-        } catch (e) {
-          return false;
+        // ✅ Employee match (check both `taskAssigned` and `employeeNames` array)
+        bool isAssigned = false;
+        if (data['taskAssigned'] != null &&
+            data['taskAssigned'].toString().trim() == fullName) {
+          isAssigned = true;
         }
-      }).toList();
+        if (data['employeeNames'] != null &&
+            (data['employeeNames'] as List).contains(fullName)) {
+          isAssigned = true;
+        }
+        if (!isAssigned) continue;
+
+        // ✅ Date parsing
+        DateTime? taskDate;
+
+        if (data['date'] is Timestamp) {
+          taskDate = (data['date'] as Timestamp).toDate();
+        } else if (data['date'] is String) {
+          try {
+            taskDate = DateFormat("dd MMMM yyyy").parse(data['date']);
+          } catch (_) {
+            try {
+              taskDate = DateFormat("dd/MM/yyyy").parse(data['date']);
+            } catch (e) {
+              print("⚠️ Could not parse task date: ${data['date']}");
+              continue;
+            }
+          }
+        }
+
+        if (taskDate == null) continue;
+
+        // ✅ Check if taskDate is inside current month
+        if (taskDate.isAtSameMomentAs(startOfMonth) ||
+            taskDate.isAtSameMomentAs(endOfMonth) ||
+            (taskDate.isAfter(startOfMonth) && taskDate.isBefore(endOfMonth))) {
+          count++;
+          print("✅ Task counted: ${data['projectName']} | Date: $taskDate");
+        } else {
+          print("⏩ Skipped (outside month): ${data['projectName']} | Date: $taskDate");
+        }
+      }
 
       setState(() {
-        monthlyTaskCount = userTasksThisMonth.length;
+        monthlyTaskCount = count;
       });
 
-      print('✅ Tasks assigned this month to $fullName: $monthlyTaskCount');
+      print(
+          '📊 Total tasks for $fullName in ${DateFormat("MMMM yyyy").format(now)}: $monthlyTaskCount');
     } catch (e) {
       print('❌ Error fetching monthly task count: $e');
     }
   }
-
 
   Future<void> _fetchMonthlyLeaveCount() async {
     try {
@@ -516,19 +544,47 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
       DateTime now = DateTime.now();
       DateTime startOfMonth = DateTime(now.year, now.month, 1);
-      DateTime startOfNextMonth = DateTime(now.year, now.month + 1, 1);
+      DateTime startOfNextMonth =
+      (now.month == 12) ? DateTime(now.year + 1, 1, 1) : DateTime(now.year, now.month + 1, 1);
 
       final querySnapshot = await FirebaseFirestore.instance
           .collection('Empleave')
           .where('userId', isEqualTo: userId)
-          .where('reportedDateTime',
-          isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
-          .where(
-          'reportedDateTime', isLessThan: Timestamp.fromDate(startOfNextMonth))
           .get();
 
+      int count = 0;
+
+      for (var doc in querySnapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+
+        if (data['reportedDateTime'] != null) {
+          DateTime leaveDate;
+
+          // 🔹 Case 1: If Firestore has Timestamp
+          if (data['reportedDateTime'] is Timestamp) {
+            leaveDate = (data['reportedDateTime'] as Timestamp).toDate();
+          }
+          // 🔹 Case 2: If Firestore has String (dd MMMM yyyy)
+          else if (data['reportedDateTime'] is String) {
+            try {
+              leaveDate = DateFormat('dd MMMM yyyy').parse(data['reportedDateTime']);
+            } catch (_) {
+              continue; // invalid format skip
+            }
+          } else {
+            continue;
+          }
+
+          // ✅ Check current month condition
+          if (leaveDate.isAfter(startOfMonth.subtract(const Duration(seconds: 1))) &&
+              leaveDate.isBefore(startOfNextMonth)) {
+            count++;
+          }
+        }
+      }
+
       setState(() {
-        monthlyLeaveCount = querySnapshot.docs.length;
+        monthlyLeaveCount = count;
       });
 
       print('✅ Total leave records this month: $monthlyLeaveCount');
@@ -1146,25 +1202,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       onPressed: () => Scaffold.of(context).openDrawer(),
                     ),
                   ),
-                  const SizedBox(width: 6),
+                  // const SizedBox(width: 10),
                   Expanded(
-                    child: Text(
-                      'Dashboard Metrics',
-                      style: TextStyle(
-                        fontSize: MediaQuery.of(context).size.width * 0.05, // responsive font
-                        fontWeight: FontWeight.bold,
-                        fontFamily: "Times New Roman",
-                        color: Colors.white,
+                    child: Center(
+                      child: Text(
+                        'Dashboard Metrics',
+                        style: TextStyle(
+                          fontSize: MediaQuery.of(context).size.width * 0.05, // responsive font
+                          fontWeight: FontWeight.bold,
+                          fontFamily: "Times New Roman",
+                          color: Colors.white,
+                        ),
+                        overflow: TextOverflow.ellipsis, // trim if too long
+                        maxLines: 1,
+                        softWrap: false,
                       ),
-                      overflow: TextOverflow.ellipsis, // trim if too long
-                      maxLines: 1,
-                      softWrap: false,
                     ),
                   ),
                 ],
               ),
 
-          const SizedBox(height: 8),
               Expanded(
                 child: GridView.count(
                   crossAxisCount:

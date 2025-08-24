@@ -3,6 +3,16 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../Categoryscreen/Account/Accountshowdata.dart';
+import '../Categoryscreen/Digital Marketing/Digitlmarketingshowdata.dart';
+import '../Categoryscreen/Finance/Financeshowdata.dart';
+import '../Categoryscreen/HR/hrreceivedscreen.dart';
+import '../Categoryscreen/Installation/Installtionemployeedata.dart';
+import '../Categoryscreen/Management/Managementshowdata.dart';
+import '../Categoryscreen/Reception/Receptionshowdata.dart';
+import '../Categoryscreen/Sales/Receivesaleshdata.dart';
+import '../Categoryscreen/Social Media/Socialmediamarketingshowdata.dart';
+
 class Admintasksummury extends StatefulWidget {
   const Admintasksummury({Key? key}) : super(key: key);
 
@@ -37,6 +47,7 @@ class _AdmintasksummuryState extends State<Admintasksummury> {
         backgroundColor: const Color(0xFF002147), // Deep Navy Blue for a strong professional look
         elevation: 6,
         shadowColor: Colors.black.withOpacity(0.3),
+        iconTheme: IconThemeData(color: Colors.white),
         centerTitle: true,
         title: const Text(
           "My Admin Tasks",
@@ -173,66 +184,66 @@ class _AdmintasksummuryState extends State<Admintasksummury> {
                           final task = filteredTasks[index].data() as Map<String, dynamic>;
 
                           void navigateToDepartmentPage(String department) {
-                            //   switch (department) {
-                            //     case 'Account':
-                            //       Navigator.push(
-                            //         context,
-                            //         MaterialPageRoute(builder: (context) => Accountshowdata()),
-                            //       );
-                            //       break;
-                            //     case 'Digital Marketing':
-                            //       Navigator.push(
-                            //         context,
-                            //         MaterialPageRoute(builder: (context) => Digitlmarketingshowdata()),
-                            //       );
-                            //       break;
-                            //     case 'Finance':
-                            //       Navigator.push(
-                            //         context,
-                            //         MaterialPageRoute(builder: (context) => Financeshowdata()),
-                            //       );
-                            //       break;
-                            //     case 'Human Resource':
-                            //       Navigator.push(
-                            //         context,
-                            //         MaterialPageRoute(builder: (context) => Hrreceiveddata()),
-                            //       );
-                            //       break;
-                            //     case 'Installation':
-                            //       Navigator.push(
-                            //         context,
-                            //         MaterialPageRoute(builder: (context) => AssignedTaskForInstallation()),
-                            //       );
-                            //       break;
-                            //     case 'Management':
-                            //       Navigator.push(
-                            //         context,
-                            //         MaterialPageRoute(builder: (context) => Managementshowdata()),
-                            //       );
-                            //       break;
-                            //     case 'Reception':
-                            //       Navigator.push(
-                            //         context,
-                            //         MaterialPageRoute(builder: (context) => Receptionshowdata()),
-                            //       );
-                            //       break;
-                            //     case 'Sales':
-                            //       Navigator.push(
-                            //         context,
-                            //         MaterialPageRoute(builder: (context) => Receivesalesdata()),
-                            //       );
-                            //       break;
-                            //     case 'Social Media':
-                            //       Navigator.push(
-                            //         context,
-                            //         MaterialPageRoute(builder: (context) => Socialmediamarketingshowdata()),
-                            //       );
-                            //       break;
-                            //     default:
-                            //       ScaffoldMessenger.of(context).showSnackBar(
-                            //         SnackBar(content: Text('No route defined for department: $department')),
-                            //       );
-                            //   }
+                              switch (department) {
+                                case 'Account':
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (context) => Accountshowdata()),
+                                  );
+                                  break;
+                                case 'Digital Marketing':
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (context) => Digitlmarketingshowdata()),
+                                  );
+                                  break;
+                                case 'Finance':
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (context) => Financeshowdata()),
+                                  );
+                                  break;
+                                case 'Human Resource':
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (context) => Hrreceiveddata()),
+                                  );
+                                  break;
+                                case 'Installation':
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (context) => AssignedTaskForInstallation()),
+                                  );
+                                  break;
+                                case 'Management':
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (context) => Managementshowdata()),
+                                  );
+                                  break;
+                                case 'Reception':
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (context) => Receptionshowdata()),
+                                  );
+                                  break;
+                                case 'Sales':
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (context) => Receivesalesdata()),
+                                  );
+                                  break;
+                                case 'Social Media':
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (context) => Socialmediamarketingshowdata()),
+                                  );
+                                  break;
+                                default:
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('No route defined for department: $department')),
+                                  );
+                              }
                           }
 
                           return GestureDetector(
@@ -245,6 +256,7 @@ class _AdmintasksummuryState extends State<Admintasksummury> {
                               elevation: 6,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                               child: Container(
+                                width: double.infinity, // ✅ responsive both sides
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(14),
                                   gradient: const LinearGradient(
@@ -257,11 +269,11 @@ class _AdmintasksummuryState extends State<Admintasksummury> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    // 📋 Header Row
+                                    // 📋 Header
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        const Text(
+                                      children: const [
+                                        Text(
                                           "Task Summary",
                                           style: TextStyle(
                                             fontSize: 17,
@@ -269,17 +281,16 @@ class _AdmintasksummuryState extends State<Admintasksummury> {
                                             color: Colors.white,
                                           ),
                                         ),
-
                                       ],
                                     ),
                                     const SizedBox(height: 10),
+
                                     _buildTaskDetail(Icons.person, 'Admin', task['adminName']),
                                     _buildTaskDetail(Icons.apartment, 'Department', task['department']),
-
                                     const Divider(color: Colors.white24),
                                     _buildTaskDetail(Icons.business, 'Project Name', task['projectName']),
 
-                                    // ⬇ Expandable Description
+                                    // ⬇ Expandable Description (short preview)
                                     GestureDetector(
                                       onTap: () {
                                         setState(() => _isExpanded = !_isExpanded);
@@ -289,7 +300,8 @@ class _AdmintasksummuryState extends State<Admintasksummury> {
                                         'Description',
                                         _isExpanded
                                             ? task['taskDescription']
-                                            : (task['taskDescription'] != null && task['taskDescription'].length > 50
+                                            : (task['taskDescription'] != null &&
+                                            task['taskDescription'].length > 50
                                             ? '${task['taskDescription'].substring(0, 50)}... Tap to expand'
                                             : task['taskDescription']),
                                       ),
@@ -298,28 +310,38 @@ class _AdmintasksummuryState extends State<Admintasksummury> {
                                     const Divider(color: Colors.white24),
                                     Row(
                                       children: [
-                                        Expanded(child: _buildTaskDetail(Icons.calendar_today, 'Assigned', task['date'])),
+                                        Expanded(
+                                            child: _buildTaskDetail(
+                                                Icons.calendar_today, 'Assigned', task['date'])),
                                         const SizedBox(width: 12),
-                                        Expanded(child: _buildTaskDetail(Icons.event, 'Deadline', task['deadlineDate'])),
+                                        Expanded(
+                                            child: _buildTaskDetail(
+                                                Icons.event, 'Deadline', task['deadlineDate'])),
                                       ],
                                     ),
                                     _buildTaskDetail(Icons.access_time, 'Time', task['time']),
-
                                     const Divider(color: Colors.white24),
 
-                                    _buildTaskDetail(Icons.comment, 'Employee Feedback', task['employeeDescription']),
+                                    _buildTaskDetail(
+                                        Icons.comment, 'Employee Feedback', task['employeeDescription']),
 
-                                    // 📈 Progress Bar
                                     const SizedBox(height: 12),
                                     _buildTaskDetail(Icons.info_outline, 'Status', task['taskstatus']),
 
-
-
+                                    // ✅ NEW Note Section (after Status)
+                                    const Divider(color: Colors.white24),
+                                    const Text(
+                                      "Note: Tap here to view full description",
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.red, // 🔴 red color
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
                             ),
-
                           );
 
                         },
@@ -379,7 +401,7 @@ class _AdmintasksummuryState extends State<Admintasksummury> {
                   },
                   decoration: InputDecoration(
                     hintText: "Search by Project Name",
-                    hintStyle:  TextStyle(
+                    hintStyle: TextStyle(
                       color: Colors.blue.shade900,
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
@@ -388,14 +410,16 @@ class _AdmintasksummuryState extends State<Admintasksummury> {
                     prefixIcon: const Icon(Icons.search, color: Colors.grey),
                     filled: true,
                     fillColor: Colors.white,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
+                    contentPadding:
+                    const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                       borderSide: const BorderSide(color: Color(0xFFD6DDEB)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 1.5),
+                      borderSide:
+                      const BorderSide(color: Color(0xFF3B82F6), width: 1.5),
                     ),
                   ),
                 ),
@@ -403,12 +427,13 @@ class _AdmintasksummuryState extends State<Admintasksummury> {
             ),
 
             // 🔽 Status Dropdown
-// 🔽 Status Dropdown
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.only(left: 8.0),
                 child: DropdownButtonFormField<String>(
                   value: selectedStatus,
+                  isExpanded:
+                  true, // ✅ important to make text visible properly
                   onChanged: (value) {
                     if (value != null) {
                       setState(() {
@@ -417,9 +442,12 @@ class _AdmintasksummuryState extends State<Admintasksummury> {
                     }
                   },
                   items: [
-                    _buildDropdownItem('Pending', Icons.pending_actions, Colors.orange),
-                    _buildDropdownItem('In Progress', Icons.autorenew, Colors.blue),
-                    _buildDropdownItem('Completed', Icons.check_circle, Colors.green),
+                    _buildDropdownItem(
+                        'Pending', Icons.pending_actions, Colors.orange),
+                    _buildDropdownItem(
+                        'In Progress', Icons.autorenew, Colors.blue),
+                    _buildDropdownItem(
+                        'Completed', Icons.check_circle, Colors.green),
                     _buildDropdownItem('All', Icons.all_inbox, Colors.grey),
                   ],
                   style: const TextStyle(
@@ -438,47 +466,50 @@ class _AdmintasksummuryState extends State<Admintasksummury> {
                     ),
                     filled: true,
                     fillColor: const Color(0xFF0F52BA),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
+                    contentPadding:
+                    const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: Colors.white, width: 1.5), // White border
+                      borderSide:
+                      const BorderSide(color: Colors.white, width: 1.5),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: Colors.white, width: 2), // Slightly thicker on focus
+                      borderSide:
+                      const BorderSide(color: Colors.white, width: 2),
                     ),
                   ),
                   dropdownColor: const Color(0xFF0F52BA),
                   iconEnabledColor: Colors.white,
                 ),
-
-
-
-
-
               ),
             ),
-
           ],
         ),
       ),
     );
   }
 
-  DropdownMenuItem<String> _buildDropdownItem(String value, IconData icon, Color iconColor) {
+  /// ✅ Dropdown Item with proper wrap
+  DropdownMenuItem<String> _buildDropdownItem(
+      String value, IconData icon, Color iconColor) {
     return DropdownMenuItem<String>(
       value: value,
       child: Row(
         children: [
           Icon(icon, color: iconColor, size: 20),
-          const SizedBox(width: 8),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,  // White text on blue dropdown list
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              fontFamily: 'Roboto',
+          const SizedBox(width: 9),
+          Flexible(
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                fontFamily: 'Roboto',
+              ),
+              softWrap: true,
+              overflow: TextOverflow.visible, // ✅ show full text
             ),
           ),
         ],
